@@ -3,3 +3,8 @@ uvicorn==0.35.0
 python-dotenv==1.1.1
 dotenv==0.9.9
 asyncpg==0.30.0
+pydantic-settings==2.10.1
+pydantic==2.11.7
+SQLAlchemy==2.0.43
+inflect==7.5.0
+pydantic[email]

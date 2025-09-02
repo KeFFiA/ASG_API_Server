@@ -1,31 +1,31 @@
-import os
-
-import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 import Routers
+from Config import API_TITLE, API_DESCRIPTION, API_VERSION, API_SWAGGER_URL, API_REDOC_URL, API_ROOT_URL, \
+    CORS_ORIGINS, CORS_CREDENTIALS, CORS_METHODS, CORS_HEADERS
+from Utils import register_middlewares
+
+
 app = FastAPI(
-    title="AI12 Claims Server",
-    description="",
-    version="0.1.0",
-    docs_url="/api/v1/docs",   # Swagger
-    redoc_url="/api/v1/redoc", # ReDoc
-    root_path="/api/v1"
+    title=API_TITLE,
+    description=API_DESCRIPTION,
+    version=API_VERSION,
+    docs_url=API_SWAGGER_URL,
+    redoc_url=API_REDOC_URL,
+    root_path=API_ROOT_URL
 )
 
+register_middlewares(app)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.getenv("CORS_ORIGINS", "*").split(","),
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=CORS_CREDENTIALS,
+    allow_methods=CORS_METHODS,
+    allow_headers=CORS_HEADERS,
 )
 
 
-app.include_router(Routers.root)
-app.include_router(Routers.health)
-app.include_router(Routers.status)
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+for obj in vars(Routers).values():
+    if isinstance(obj, APIRouter):
+        app.include_router(obj)

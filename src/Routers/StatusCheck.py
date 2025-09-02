@@ -1,5 +1,15 @@
-from fastapi import APIRouter
+import os
+import random
+from pathlib import Path
+
+from fastapi import APIRouter, Request, BackgroundTasks
 from fastapi.responses import FileResponse
+from Database import PDF_Queue
+from sqlalchemy import select
+
+from Schemas import ProgressFileSchema, StatusResponseSchema
+
+from Config import RESPONSES_PATH
 
 router = APIRouter(
     prefix="/status",
@@ -7,6 +17,47 @@ router = APIRouter(
 )
 
 
-@router.get("/")
-async def status():
-    return FileResponse("D:\PycharmProjects\ASG_ComputerView\Apps\Claims\Server\Routers\data.json", media_type="application/json", filename="data.json")
+def remove_file(path: str):
+    try:
+        os.remove(path)
+    except FileNotFoundError:
+        pass
+
+
+@router.get("/{email}")
+async def status(email: str, request: Request, background_tasks: BackgroundTasks):
+    db_service = await request.state.db.get_db("service")
+    result = await db_service.execute(select(PDF_Queue).where(PDF_Queue.user_email == email).order_by(PDF_Queue.queue_position.asc()))
+    rows = result.scalars().all()
+
+    progress_list = [
+        ProgressFileSchema(
+            user_email=row.user_email,
+            filename=row.filename,
+            type=row.type,
+            queue_position=row.queue_position,
+            status=row.status
+        )
+        for row in rows
+    ]
+
+    processing = next((f for f in progress_list if f.status == "Processing"), None)
+    processing_file = processing.filename if processing else ""
+    processing_status = processing.status if processing else "Idle"
+
+    data = StatusResponseSchema(
+        user_email=email,
+        total=len(progress_list),
+        processing_file=processing_file,
+        processing_status=processing_status,
+        data=progress_list
+    )
+
+    data_json = data.model_dump_json(indent=4)
+    filename = f"{random.randint(10000, 99999)}.json"
+    filepath = Path(RESPONSES_PATH / filename)
+    filepath.write_text(data_json, encoding="utf-8")
+
+    background_tasks.add_task(remove_file, str(filepath))
+
+    return FileResponse(filepath, media_type="application/json", filename=filename, background=background_tasks)
