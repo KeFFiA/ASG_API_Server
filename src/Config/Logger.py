@@ -5,7 +5,7 @@ import os
 import zipfile
 from logging.handlers import RotatingFileHandler
 
-from src.Config import LOGS_DIR, DEV_MODE
+from Config import LOGS_DIR, DEV_MODE
 
 
 class CustomLogHandler(RotatingFileHandler):
