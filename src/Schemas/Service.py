@@ -21,4 +21,5 @@ class StatusResponseSchema(BaseModel):
     total: int
     processing_file: str
     processing_status: str
+    processing_status_description: str
     data: List[ProgressFileSchema]

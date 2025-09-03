@@ -44,12 +44,14 @@ async def status(email: str, request: Request, background_tasks: BackgroundTasks
     processing = next((f for f in progress_list if f.status == "Processing"), None)
     processing_file = processing.filename if processing else ""
     processing_status = processing.status if processing else "Idle"
+    processing_status_description = processing.status_description if processing else None
 
     data = StatusResponseSchema(
         user_email=email,
         total=len(progress_list),
         processing_file=processing_file,
         processing_status=processing_status,
+        processing_status_description=processing_status_description,
         data=progress_list
     )
 
