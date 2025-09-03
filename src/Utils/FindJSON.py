@@ -36,14 +36,13 @@ async def find_json_loop():
                     logger.debug(f"Removed {json_file.split("\\")[-1]}")
 
                     for filename in validated.filename.split(','):
-                        row = {
-                            "filename": filename.strip(),
-                            "user_email": validated.user_email,
-                            'type': validated.type,
-                        }
+                        session.add(PDF_Queue(
+                            filename=filename.strip(),
+                            user_email=validated.user_email,
+                            type=validated.type
+                        ))
 
-                    session.add(PDF_Queue(**row))
-                    logger.info(f"Added {file_data['filename']} in queue")
+                        logger.info(f"Added {file_data['filename']} in queue")
 
         logger.debug("Waiting for new files")
         await asyncio.sleep(5)
