@@ -216,3 +216,8 @@ cython_debug/
 /.env.dev
 /alembic.ini
 /migration/
+test.*
+test
+/test
+/src/test
+/data/test

@@ -8,7 +8,7 @@ from pydantic import ValidationError
 
 from Database import DatabaseClient, PDF_Queue
 from Schemas import JsonFileSchema
-
+from .Queueing import add_to_queue
 logger = setup_logger("json_processor")
 
 
@@ -36,13 +36,13 @@ async def find_json_loop():
                     logger.debug(f"Removed {json_file.split("\\")[-1]}")
 
                     for filename in validated.filename.split(','):
-                        session.add(PDF_Queue(
+                        await add_to_queue(
                             filename=filename.strip(),
                             user_email=validated.user_email,
-                            type=validated.type
-                        ))
-
-                        logger.info(f"Added {file_data['filename']} in queue")
+                            _type=validated.type,
+                            session=session
+                        )
+                    logger.info(f"Added {file_data['filename']} in queue")
 
         logger.debug("Waiting for new files")
         await asyncio.sleep(5)

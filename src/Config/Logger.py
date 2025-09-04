@@ -50,7 +50,7 @@ class CustomLogHandler(RotatingFileHandler):
             os.remove(zip_files.pop())
 
 log_format = (
-        '%(levelname)s:     [%(name)s] %(asctime)s|%(filename)s(%(funcName)s)-%(lineno)d: %(message)s'
+        '%(levelname)s:     [%(name)s] %(asctime)s|%(filename)s-%(lineno)d: %(message)s'
     )
 
 def setup_logger(name: str, log_format: str = log_format) -> logging.Logger:
