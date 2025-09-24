@@ -5,7 +5,7 @@ import csv
 
 from Config import FILES_PATH, setup_logger
 from sqlalchemy import update, insert
-from Database import Registrations
+from ..Database import Registrations
 from .MicroUtils import to_bool
 
 logger = setup_logger("csv_loader")
@@ -23,6 +23,7 @@ async def process_csv_file(csv_file: str, session):
                         .values(
                             reg=row["reg"],
                             msn=int(row["msn"]) if row["msn"] != "" else None,
+                            aircraft_type=row["aircraft"],
                             indashboard=to_bool(row["indashboard"]),
                         )
                         .execution_options(synchronize_session="fetch")
@@ -34,6 +35,7 @@ async def process_csv_file(csv_file: str, session):
                             insert(Registrations).values(
                                 reg=row["reg"],
                                 msn=int(row["msn"]) if row["msn"] != "" else None,
+                                aircraft_type=row["aircraft"],
                                 indashboard=to_bool(row["indashboard"]),
                             )
                         )
