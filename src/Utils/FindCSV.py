@@ -6,6 +6,7 @@ import csv
 from Config import FILES_PATH, setup_logger
 from sqlalchemy import update, insert
 from Database import Registrations
+from MicroUtils import to_bool
 
 logger = setup_logger("csv_loader")
 
@@ -22,7 +23,7 @@ async def process_csv_file(csv_file: str, session):
                         .values(
                             reg=row["reg"],
                             msn=row["msn"],
-                            indashboard=row["indashboard"],
+                            indashboard=to_bool(row["indashboard"]),
                         )
                         .execution_options(synchronize_session="fetch")
                     )
@@ -33,7 +34,7 @@ async def process_csv_file(csv_file: str, session):
                             insert(Registrations).values(
                                 reg=row["reg"],
                                 msn=row["msn"],
-                                indashboard=row["indashboard"],
+                                indashboard=to_bool(row["indashboard"]),
                             )
                         )
         logger.info(f"✅ Processed {csv_file}")
