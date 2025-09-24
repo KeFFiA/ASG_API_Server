@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from Config import setup_logger, DBSettings
 from Database import DatabaseClient
 
+from .FindCSV import find_csv_loop
 from .FindJSON import find_json_loop
 
 logger = setup_logger(
@@ -81,5 +82,6 @@ def register_middlewares(app):
         client = DatabaseClient()
         try:
             asyncio.create_task(find_json_loop(client))
+            asyncio.create_task(find_csv_loop(client))
         finally:
             await client.dispose()
