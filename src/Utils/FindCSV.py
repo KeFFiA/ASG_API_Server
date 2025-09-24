@@ -22,7 +22,7 @@ async def process_csv_file(csv_file: str, session):
                         .where(Registrations.reg == row["reg"])
                         .values(
                             reg=row["reg"],
-                            msn=int(row["msn"]),
+                            msn=int(row["msn"]) if row["msn"] != "" else None,
                             indashboard=to_bool(row["indashboard"]),
                         )
                         .execution_options(synchronize_session="fetch")
@@ -33,7 +33,7 @@ async def process_csv_file(csv_file: str, session):
                         await session.execute(
                             insert(Registrations).values(
                                 reg=row["reg"],
-                                msn=int(row["msn"]),
+                                msn=int(row["msn"]) if row["msn"] != "" else None,
                                 indashboard=to_bool(row["indashboard"]),
                             )
                         )
