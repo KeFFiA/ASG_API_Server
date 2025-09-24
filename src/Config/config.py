@@ -20,13 +20,13 @@ def get_project_root() -> Path:
     return current_file.parents[2]
 
 
-# FILES_PATH: Path = get_project_root() / "data/input_files"
-# NOPASSED_PATH: Path = get_project_root() / "data/nopassed"
-# RESPONSES_PATH: Path = get_project_root() / "data/responses"
+FILES_PATH: Path = get_project_root() / "data/input_files"
+NOPASSED_PATH: Path = get_project_root() / "data/nopassed"
+RESPONSES_PATH: Path = get_project_root() / "data/responses"
 
-FILES_PATH: Path = Path(r"D:\FTPFolder\input_files")
-NOPASSED_PATH: Path = Path(r"D:\FTPFolder\nopassed")
-RESPONSES_PATH: Path = Path(r"D:\FTPFolder\responses")
+# FILES_PATH: Path = Path(r"D:\FTPFolder\input_files")
+# NOPASSED_PATH: Path = Path(r"D:\FTPFolder\nopassed")
+# RESPONSES_PATH: Path = Path(r"D:\FTPFolder\responses")
 
 FILES_PATH.mkdir(parents=True, exist_ok=True)
 NOPASSED_PATH.mkdir(parents=True, exist_ok=True)
