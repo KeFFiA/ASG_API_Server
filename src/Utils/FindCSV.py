@@ -5,7 +5,7 @@ import csv
 
 from Config import FILES_PATH, setup_logger
 from sqlalchemy import update, insert
-from ..Database import Registrations
+from Database import Registrations
 from .MicroUtils import to_bool
 
 logger = setup_logger("csv_loader")
