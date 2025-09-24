@@ -6,14 +6,13 @@ import os
 from Config import FILES_PATH, setup_logger
 from pydantic import ValidationError
 
-from Database import DatabaseClient, PDF_Queue
+from Database import PDF_Queue
 from Schemas import JsonFileSchema
 from .Queueing import add_to_queue
 logger = setup_logger("json_processor")
 
 
-async def find_json_loop():
-    client = DatabaseClient()
+async def find_json_loop(client):
     while True:
         json_files = sorted(
             glob.glob(os.path.join(FILES_PATH, "*.json")),

@@ -43,3 +43,7 @@ class DatabaseClient:
             except Exception:
                 await session.rollback()
                 raise
+
+    async def dispose(self):
+        for engine in self._engines.values():
+            await engine.dispose()

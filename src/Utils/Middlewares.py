@@ -6,6 +6,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 
 from Config import setup_logger, DBSettings
+from Database import DatabaseClient
 
 from .FindJSON import find_json_loop
 
@@ -25,7 +26,14 @@ class DBProxy:
     async def get_db(self, db_name: str):
         if db_name not in session_cache:
             url = self.db_settings.get_db_url(db_name)
-            engine = create_async_engine(url, future=True, echo=False)
+            engine = create_async_engine(url,
+                                         future=True,
+                                         echo=False,
+                                         pool_pre_ping=True,
+                                         pool_recycle=300,
+                                         pool_size=10,
+                                         max_overflow=20,
+                                         )
             engine_cache[db_name] = engine
             session_cache[db_name] = async_sessionmaker(
                 bind=engine, class_=AsyncSession, expire_on_commit=False
@@ -70,4 +78,8 @@ def register_middlewares(app):
 
     @app.on_event("startup")
     async def startup_event():
-        asyncio.create_task(find_json_loop())
+        client = DatabaseClient()
+        try:
+            asyncio.create_task(find_json_loop(client))
+        finally:
+            await client.dispose()

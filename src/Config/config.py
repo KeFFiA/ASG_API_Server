@@ -7,6 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEV_MODE = False
 
+
 # PATH
 
 def get_project_root() -> Path:
@@ -18,10 +19,14 @@ def get_project_root() -> Path:
 
     return current_file.parents[2]
 
-FILES_PATH: Path = get_project_root() / "data/input_files"
-NOPASSED_PATH: Path = get_project_root() / "data/nopassed"
-RESPONSES_PATH: Path = get_project_root() / "data/responses"
 
+# FILES_PATH: Path = get_project_root() / "data/input_files"
+# NOPASSED_PATH: Path = get_project_root() / "data/nopassed"
+# RESPONSES_PATH: Path = get_project_root() / "data/responses"
+
+FILES_PATH: Path = Path(r"D:\FTPFolder\input_files")
+NOPASSED_PATH: Path = Path(r"D:\FTPFolder\nopassed")
+RESPONSES_PATH: Path = Path(r"D:\FTPFolder\responses")
 
 FILES_PATH.mkdir(parents=True, exist_ok=True)
 NOPASSED_PATH.mkdir(parents=True, exist_ok=True)
@@ -100,8 +105,8 @@ class DBSettings(BaseSettings):
     # def get_reddis_url(self):
     #     return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}"
 
+
 #  LOGS
 
 LOGS_DIR = get_project_root() / 'Logs'
 LOGS_DIR.mkdir(exist_ok=True, parents=True)
-

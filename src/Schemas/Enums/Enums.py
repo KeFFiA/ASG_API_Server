@@ -5,3 +5,4 @@ class QueueStatusEnum(str, Enum):
     PROCESSING = "Processing"
     DONE = "Done"
     FAILED = "Failed"
+    IDLE = "Idle"
