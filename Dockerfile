@@ -15,4 +15,4 @@ COPY . .
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
-CMD ["python", "/src/main.py"]
+CMD ["python", "app/src/main.py"]
