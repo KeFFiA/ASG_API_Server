@@ -1,9 +1,10 @@
 from sqlalchemy import select, func, delete, update
+from pydantic import EmailStr
 
-from Database import PDF_Queue
+from Database.Models import PDF_Queue
 
 
-async def add_to_queue(session, filename: str, user_email: str, _type: str):
+async def add_to_queue(session, filename: str, user_email: EmailStr, _type: str):
     """
     Adds file to queue
 
@@ -56,3 +57,5 @@ async def remove_from_queue(session, row_id: int) -> bool:
     )
 
     return True
+
+__all__ = ["add_to_queue", "remove_from_queue"]

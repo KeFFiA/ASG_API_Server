@@ -1,11 +1,12 @@
 import asyncio
+import csv
 import glob
 import os
-import csv
+
+from sqlalchemy import update, insert
 
 from Config import FILES_PATH, setup_logger
-from sqlalchemy import update, insert
-from Database import Registrations
+from Database.Models import Registrations
 from .MicroUtils import to_bool
 
 logger = setup_logger("csv_loader")
@@ -63,3 +64,4 @@ async def find_csv_loop(client):
         logger.debug("Waiting for new files...")
         await asyncio.sleep(5)
 
+__all__ = ["find_csv_loop"]

@@ -5,7 +5,7 @@ import os
 import zipfile
 from logging.handlers import RotatingFileHandler
 
-from Config import LOGS_DIR, DEV_MODE
+from .config import LOGS_DIR, DEV_MODE
 
 
 class CustomLogHandler(RotatingFileHandler):
@@ -49,9 +49,11 @@ class CustomLogHandler(RotatingFileHandler):
         while len(zip_files) > self.backup_count:
             os.remove(zip_files.pop())
 
+
 log_format = (
-        '%(levelname)s:     [%(name)s] %(asctime)s|%(filename)s-%(lineno)d: %(message)s'
-    )
+    '%(levelname)s:     [%(name)s] %(asctime)s|%(filename)s-%(lineno)d: %(message)s'
+)
+
 
 def setup_logger(name: str, log_format: str = log_format) -> logging.Logger:
     formatter = logging.Formatter(log_format)
@@ -89,3 +91,8 @@ def setup_logger(name: str, log_format: str = log_format) -> logging.Logger:
         logging.getLogger(module).setLevel(logging.ERROR)
 
     return logger
+
+
+__all__ = [
+    "setup_logger",
+]

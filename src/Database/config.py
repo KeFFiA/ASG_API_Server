@@ -1,3 +1,5 @@
+import inspect
+import sys
 from datetime import datetime
 
 import inflect
@@ -19,3 +21,11 @@ class Base(AsyncAttrs, DeclarativeBase):
         _inflect = inflect.engine()
         return _inflect.plural(cls.__name__.lower())
 
+
+_current_module = sys.modules[__name__]
+
+__all__ = [
+    name
+    for name, obj in globals().items()
+    if inspect.isclass(obj) and obj.__module__ == __name__
+]

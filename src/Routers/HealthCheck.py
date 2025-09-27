@@ -5,6 +5,7 @@ router = APIRouter(
     tags=["Health"]
 )
 
+
 @router.get("/")
 async def health():
     ...

@@ -3,12 +3,12 @@ import glob
 import json
 import os
 
-from Config import FILES_PATH, setup_logger
 from pydantic import ValidationError
 
-from Database import PDF_Queue
+from Config import FILES_PATH, setup_logger
 from Schemas import JsonFileSchema
 from .Queueing import add_to_queue
+
 logger = setup_logger("json_processor")
 
 
@@ -45,3 +45,6 @@ async def find_json_loop(client):
 
         logger.debug("Waiting for new files")
         await asyncio.sleep(5)
+
+
+__all__ = ["find_json_loop"]

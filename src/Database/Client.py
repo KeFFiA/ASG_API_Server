@@ -1,8 +1,9 @@
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-from Config import DBSettings
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine, AsyncSession
+
+from Config import DBSettings
 
 
 class DatabaseClient:
@@ -47,3 +48,6 @@ class DatabaseClient:
     async def dispose(self):
         for engine in self._engines.values():
             await engine.dispose()
+
+
+__all__ = ['DatabaseClient']

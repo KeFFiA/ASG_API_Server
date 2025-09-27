@@ -4,12 +4,12 @@ from pathlib import Path
 
 from fastapi import APIRouter, Request, BackgroundTasks
 from fastapi.responses import FileResponse
-from Database import PDF_Queue
 from sqlalchemy import select
 
-from Schemas import ProgressFileSchema, StatusResponseSchema, QueueStatusEnum
-
 from Config import RESPONSES_PATH
+from Database.Models import PDF_Queue
+from Schemas import ProgressFileSchema, StatusResponseSchema
+from Schemas.Enums import service
 
 router = APIRouter(
     prefix="/status",
@@ -54,10 +54,9 @@ async def status(email: str, request: Request, background_tasks: BackgroundTasks
         if total_progress > 99:
             total_progress = 100
 
-
-    processing = next((f for f in progress_list if f.status == QueueStatusEnum.PROCESSING), None)
+    processing = next((f for f in progress_list if f.status == service.QueueStatusEnum.PROCESSING), None)
     processing_file = processing.filename if processing else ""
-    processing_status = processing.status if processing else QueueStatusEnum.IDLE
+    processing_status = processing.status if processing else service.QueueStatusEnum.IDLE
     processing_status_description = (
         processing.status_description if processing else "No files in queue"
     )

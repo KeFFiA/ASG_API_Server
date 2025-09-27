@@ -8,3 +8,8 @@ pydantic==2.11.7
 SQLAlchemy==2.0.43
 inflect==7.5.0
 pydantic[email]
+msgraph-sdk==1.45.0
+azure-core==1.35.1
+APScheduler==3.11.0
+alembic==1.16.5
+redis==6.4.0

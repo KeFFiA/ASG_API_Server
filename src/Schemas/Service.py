@@ -1,6 +1,9 @@
+import inspect
+import sys
 from typing import List, Optional
 
 from pydantic import BaseModel, EmailStr
+
 
 class JsonFileSchema(BaseModel):
     user_email: EmailStr
@@ -26,3 +29,12 @@ class StatusResponseSchema(BaseModel):
     processing_status_description: str
     progress: float
     data: List[ProgressFileSchema]
+
+
+_current_module = sys.modules[__name__]
+
+__all__ = [
+    name
+    for name, obj in globals().items()
+    if inspect.isclass(obj) and obj.__module__ == __name__
+]

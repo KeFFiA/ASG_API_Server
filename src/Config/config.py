@@ -1,4 +1,6 @@
+import inspect
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv, find_dotenv
@@ -20,13 +22,16 @@ def get_project_root() -> Path:
     return current_file.parents[2]
 
 
-FILES_PATH: Path = get_project_root() / "data/input_files"
-NOPASSED_PATH: Path = get_project_root() / "data/nopassed"
-RESPONSES_PATH: Path = get_project_root() / "data/responses"
+# FILES_PATH: Path = get_project_root() / "data/input_files"
+# NOPASSED_PATH: Path = get_project_root() / "data/nopassed"
+# RESPONSES_PATH: Path = get_project_root() / "data/responses"
+# SUBSCRIPTION_FILE: Path = get_project_root() / "data/subscription_data.json"
 
-# FILES_PATH: Path = Path(r"D:\FTPFolder\input_files")
-# NOPASSED_PATH: Path = Path(r"D:\FTPFolder\nopassed")
-# RESPONSES_PATH: Path = Path(r"D:\FTPFolder\responses")
+
+FILES_PATH: Path = Path(r"D:\FTPFolder\input_files")
+NOPASSED_PATH: Path = Path(r"D:\FTPFolder\nopassed")
+RESPONSES_PATH: Path = Path(r"D:\FTPFolder\responses")
+SUBSCRIPTION_FILE: Path = Path(r"D:\FTPFolder\subscription_data.json")
 
 FILES_PATH.mkdir(parents=True, exist_ok=True)
 NOPASSED_PATH.mkdir(parents=True, exist_ok=True)
@@ -39,30 +44,43 @@ if DEV_MODE:
 else:
     ENV_PATH: str = os.getenv("ENV_PATH") or ".env"
 
+
+def require_env(name: str, additional=None):
+    value = os.getenv(name)
+    if not value and additional or additional == "":
+        return additional
+    if not value and not additional:
+        raise RuntimeError(f"{name} is required")
+    return value
+
+
 PATH = find_dotenv(filename=ENV_PATH)
 
 load_dotenv(dotenv_path=PATH)
 
 # SERVER
 
-HOST: str = os.getenv("HOST") or "0.0.0.0"
-PORT: int = os.getenv("PORT") or 8000
+HOST: str = require_env("HOST", "0.0.0.0")
+PORT: int = require_env("PORT", 8000)
+
+SELF_HOST: str = require_env("SELF_HOST", "data.aixii.com")
+SELF_PORT: int = require_env("SELF_PORT", 8000)
 
 # API
 
-API_TITLE: str = os.getenv("API_TITLE") or "AI12 Claims Server"
-API_DESCRIPTION: str = os.getenv("API_DESCRIPTION") or ""
-API_VERSION: str = os.getenv("API_VERSION") or "0.0.1"
-API_SWAGGER_URL: str = os.getenv("API_SWAGGER_URL") or "/api/docs"
-API_REDOC_URL: str = os.getenv("API_REDOC_URL") or "/api/redoc"
-API_ROOT_URL: str = os.getenv("API_ROOT_URL") or "/api/v1"
+API_TITLE: str = require_env("API_TITLE", "AIXII API Server")
+API_DESCRIPTION: str = require_env("API_DESCRIPTION", "")
+API_VERSION: str = require_env("API_VERSION", "0.1.3")
+API_SWAGGER_URL: str = require_env("API_SWAGGER_URL", "/api/docs")
+API_REDOC_URL: str = require_env("API_REDOC_URL", "/api/redoc")
+API_ROOT_URL: str = require_env("API_ROOT_URL", "/api/v1")
 
 # CORS
 
-CORS_ORIGINS: list = os.getenv("CORS_ORIGINS", "*").split(",")
-CORS_CREDENTIALS: bool = os.getenv("CORS_CREDENTIALS") or True
-CORS_METHODS: list = os.getenv("CORS_METHODS", "*").split(",")
-CORS_HEADERS: list = os.getenv("CORS_HEADERS", "*").split(",")
+CORS_ORIGINS: list = require_env("CORS_ORIGINS", "*").split(",")
+CORS_CREDENTIALS: bool = require_env("CORS_CREDENTIALS", True)
+CORS_METHODS: list = require_env("CORS_METHODS", "*").split(",")
+CORS_HEADERS: list = require_env("CORS_HEADERS", "*").split(",")
 
 
 # DATABASE
@@ -73,12 +91,14 @@ class DBSettings(BaseSettings):
     """
     DB_USER: str = Field(default="")
     DB_PASSWORD: str = Field(default="")
-    DB_HOST: str = Field(default="localhost")
+    DB_HOST: str = Field(default=HOST)
     DB_PORT: int = Field(default=5432)
     DB_NAME: str = Field(default="")
 
-    # REDIS_HOST: str
-    # REDIS_PORT: int
+    REDIS_USER: str = Field(default="")
+    REDIS_USER_PASSWORD: str = Field(default="")
+    REDIS_HOST: str = Field(default=HOST)
+    REDIS_PORT: int = Field(default=6379)
 
     model_config = SettingsConfigDict(
         env_file=PATH, extra='ignore'
@@ -102,11 +122,36 @@ class DBSettings(BaseSettings):
         return (f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD}@"
                 f"{self.DB_HOST}:{self.DB_PORT}/{matches[0]}")
 
-    # def get_reddis_url(self):
-    #     return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}"
+    def get_reddis_credentials(self):
+        return self.REDIS_USER, self.REDIS_USER_PASSWORD, self.REDIS_HOST, self.REDIS_PORT
 
 
 #  LOGS
 
 LOGS_DIR = get_project_root() / 'Logs'
 LOGS_DIR.mkdir(exist_ok=True, parents=True)
+
+#  Microsoft Graph
+
+MS_TENANT_ID: str = require_env("MS_TENANT_ID")
+MS_CLIENT_ID: str = require_env("MS_CLIENT_ID")
+MS_CLIENT_SECRET: str = require_env("MS_CLIENT_SECRET")
+MS_GRAPHSCOPES: list = [scope.strip() for scope
+                        in require_env("MS_GRAPHSCOPES", "https://graph.microsoft.com/.default").split(",")
+                        if scope.strip()]
+MS_WEBHOOK_URL: str = require_env("MS_WEBHOOK_URL", f"http://{SELF_HOST}:{SELF_PORT}/{API_ROOT_URL}/webhooks/microsoft")
+MS_WEBHOOK_LIFECYCLE_URL: str = require_env("MS_WEBHOOK_LIFECYCLE_URL", f"http://{SELF_HOST}:{SELF_PORT}/{API_ROOT_URL}/webhooks/microsoft/lifecycle")
+MS_WEBHOOK_SECRET: str = require_env("MS_WEBHOOK_SECRET", "SuperSecret")
+
+#
+
+
+# IMPORTS
+
+_current_module = sys.modules[__name__]
+
+__all__ = [
+    name
+    for name, obj in globals().items()
+    if not name.startswith("__") and not name == "DEV_MODE" and not inspect.isfunction(obj)
+]
