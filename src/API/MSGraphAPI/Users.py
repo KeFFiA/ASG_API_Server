@@ -1,7 +1,7 @@
 import asyncio
 import inspect
 import sys
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date
 
 from msgraph.generated.models.invited_user_message_info import InvitedUserMessageInfo
 from msgraph.generated.models.user import User
@@ -9,6 +9,8 @@ from msgraph.generated.models.user_collection_response import UserCollectionResp
 from msgraph.generated.users.get_by_ids.get_by_ids_post_request_body import GetByIdsPostRequestBody
 from msgraph.generated.models.invitation import Invitation
 
+from Database import DatabaseClient
+from Database.Models import Guests
 from API.Clients import MSGraphClient
 from API.Exceptions.MSGraphErrors import InvalidUserFilterError
 
@@ -72,17 +74,21 @@ async def get_user(_client: MSGraphClient = MSGraphClient().client, **kwargs) ->
 
 
 async def invite_guest_user(_client: MSGraphClient = MSGraphClient(),
+                            _dbClient: DatabaseClient = DatabaseClient(),
                             *,
                             email: str,
                             inviter: str,
                             display_name: str,
+                            user_type: str = "Guest",
                             reset_redemption: bool = False,
                             custom_message: str | None = None,
-                            expires_at: str = datetime.now(timezone.utc) + timedelta(days=30),
-                            redirect_url: str = "https://myaccount.microsoft.com/organizations") -> Invitation | None:
+                            expires_at: str | date = datetime.now(timezone.utc) + timedelta(days=30),
+                            redirect_url: str = "https://myaccount.microsoft.com/organizations") -> Invitation:
     """
     Returns all the users in the system.
 
+    :param user_type: User type(Guest or Member)
+    :param _dbClient: Database client object
     :param display_name: The display name of the user being invited
     :param reset_redemption: Reset the user's redemption status and reinvite a user
     :param custom_message: Custom message which user will receive
@@ -94,14 +100,17 @@ async def invite_guest_user(_client: MSGraphClient = MSGraphClient(),
 
     :return: Invitation object
     """
+    if user_type.lower() not in ["guest", "member"]:
+        raise ValueError("Invalid user type. Must be 'guest' or 'member'")
 
     client = _client.client
 
     invite = Invitation(
+        invited_user_display_name=display_name,
         invited_user_email_address=email,
         invite_redirect_url=redirect_url,
         send_invitation_message=True,
-        invited_user_type="Guest",
+        invited_user_type=user_type.capitalize(),
         reset_redemption=reset_redemption,
         invited_user_message_info=InvitedUserMessageInfo(
             customized_message_body=custom_message
@@ -110,11 +119,23 @@ async def invite_guest_user(_client: MSGraphClient = MSGraphClient(),
 
     response = await client.invitations.post(invite)
 
-    if response:
-        print(response)
-        print(response.invited_user)
-        print(response.invited_user.id)
-        return response
+
+    if response and response.invited_user.id is not None:
+        async with _dbClient.session("main") as session:
+            row = Guests(
+                guest_email=email,
+                guest_name=display_name,
+                guest_upn=response.invited_user.user_principal_name,
+                inviter_email=inviter,
+                is_guest=True,
+                expires_at=expires_at if
+                isinstance(expires_at, datetime) else
+                datetime.fromisoformat(expires_at) if
+                "T" in expires_at else
+                datetime.strptime(expires_at, "%Y-%m-%d"),
+            )
+            session.add(row)
+    return response
 
 
 
@@ -132,5 +153,6 @@ if __name__ == '__main__':
         inviter="alexander.ogienko@formagiclife.com",
         display_name="Alexander TestUser",
         custom_message="Test invite user message",
+        user_type='guest'
     )
     )

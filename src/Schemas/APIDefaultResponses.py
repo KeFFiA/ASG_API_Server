@@ -2,7 +2,7 @@ import inspect
 import sys
 from typing import List, Optional
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 from uuid import UUID
 
 

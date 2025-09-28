@@ -11,7 +11,7 @@ from sqlalchemy.future import select
 from redis.asyncio import Redis
 
 from Config import setup_logger, DBSettings
-from Database.Client import DatabaseClient
+from Database import DatabaseClient
 
 logger = setup_logger(
     'fastapi_app',
@@ -204,12 +204,10 @@ def register_middlewares(app):
     async def log_and_db_requests(request: Request, call_next):
         start_time = asyncio.get_event_loop().time()
         request.state.redis = app.state.redis
-        request.state.db, _id = DBProxy(app.state.redis)
+        request.state.db = DBProxy(app.state.redis)
 
-        try:
-            response = await call_next(request)
-        finally:
-            await request.state.db.close_self(_id)
+        response = await call_next(request)
+        await request.state.db.close_all()
 
         duration = asyncio.get_event_loop().time() - start_time
         logger.info(

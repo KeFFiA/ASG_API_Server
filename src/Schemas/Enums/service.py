@@ -13,6 +13,7 @@ class QueueStatusEnum(str, __enum):
 
 class APITagsEnum(str, __enum):
     WEBHOOK = "Webhook"
+    MSGRAPH = "MsGraph"
 
 class APIServiceEnum(str, __enum):
     MICROSOFT = "MicrosoftGraphAPI"

@@ -3,7 +3,10 @@ from typing import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine, AsyncSession
 
-from Config import DBSettings
+try:
+    from Config import DBSettings
+except ModuleNotFoundError:
+    from ..Config import DBSettings
 
 
 class DatabaseClient:

@@ -16,7 +16,7 @@ router = APIRouter(
 )
 
 
-MSGraphResponses = {
+MSGraphWebhookResponses = {
     200: {"model": SuccessResponse, "description": "Success"},
     510: {"model": ErrorResponse, "description": "Client state not authorized"},
     500: {"model": ErrorResponse, "description": "Server error"},
@@ -25,7 +25,7 @@ MSGraphResponses = {
 
 @router.post("/microsoft",
              status_code=status.HTTP_200_OK,
-             responses=MSGraphResponses,
+             responses=MSGraphWebhookResponses,
              summary="MicrosoftGraph",
              description="Receive webhook from Microsoft Graph",
              )
@@ -49,7 +49,7 @@ async def microsoft(request: Request):
             logger.info("[MicrosoftGraph] Webhook clientState({}) not recognised".format(value.get("clientState")))
 
             error_response = ErrorResponse(
-                correlationId=UUID(request.state.correlation_id),
+                correlationId=request.state.correlation_id,
                 description=f"{value.get('clientState')} code not authorized",
                 code=str(status.HTTP_510_NOT_EXTENDED),
             )
@@ -60,12 +60,12 @@ async def microsoft(request: Request):
         user_id = event["resourceData"]["id"]
     #     TODO: Final this shit
 
-MSGraphResponses.pop(200)
-MSGraphResponses[202] = {"model": SuccessResponse, "description": "Accepted"}
+MSGraphWebhookResponses.pop(200)
+MSGraphWebhookResponses[202] = {"model": SuccessResponse, "description": "Accepted"}
 
 @router.post("/microsoft/lifecycle",
              status_code=status.HTTP_202_ACCEPTED,
-             responses=MSGraphResponses,
+             responses=MSGraphWebhookResponses,
              summary="MicrosoftGraph lifecycle",
              description="Receive lifecycle webhook from Microsoft Graph",
              )
@@ -91,7 +91,7 @@ async def microsoft_lifecycle(request: Request):
                 "[MicrosoftGraph] Lifecycle webhook clientState({}) not recognised".format(value.get("clientState")))
 
             error_response = ErrorResponse(
-                correlationId=UUID(request.state.correlation_id),
+                correlationId=request.state.correlation_id,
                 description=f"{value.get('clientState')} code not authorized",
                 code=str(status.HTTP_510_NOT_EXTENDED),
             )
@@ -101,7 +101,7 @@ async def microsoft_lifecycle(request: Request):
             subscription_id = value.get("subscriptionId")
             await create_or_update_subscription(subscription_id=subscription_id, db_proxy=request.state.db)
             success_response = SuccessResponse(
-                correlationId=UUID(request.state.correlation_id),
+                correlationId=request.state.correlation_id,
                 detail="Subscription reauthorized",
             )
             return JSONResponse(status_code=status.HTTP_202_ACCEPTED, content=success_response.model_dump())

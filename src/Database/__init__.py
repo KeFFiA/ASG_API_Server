@@ -1,5 +1,5 @@
 from .Client import *
-from . import Models
+from .Models import *
 
 __all__ = (
         Client.__all__ + Models.__all__
