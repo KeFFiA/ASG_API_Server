@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 
 from API.Utils import create_or_update_subscription
 from Config import setup_logger, MS_WEBHOOK_SECRET
-from Schemas import SuccessResponse, ErrorResponse
+from Schemas import SuccessResponse, ErrorResponse, DetailField
 from Schemas.Enums import service
 
 logger = setup_logger(name="webhooks")
@@ -40,7 +40,7 @@ async def microsoft(request: Request):
         return JSONResponse(
             content=validation_token,
             media_type="text/plain",
-            status_code=200
+            status_code=status.HTTP_200_OK
         )
 
     # clientState check
@@ -50,11 +50,11 @@ async def microsoft(request: Request):
 
             error_response = ErrorResponse(
                 correlationId=request.state.correlation_id,
-                description=f"{value.get('clientState')} code not authorized",
-                code=str(status.HTTP_510_NOT_EXTENDED),
+                detail=[DetailField(msg=f"{value.get('clientState')} code not authorized")],
+                code=status.HTTP_510_NOT_EXTENDED,
             )
 
-            return JSONResponse(status_code=status.HTTP_510_NOT_EXTENDED, content=error_response.model_dump())
+            return JSONResponse(status_code=status.HTTP_510_NOT_EXTENDED, content=error_response.model_dump(mode="json"))
 
     for event in data.get("value", []):
         user_id = event["resourceData"]["id"]
@@ -80,7 +80,7 @@ async def microsoft_lifecycle(request: Request):
         return JSONResponse(
             content=validation_token,
             media_type="text/plain",
-            status_code=200
+            status_code=status.HTTP_200_OK
         )
 
     # clientState check
@@ -92,16 +92,17 @@ async def microsoft_lifecycle(request: Request):
 
             error_response = ErrorResponse(
                 correlationId=request.state.correlation_id,
-                description=f"{value.get('clientState')} code not authorized",
-                code=str(status.HTTP_510_NOT_EXTENDED),
+                detail=[DetailField(msg=f"{value.get('clientState')} code not authorized")],
+                code=status.HTTP_510_NOT_EXTENDED,
             )
 
-            return JSONResponse(status_code=status.HTTP_510_NOT_EXTENDED, content=error_response.model_dump())
+            return JSONResponse(status_code=status.HTTP_510_NOT_EXTENDED, content=error_response.model_dump(mode="json"))
         if value.get("lifecycleEvent") == "reauthorizationRequired":
             subscription_id = value.get("subscriptionId")
             await create_or_update_subscription(subscription_id=subscription_id, db_proxy=request.state.db)
             success_response = SuccessResponse(
                 correlationId=request.state.correlation_id,
-                detail="Subscription reauthorized",
+                detail=[DetailField(msg="Subscription reauthorized")],
+                code=status.HTTP_202_ACCEPTED,
             )
-            return JSONResponse(status_code=status.HTTP_202_ACCEPTED, content=success_response.model_dump())
+            return JSONResponse(status_code=status.HTTP_202_ACCEPTED, content=success_response.model_dump(mode="json"))

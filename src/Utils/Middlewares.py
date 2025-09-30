@@ -4,14 +4,17 @@ import uuid
 from typing import Any, Callable, Optional, Coroutine
 from functools import wraps
 
-from fastapi import Request
+from fastapi import Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.future import select
 from redis.asyncio import Redis
 
 from Config import setup_logger, DBSettings
 from Database import DatabaseClient
+from Schemas import ErrorValidationResponse, ErrorValidObject, ErrorResponse, DetailField
 
 logger = setup_logger(
     'fastapi_app',
@@ -225,15 +228,42 @@ def register_middlewares(app):
         response.headers["X-Correlation-ID"] = correlation_id
         return response
 
-    # Custom exception handler
+    # Custom ValidationError handler
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        correlation_id = getattr(request.state, "correlation_id", None)
+
+        detail = [
+            ErrorValidObject(field=".".join(map(str, e["loc"])), description=e["msg"])
+            for e in exc.errors()
+        ]
+
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content=ErrorValidationResponse(
+                correlationId=correlation_id,
+                detail=detail,
+            ).model_dump(mode="json")
+        )
+
+
+    # Custom 500 exception handler
     @app.exception_handler(Exception)
     async def custom_exception_handler(request: Request, exc: Exception):
-        correlation_id = getattr(request.state, "correlation_id", None)
+        correlation_id = request.state.correlation_id
         logger.error(f"Unhandled error: {exc} \n CorrelationID = {correlation_id}", exc_info=True)
+
+        detail = [DetailField(msg=f"{exc.__class__.__name__}: {str(exc)}")]
+
         return JSONResponse(
-            status_code=500,
-            content={"message": "Internal server error", "correlationId": correlation_id, "code": 500},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content=ErrorResponse(
+                correlationId=correlation_id,
+                code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=detail,
+            ).model_dump(mode="json")
         )
+
 
     @app.on_event("shutdown")
     async def shutdown_event():

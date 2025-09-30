@@ -1,4 +1,3 @@
-import os
 import random
 from pathlib import Path
 
@@ -10,18 +9,12 @@ from Config import RESPONSES_PATH
 from Database.Models import PDF_Queue
 from Schemas import ProgressFileSchema, StatusResponseSchema
 from Schemas.Enums import service
+from Utils import remove_file
 
 router = APIRouter(
     prefix="/status",
     tags=["Status"]
 )
-
-
-def remove_file(path: str):
-    try:
-        os.remove(path)
-    except FileNotFoundError:
-        pass
 
 
 @router.get("/{email}")

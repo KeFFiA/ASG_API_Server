@@ -1,7 +1,7 @@
 import asyncio
 import inspect
 import sys
-from datetime import datetime, timezone, timedelta, date
+from datetime import datetime
 
 from msgraph.generated.models.invited_user_message_info import InvitedUserMessageInfo
 from msgraph.generated.models.user import User
@@ -13,6 +13,8 @@ from Database import DatabaseClient
 from Database.Models import Guests
 from API.Clients import MSGraphClient
 from API.Exceptions.MSGraphErrors import InvalidUserFilterError
+from Schemas import InviteUserSchema
+from Schemas.Enums.MSGraphAPI import UserTypesEnum
 
 
 async def get_users(_client: MSGraphClient = MSGraphClient()) -> UserCollectionResponse:
@@ -76,66 +78,51 @@ async def get_user(_client: MSGraphClient = MSGraphClient().client, **kwargs) ->
 async def invite_guest_user(_client: MSGraphClient = MSGraphClient(),
                             _dbClient: DatabaseClient = DatabaseClient(),
                             *,
-                            email: str,
-                            inviter: str,
-                            display_name: str,
-                            user_type: str = "Guest",
-                            reset_redemption: bool = False,
-                            custom_message: str | None = None,
-                            expires_at: str | date = datetime.now(timezone.utc) + timedelta(days=30),
-                            redirect_url: str = "https://myaccount.microsoft.com/organizations") -> Invitation:
+                            data: InviteUserSchema) -> Invitation:
     """
     Returns all the users in the system.
 
-    :param user_type: User type(Guest or Member)
+    :param data: InviteUserSchema
     :param _dbClient: Database client object
-    :param display_name: The display name of the user being invited
-    :param reset_redemption: Reset the user's redemption status and reinvite a user
-    :param custom_message: Custom message which user will receive
-    :param inviter: Email who send the invite
-    :param expires_at: When the user's access expires
     :param _client: MSGraphClient object
-    :param email: The email address of the user being invited
-    :param redirect_url: The URL the user should be redirected to after the invitation is redeemed
 
     :return: Invitation object
     """
-    if user_type.lower() not in ["guest", "member"]:
+    if data.user_type.lower() not in ["guest", "member"]:
         raise ValueError("Invalid user type. Must be 'guest' or 'member'")
 
     client = _client.client
 
     invite = Invitation(
-        invited_user_display_name=display_name,
-        invited_user_email_address=email,
-        invite_redirect_url=redirect_url,
+        invited_user_display_name=data.user_displayName,
+        invited_user_email_address=str(data.user_email),
+        invite_redirect_url=str(data.redirect_url),
         send_invitation_message=True,
-        invited_user_type=user_type.capitalize(),
-        reset_redemption=reset_redemption,
+        invited_user_type=data.user_type,
+        reset_redemption=data.reset_redemption,
         invited_user_message_info=InvitedUserMessageInfo(
-            customized_message_body=custom_message
+            customized_message_body=data.custom_message
         )
     )
+    try:
+        response = await client.invitations.post(invite)
 
-    response = await client.invitations.post(invite)
+        if response and response.invited_user.id is not None:
+            async with _dbClient.session("main") as session:
+                row = Guests(
+                    guest_email=str(data.user_email),
+                    guest_name=data.user_displayName,
+                    guest_upn=response.invited_user.user_principal_name,
+                    inviter_email=str(data.inviter_email),
+                    is_guest=data.user_type == UserTypesEnum.GUEST,
+                    expires_at=data.expires_at,
+                )
+                session.add(row)
+        return response
 
+    except Exception as _ex:
+        raise _ex
 
-    if response and response.invited_user.id is not None:
-        async with _dbClient.session("main") as session:
-            row = Guests(
-                guest_email=email,
-                guest_name=display_name,
-                guest_upn=response.invited_user.user_principal_name,
-                inviter_email=inviter,
-                is_guest=True,
-                expires_at=expires_at if
-                isinstance(expires_at, datetime) else
-                datetime.fromisoformat(expires_at) if
-                "T" in expires_at else
-                datetime.strptime(expires_at, "%Y-%m-%d"),
-            )
-            session.add(row)
-    return response
 
 
 
