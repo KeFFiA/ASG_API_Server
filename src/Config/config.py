@@ -70,7 +70,7 @@ SELF_PORT: int = require_env("SELF_PORT", 8000)
 
 API_TITLE: str = require_env("API_TITLE", "AIXII API Server")
 API_DESCRIPTION: str = require_env("API_DESCRIPTION", "")
-API_VERSION: str = require_env("API_VERSION", "0.2.0")
+API_VERSION: str = require_env("API_VERSION", "0.1.8")
 API_SWAGGER_URL: str = require_env("API_SWAGGER_URL", "/api/docs")
 API_REDOC_URL: str = require_env("API_REDOC_URL", "/api/redoc")
 API_ROOT_URL: str = require_env("API_ROOT_URL", "/api/v1")
