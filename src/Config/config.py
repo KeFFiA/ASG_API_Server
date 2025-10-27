@@ -39,7 +39,7 @@ if DEV_MODE:
     # SUBSCRIPTION_FILE: Path = Path(r"D:\FTPFolder\subscription_data.json")
 else:
     ENV_PATH: Path = os.getenv("ENV_PATH") or get_project_root() / ".env"
-    ROOT: Path = Path("/api_data")
+    ROOT: Path = get_project_root() / "api_data"
     FILES_PATH: Path = ROOT / "input_files"
     EXCEL_FILES_PATH: Path = FILES_PATH / "excel_files"
     NOPASSED_PATH: Path = ROOT / "nopassed"
