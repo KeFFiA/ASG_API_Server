@@ -146,8 +146,8 @@ MS_CLIENT_SECRET: str = require_env("MS_CLIENT_SECRET")
 MS_GRAPHSCOPES: list = [scope.strip() for scope
                         in require_env("MS_GRAPHSCOPES", "https://graph.microsoft.com/.default").split(",")
                         if scope.strip()]
-MS_WEBHOOK_URL: str = require_env("MS_WEBHOOK_URL", f"http://{SELF_HOST}:{SELF_PORT}/{API_ROOT_URL}/webhooks/microsoft")
-MS_WEBHOOK_LIFECYCLE_URL: str = require_env("MS_WEBHOOK_LIFECYCLE_URL", f"http://{SELF_HOST}:{SELF_PORT}/{API_ROOT_URL}/webhooks/microsoft/lifecycle")
+MS_WEBHOOK_URL: str = require_env("MS_WEBHOOK_URL", f"https://{SELF_HOST}:{SELF_PORT}/{API_ROOT_URL}/webhooks/microsoft")
+MS_WEBHOOK_LIFECYCLE_URL: str = require_env("MS_WEBHOOK_LIFECYCLE_URL", f"https://{SELF_HOST}:{SELF_PORT}/{API_ROOT_URL}/webhooks/microsoft/lifecycle")
 MS_WEBHOOK_SECRET: str = require_env("MS_WEBHOOK_SECRET", "SuperSecret")
 
 # DREMIO
