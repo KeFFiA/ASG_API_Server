@@ -6,7 +6,7 @@ from pydantic import EmailStr
 
 from sqlalchemy import String, Integer, Float
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, ARRAY
 from pgvector.sqlalchemy import Vector as PGVector
 
 from .config import ServiceBase as Base
@@ -45,6 +45,12 @@ class FieldSynonym(Base):
     created_source: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     extra: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
 
+
+class DremioViews(Base):
+    table_name: Mapped[str] = mapped_column(String, nullable=False)
+    view_name: Mapped[str] = mapped_column(String, nullable=False)
+    vds_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    path: Mapped[list] = mapped_column(ARRAY(String), nullable=False)
 
 _current_module = sys.modules[__name__]
 

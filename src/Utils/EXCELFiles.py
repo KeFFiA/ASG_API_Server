@@ -22,7 +22,8 @@ async def process_excel_file(session, excel_file: str):
         sync_engine = create_engine(sync_db_url)
         for sheet_name in xls.sheet_names:
             if sheet_name.upper() == "README":
-                pass
+                logger.info("[XLSX] Readme file skipped")
+                continue
             df = pd.read_excel(xls, sheet_name=sheet_name)
 
             logger.debug(f"[XLSX] Row count: {len(df)}")
@@ -45,4 +46,4 @@ async def process_excel_file(session, excel_file: str):
             pass
         if os.path.exists(excel_file):
             os.remove(excel_file)
-            logger.debug(f"[XLSX] Removed {excel_file}")
+            logger.debug(f"[XLSX] Removed {excel_file.split('\\')[-1]}")

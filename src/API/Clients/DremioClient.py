@@ -49,8 +49,17 @@ class DremioClient:
         view_name: str,
         sql: str,
         sql_context: Optional[List[str]] = None
-    ):
-        """Create a VIRTUAL DATASET (similar to Save as view)"""
+    ) -> dict:
+        """
+        Create a VIRTUAL DATASET (similar to Save as view)
+
+        :param space: Dremio space name (e.g. "Business")
+        :param view_name: View name (e.g. "Transportation_View")
+        :param sql: SQL query string defining the new view
+        :param sql_context: Optional list of strings for SQL context
+
+        :return: Dictionary of response
+        """
         url = f"{self.DREMIO_BASE}/api/v3/catalog"
         payload = {
             "entityType": "dataset",
@@ -68,6 +77,56 @@ class DremioClient:
             if resp.status not in (200, 201):
                 raise RuntimeError(
                     f"Failed to create VDS ({view_name}): {resp.status} {text}"
+                )
+            return json.loads(text)
+
+    async def update_virtual_dataset(
+            self,
+            dataset_id: str,
+            space: str,
+            view_name: str,
+            sql: str,
+            tag: Optional[str] = None,
+            sql_context: Optional[List[str]] = None,
+            access_control_list: Optional[dict] = None,
+    ) -> dict:
+        """
+        Update an existing VIRTUAL DATASET (view) in Dremio.
+
+        :param dataset_id: UUID of the dataset to update (required)
+        :param space: Dremio space name (e.g. "Business")
+        :param view_name: View name (e.g. "Transportation_View")
+        :param sql: SQL query string defining the new view
+        :param tag: Optional tag UUID of the version to update
+        :param sql_context: Optional list of strings for SQL context
+        :param access_control_list: Optional ACL object for users/roles
+
+        :return: Dictionary of response
+        """
+        url = f"{self.DREMIO_BASE}/api/v3/catalog/{dataset_id}"
+
+        payload = {
+            "entityType": "dataset",
+            "id": dataset_id,
+            "path": [space, view_name],
+            "type": "VIRTUAL_DATASET",
+            "sql": sql,
+        }
+
+        if tag:
+            payload["tag"] = tag
+        if sql_context:
+            payload["sqlContext"] = sql_context
+        if access_control_list:
+            payload["accessControlList"] = access_control_list
+
+        async with self.session.put(
+                url, json=payload, headers=self.headers(), ssl=False
+        ) as resp:
+            text = await resp.text()
+            if resp.status not in (200, 201):
+                raise RuntimeError(
+                    f"Failed to update VDS ({view_name}): {resp.status} {text}"
                 )
             return json.loads(text)
 
