@@ -2,12 +2,13 @@ import inspect
 import os
 import sys
 from pathlib import Path
+from urllib.parse import quote_plus
 
 from dotenv import load_dotenv, find_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-DEV_MODE = False
+DEV_MODE = os.getenv("DEV_MODE") or True
 
 
 # PATH
@@ -21,28 +22,35 @@ def get_project_root() -> Path:
 
     return current_file.parents[2]
 
-
-# FILES_PATH: Path = get_project_root() / "data/input_files"
-# NOPASSED_PATH: Path = get_project_root() / "data/nopassed"
-# RESPONSES_PATH: Path = get_project_root() / "data/responses"
-# SUBSCRIPTION_FILE: Path = get_project_root() / "data/subscription_data.json"
-
-
-FILES_PATH: Path = Path(r"D:\FTPFolder\input_files")
-NOPASSED_PATH: Path = Path(r"D:\FTPFolder\nopassed")
-RESPONSES_PATH: Path = Path(r"D:\FTPFolder\responses")
-SUBSCRIPTION_FILE: Path = Path(r"D:\FTPFolder\subscription_data.json")
-
-FILES_PATH.mkdir(parents=True, exist_ok=True)
-NOPASSED_PATH.mkdir(parents=True, exist_ok=True)
-RESPONSES_PATH.mkdir(parents=True, exist_ok=True)
-
 # ENVIRONMENT
 
 if DEV_MODE:
-    ENV_PATH: str = ".env.dev"
+    ENV_PATH: Path = os.getenv("ENV_DEV_PATH") or get_project_root() / ".env.dev"
+    ROOT: Path = get_project_root() / "api_data"
+    FILES_PATH: Path = ROOT / "input_files"
+    EXCEL_FILES_PATH: Path = FILES_PATH / "excel_files"
+    NOPASSED_PATH: Path = ROOT / "nopassed"
+    RESPONSES_PATH: Path = ROOT / "responses"
+    SUBSCRIPTION_FILE: Path = ROOT / "subscription_data.json"
+    # FILES_PATH: Path = Path(r"D:\FTPFolder\input_files")
+    # EXCEL_FILES_PATH: Path = FILES_PATH / "excel_files"
+    # NOPASSED_PATH: Path = Path(r"D:\FTPFolder\nopassed")
+    # RESPONSES_PATH: Path = Path(r"D:\FTPFolder\responses")
+    # SUBSCRIPTION_FILE: Path = Path(r"D:\FTPFolder\subscription_data.json")
 else:
-    ENV_PATH: str = os.getenv("ENV_PATH") or ".env"
+    ENV_PATH: Path = os.getenv("ENV_PATH") or get_project_root() / ".env"
+    ROOT: Path = Path("/api_data")
+    FILES_PATH: Path = ROOT / "input_files"
+    EXCEL_FILES_PATH: Path = FILES_PATH / "excel_files"
+    NOPASSED_PATH: Path = ROOT / "nopassed"
+    RESPONSES_PATH: Path = ROOT / "responses"
+    SUBSCRIPTION_FILE: Path = ROOT / "subscription_data.json"
+
+ROOT.mkdir(parents=True, exist_ok=True)
+FILES_PATH.mkdir(parents=True, exist_ok=True)
+EXCEL_FILES_PATH.mkdir(parents=True, exist_ok=True)
+NOPASSED_PATH.mkdir(parents=True, exist_ok=True)
+RESPONSES_PATH.mkdir(parents=True, exist_ok=True)
 
 
 def require_env(name: str, additional=None):
@@ -54,7 +62,7 @@ def require_env(name: str, additional=None):
     return value
 
 
-PATH = find_dotenv(filename=ENV_PATH)
+PATH = find_dotenv(filename=str(Path(ENV_PATH).absolute()))
 
 load_dotenv(dotenv_path=PATH)
 
@@ -70,7 +78,7 @@ SELF_PORT: int = require_env("SELF_PORT", 8000)
 
 API_TITLE: str = require_env("API_TITLE", "AIXII API Server")
 API_DESCRIPTION: str = require_env("API_DESCRIPTION", "")
-API_VERSION: str = require_env("API_VERSION", "0.1.8")
+API_VERSION: str = require_env("API_VERSION", "0.2.0")
 API_SWAGGER_URL: str = require_env("API_SWAGGER_URL", "/api/docs")
 API_REDOC_URL: str = require_env("API_REDOC_URL", "/api/redoc")
 API_ROOT_URL: str = require_env("API_ROOT_URL", "/api/v1")
@@ -119,12 +127,11 @@ class DBSettings(BaseSettings):
             raise ValueError(f"No database similar to '{db_name}' found in {self.db_list}")
         if len(matches) > 1:
             raise ValueError(f"Ambiguous name '{db_name}', matches: {matches}")
-        return (f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD}@"
+        return (f"postgresql+asyncpg://{self.DB_USER}:{quote_plus(self.DB_PASSWORD)}@"
                 f"{self.DB_HOST}:{self.DB_PORT}/{matches[0]}")
 
     def get_reddis_credentials(self):
-        return self.REDIS_USER, self.REDIS_USER_PASSWORD, self.REDIS_HOST, self.REDIS_PORT
-
+        return self.REDIS_USER, quote_plus(self.REDIS_USER_PASSWORD), self.REDIS_HOST, self.REDIS_PORT
 
 #  LOGS
 
@@ -142,6 +149,13 @@ MS_GRAPHSCOPES: list = [scope.strip() for scope
 MS_WEBHOOK_URL: str = require_env("MS_WEBHOOK_URL", f"http://{SELF_HOST}:{SELF_PORT}/{API_ROOT_URL}/webhooks/microsoft")
 MS_WEBHOOK_LIFECYCLE_URL: str = require_env("MS_WEBHOOK_LIFECYCLE_URL", f"http://{SELF_HOST}:{SELF_PORT}/{API_ROOT_URL}/webhooks/microsoft/lifecycle")
 MS_WEBHOOK_SECRET: str = require_env("MS_WEBHOOK_SECRET", "SuperSecret")
+
+# DREMIO
+
+DREMIO_HOST = require_env("DREMIO_HOST", "http://data.aixii.com")
+DREMIO_PORT = require_env("DREMIO_PORT", "9047")
+DREMIO_USER = require_env("DREMIO_USER", "dremio_user")
+DREMIO_PASS = require_env("DREMIO_PASS", "dremio_pass")
 
 #
 

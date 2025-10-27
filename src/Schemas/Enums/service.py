@@ -19,6 +19,13 @@ class APIServiceEnum(str, __enum):
     MICROSOFT = "MicrosoftGraphAPI"
 
 
+class FilesExtensionEnum(str, __enum):
+    CSV = "csv"
+    JSON = "json"
+    EXCEL = "xlsx"
+    TXT = "txt"
+
+
 _current_module = sys.modules[__name__]
 
 __all__ = [

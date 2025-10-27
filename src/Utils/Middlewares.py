@@ -1,20 +1,20 @@
 import asyncio
 import json
 import uuid
-from typing import Any, Callable, Optional, Coroutine
 from functools import wraps
+from typing import Any, Callable, Optional, Coroutine
 
 from fastapi import Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from pydantic import ValidationError
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy.future import select
 from redis.asyncio import Redis
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
 from Config import setup_logger, DBSettings
 from Database import DatabaseClient
 from Schemas import ErrorValidationResponse, ErrorValidObject, ErrorResponse, DetailField
+from Schemas.Enums.service import FilesExtensionEnum
+from Utils.FilesFinder import Finder
 
 logger = setup_logger(
     'fastapi_app',
@@ -31,6 +31,7 @@ class DBProxy:
     - get_or_cache: retrieves an object from Redis, or if not, from the database, and stores it in Redis
     - update_and_cache: updates the object in the database and directly in Redis
     """
+
     def __init__(self, redis: Redis):
         self._open_sessions = []
         self.db_settings = DBSettings()
@@ -89,7 +90,7 @@ class DBProxy:
     # DB + Cache logic
     # -----------------------------
     async def get_or_cache(self, key: str, db_name: str, query_func: Callable[[AsyncSession], Coroutine[Any, Any, Any]],
-        ttl: int = 60) -> Optional[Any]:
+                           ttl: int = 60) -> Optional[Any]:
 
         cached = await self.redis_get(key)
         if cached:
@@ -104,8 +105,9 @@ class DBProxy:
 
         return result
 
-    async def update_and_cache(self, key: str, db_name: str, update_func: Callable[[AsyncSession], Coroutine[Any, Any, Any]],
-            ttl: int = 60, related_pattern: Optional[str] = None) -> Any:
+    async def update_and_cache(self, key: str, db_name: str,
+                               update_func: Callable[[AsyncSession], Coroutine[Any, Any, Any]],
+                               ttl: int = 60, related_pattern: Optional[str] = None) -> Any:
 
         session = await self.get_db(db_name)
         result = await update_func(session)
@@ -124,6 +126,7 @@ class DBProxy:
             logger.debug(f"{key} updated in database and cache")
 
         return result
+
 
 # -----------------------------
 # Decorator for simplification
@@ -153,11 +156,13 @@ def cache_query(key_template: str, ttl: int = 60, update: bool = False, related_
             _related_pattern = related_pattern.format(**kwargs) if related_pattern else None
 
             if update:
-                return await db.update_and_cache(key, db_name, lambda session: func(session, *args, **kwargs), ttl, related_pattern=_related_pattern)
+                return await db.update_and_cache(key, db_name, lambda session: func(session, *args, **kwargs), ttl,
+                                                 related_pattern=_related_pattern)
             else:
                 return await db.get_or_cache(key, db_name, lambda session: func(session, *args, **kwargs), ttl)
 
         return wrapper
+
     return decorator
 
 
@@ -172,15 +177,41 @@ def register_middlewares(app):
         logger.info("Redis and DatabaseClient initialized")
 
         try:
-            from .FindCSV import find_csv_loop
-            from .FindJSON import find_json_loop
+            from .CSVFiles import process_csv_file
+            from .JSONFiles import process_json_file
+            from .EXCELFiles import process_excel_file
             from Scheduler import Scheduler
             from Scheduler.jobs import jobs, update_subscription_job
+            from Config import FILES_PATH, EXCEL_FILES_PATH
 
             scheduler = Scheduler(jobs=jobs)
             scheduler.start()
-            asyncio.create_task(find_json_loop(app.state.db_client))
-            asyncio.create_task(find_csv_loop(app.state.db_client))
+
+            finder = Finder()
+
+            asyncio.create_task(finder.start_loop(  # JSON PROCESSOR
+                db_client=app.state.db_client,
+                func=process_json_file,
+                path=FILES_PATH,
+                extension=FilesExtensionEnum.JSON,
+                db_table="service"
+            ))
+            asyncio.create_task(finder.start_loop(  # CSV PROCESSOR
+                db_client=app.state.db_client,
+                func=process_csv_file,
+                path=FILES_PATH,
+                extension=FilesExtensionEnum.CSV,
+                db_table="main"
+            ))
+
+            asyncio.create_task(finder.start_loop(  # EXCEL PROCESSOR
+                db_client=app.state.db_client,
+                func=process_excel_file,
+                path=EXCEL_FILES_PATH,
+                extension=FilesExtensionEnum.EXCEL,
+                db_table="main"
+            ))
+
             asyncio.create_task(update_subscription_job(
                 db_proxy=app.state.db_proxy,
                 change_type="created",
@@ -246,7 +277,6 @@ def register_middlewares(app):
             ).model_dump(mode="json")
         )
 
-
     # Custom 500 exception handler
     @app.exception_handler(Exception)
     async def custom_exception_handler(request: Request, exc: Exception):
@@ -263,7 +293,6 @@ def register_middlewares(app):
                 detail=detail,
             ).model_dump(mode="json")
         )
-
 
     @app.on_event("shutdown")
     async def shutdown_event():
