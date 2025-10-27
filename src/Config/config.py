@@ -71,7 +71,7 @@ load_dotenv(dotenv_path=PATH)
 HOST: str = require_env("HOST", "0.0.0.0")
 PORT: int = require_env("PORT", 8000)
 
-SELF_HOST: str = require_env("SELF_HOST", "data.aixii.com")
+SELF_HOST: str = require_env("SELF_HOST", "api.aixii.com")
 SELF_PORT: int = require_env("SELF_PORT", 8000)
 
 # API
