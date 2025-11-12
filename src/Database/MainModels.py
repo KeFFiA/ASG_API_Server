@@ -12,6 +12,14 @@ except ModuleNotFoundError:
     from ..Schemas.Enums import MSGraphAPI
 
 
+
+class Registrations(Base):
+    reg: Mapped[str] = mapped_column(String, unique=True)
+    msn: Mapped[int] = mapped_column(Integer, nullable=True)
+    aircraft_type: Mapped[str] = mapped_column(String, nullable=True)
+    indashboard: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
 class Guests(Base):
     guest_email: Mapped[str] = mapped_column(String, unique=True)
     guest_upn: Mapped[str] = mapped_column(String)
