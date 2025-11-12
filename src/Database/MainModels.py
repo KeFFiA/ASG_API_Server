@@ -12,25 +12,6 @@ except ModuleNotFoundError:
     from ..Schemas.Enums import MSGraphAPI
 
 
-
-class Registrations(Base):
-    reg: Mapped[str] = mapped_column(String, unique=True)
-    msn: Mapped[int] = mapped_column(Integer, nullable=True)
-    aircraft_type: Mapped[str] = mapped_column(String, nullable=True)
-    indashboard: Mapped[bool] = mapped_column(Boolean, default=False)
-
-
-class Aircrafts(Base):
-    aircraft_type: Mapped[str] = mapped_column(String, nullable=False)
-    base64: Mapped[str] = mapped_column(String, nullable=True)
-
-
-class Airlines(Base):
-    name: Mapped[str] = mapped_column(String, unique=True)
-    icao: Mapped[str] = mapped_column(String, nullable=True)
-    base64: Mapped[str] = mapped_column(String, nullable=True)
-
-
 class Guests(Base):
     guest_email: Mapped[str] = mapped_column(String, unique=True)
     guest_upn: Mapped[str] = mapped_column(String)
@@ -39,6 +20,29 @@ class Guests(Base):
     inviter_email: Mapped[str] = mapped_column(String)
     expires_at: Mapped[date] = mapped_column(Date)
     invite_status: Mapped[int] = mapped_column(Integer, default=MSGraphAPI.InvitationStatusEnum.PENDING_ACCEPTANCE.code)
+
+
+class Lease_Agreements(Base):
+    aircraft_count: Mapped[int] = mapped_column(Integer, default=0)
+    engines_count: Mapped[int] = mapped_column(Integer, default=0)
+    aircraft_type: Mapped[str] = mapped_column(String, nullable=True)
+    msn: Mapped[str] = mapped_column(String, nullable=True)
+    engines_manufacture: Mapped[str] = mapped_column(String, nullable=True)
+    engines_models: Mapped[str] = mapped_column(String, nullable=True)
+    engine1_msn: Mapped[str] = mapped_column(String, nullable=True)
+    engine2_msn: Mapped[str] = mapped_column(String, nullable=True)
+    aircraft_registration: Mapped[str] = mapped_column(String, nullable=True)
+    dated: Mapped[str] = mapped_column(String, nullable=True)
+    lesse: Mapped[str] = mapped_column(String, nullable=True)
+    lessor: Mapped[str] = mapped_column(String, nullable=True)
+    currency: Mapped[str] = mapped_column(String, nullable=True)
+    damage_proceeds: Mapped[str] = mapped_column(String, nullable=True)
+    Threshold: Mapped[str] = mapped_column(String, nullable=True)
+    aircraft_agreed_value: Mapped[str] = mapped_column(String, nullable=True)
+    aircraft_hull_all_risks: Mapped[str] = mapped_column(String, nullable=True)
+    min_liability_coverages: Mapped[str] = mapped_column(String, nullable=True)
+    all_risks_deductible: Mapped[str] = mapped_column(String, nullable=True)
+
 
 _current_module = sys.modules[__name__]
 

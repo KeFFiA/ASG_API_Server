@@ -6,7 +6,7 @@ from pydantic import BaseModel, EmailStr
 
 
 class JsonFileSchema(BaseModel):
-    user_email: EmailStr
+    user_email: Optional[EmailStr] = None
     filename: str
     type: str
 
