@@ -35,7 +35,7 @@ class Lease_Outputs(Base):
     engines_count: Mapped[int] = mapped_column(Integer, default=0)
     aircraft_type: Mapped[str] = mapped_column(String, nullable=True)
     msn: Mapped[str] = mapped_column(String, nullable=True)
-    engines_manufacture: Mapped[str] = mapped_column(String, nullable=True)
+    engines_manufacturer: Mapped[str] = mapped_column(String, nullable=True)
     engines_models: Mapped[str] = mapped_column(String, nullable=True)
     engine1_msn: Mapped[str] = mapped_column(String, nullable=True)
     engine2_msn: Mapped[str] = mapped_column(String, nullable=True)
