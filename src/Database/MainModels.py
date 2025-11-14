@@ -12,7 +12,6 @@ except ModuleNotFoundError:
     from ..Schemas.Enums import MSGraphAPI
 
 
-
 class Registrations(Base):
     reg: Mapped[str] = mapped_column(String, unique=True)
     msn: Mapped[int] = mapped_column(Integer, nullable=True)
