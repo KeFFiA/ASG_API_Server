@@ -8,7 +8,7 @@ from openpyxl.workbook import Workbook
 from sqlalchemy import select
 
 from Config import RESPONSES_PATH
-from Database.Models import Lease_Agreements
+from Database.Models import Lease_Output
 from Schemas import JsonFileSchema
 from Schemas.Enums import service
 from Utils import remove_file
@@ -23,8 +23,8 @@ async def get_db(email: Optional[str], type: str, request: Request, background_t
     if type.lower() == 'lease_agr':
         main_db = await request.state.db.get_db("main")
         result = await main_db.execute(
-            select(Lease_Agreements)
-            .order_by(Lease_Agreements.id.asc())
+            select(Lease_Output)
+            .order_by(Lease_Output.id.asc())
         )
 
         rows = result.scalars().all()
@@ -32,7 +32,7 @@ async def get_db(email: Optional[str], type: str, request: Request, background_t
         wb = Workbook()
         ws = wb.active
         ws.title = "Lease Agreements"
-        headers = Lease_Agreements.__table__.columns.keys()
+        headers = Lease_Output.__table__.columns.keys()
         ws.append(headers)
         for row in rows:
             ws.append([getattr(row, col) for col in headers])
