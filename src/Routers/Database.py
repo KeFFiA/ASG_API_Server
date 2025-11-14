@@ -27,7 +27,7 @@ async def get_db(email: Optional[str], type: str, request: Request, background_t
             .order_by(Lease_Outputs.id.asc())
         )
 
-        rows = await result.scalars().all()
+        rows = result.scalars().all()
 
         wb = Workbook()
         ws = wb.active
