@@ -5,6 +5,7 @@ from typing import Optional
 from fastapi import APIRouter, Request, BackgroundTasks
 from fastapi.responses import FileResponse
 from openpyxl.workbook import Workbook
+from pydantic.v1 import EmailStr
 from sqlalchemy import select
 
 from Config import RESPONSES_PATH
@@ -18,8 +19,8 @@ router = APIRouter(
     tags=["Database"]
 )
 
-@router.get('/{email}/{type}')
-async def get_db(email: Optional[str], type: str, request: Request, background_tasks: BackgroundTasks):
+@router.get('/{type}')
+async def get_db(type: str, request: Request, background_tasks: BackgroundTasks):
     if type.lower() == 'lease_agr':
         main_db = await request.state.db.get_db("main")
         result = await main_db.execute(
@@ -45,7 +46,7 @@ async def get_db(email: Optional[str], type: str, request: Request, background_t
 
     data = JsonFileSchema(
         type=type,
-        user_email=email,
+        user_email=EmailStr("integrator@ai12.com"),
         filename=filename_xl
     )
 
