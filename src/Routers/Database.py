@@ -39,7 +39,6 @@ async def get_db(email: Optional[str], type: str, request: Request, background_t
         filename_xl = "Lease_Agreements.xlsx"
         filepath_xl = RESPONSES_PATH / filename_xl
         wb.save(filepath_xl)
-        background_tasks.add_task(remove_file, str(filepath_xl))
     else:
         filename_xl = "Lease_Agreements.xlsx"
 
