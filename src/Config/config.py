@@ -22,6 +22,7 @@ def get_project_root() -> Path:
 
     return current_file.parents[2]
 
+
 # ENVIRONMENT
 
 if DEV_MODE:
@@ -133,6 +134,7 @@ class DBSettings(BaseSettings):
     def get_reddis_credentials(self):
         return self.REDIS_USER, quote_plus(self.REDIS_USER_PASSWORD), self.REDIS_HOST, self.REDIS_PORT
 
+
 #  LOGS
 
 LOGS_DIR = get_project_root() / 'Logs'
@@ -147,7 +149,8 @@ MS_GRAPHSCOPES: list = [scope.strip() for scope
                         in require_env("MS_GRAPHSCOPES", "https://graph.microsoft.com/.default").split(",")
                         if scope.strip()]
 MS_WEBHOOK_URL: str = require_env("MS_WEBHOOK_URL", f"https://{SELF_HOST}/{API_ROOT_URL}/webhooks/microsoft")
-MS_WEBHOOK_LIFECYCLE_URL: str = require_env("MS_WEBHOOK_LIFECYCLE_URL", f"https://{SELF_HOST}/{API_ROOT_URL}/webhooks/microsoft/lifecycle")
+MS_WEBHOOK_LIFECYCLE_URL: str = require_env("MS_WEBHOOK_LIFECYCLE_URL",
+                                            f"https://{SELF_HOST}/{API_ROOT_URL}/webhooks/microsoft/lifecycle")
 MS_WEBHOOK_SECRET: str = require_env("MS_WEBHOOK_SECRET", "SuperSecret")
 
 # DREMIO
@@ -159,6 +162,14 @@ DREMIO_PASS = require_env("DREMIO_PASS", "dremio_pass")
 
 #
 
+PA_APP_URL = require_env("PA_APP_URL",
+                         "https://apps.powerapps.com/play/e/default-7ed13fa4-3b96-4f55-8254-4902942ef466/a/e599ee0c-0b10-409b-bcc3-c0520ebfcf48?tenantId=7ed13fa4-3b96-4f55-8254-4902942ef466&hint=20e3f4e3-fad9-4b45-b069-78883539860f")
+CUSTOM_EXCEL_LEASE_HEADERS_ORDER = [
+    "lessee", "lessor", "aircraft_count", "aircraft_type", "msn", "aircraft_registration", "engines_count",
+    "engines_manufacturer", "engines_models", "engine1_msn", "engine2_msn", "dated",  "damage_proceeds_threshold",
+    "aircraft_agreed_value", "aircraft_hull_all_risks", "min_liability_coverages", "all_risks_deductible", "currency",
+    "id", "created_at", "updated_at"
+]
 
 # IMPORTS
 

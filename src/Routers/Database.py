@@ -4,11 +4,13 @@ from typing import Optional
 
 from fastapi import APIRouter, Request, BackgroundTasks
 from fastapi.responses import FileResponse
+from openpyxl.styles import Font
+from openpyxl.utils import get_column_letter
 from openpyxl.workbook import Workbook
 from pydantic.v1 import EmailStr
 from sqlalchemy import select
 
-from Config import RESPONSES_PATH
+from Config import RESPONSES_PATH, PA_APP_URL, CUSTOM_EXCEL_LEASE_HEADERS_ORDER
 from Database.Models import Lease_Outputs
 from Schemas import JsonFileSchema
 from Schemas.Enums import service
@@ -18,6 +20,7 @@ router = APIRouter(
     prefix="/database",
     tags=["Database"]
 )
+
 
 @router.get('/{type}')
 async def get_db(type: str, request: Request, background_tasks: BackgroundTasks):
@@ -33,10 +36,27 @@ async def get_db(type: str, request: Request, background_tasks: BackgroundTasks)
         wb = Workbook()
         ws = wb.active
         ws.title = "Lease Agreements"
-        headers = Lease_Outputs.__table__.columns.keys()
+
+        headers = CUSTOM_EXCEL_LEASE_HEADERS_ORDER
         ws.append(headers)
+
         for row in rows:
-            ws.append([getattr(row, col) for col in headers])
+            ws.append([getattr(row, col, "") for col in headers])
+
+        for col_idx, col_name in enumerate(headers, start=1):
+            max_len = len(col_name)
+            for row_idx in range(2, len(rows) + 2):
+                cell_value = ws.cell(row=row_idx, column=col_idx).value
+                if cell_value is not None:
+                    max_len = max(max_len, len(str(cell_value)))
+
+            ws.column_dimensions[get_column_letter(col_idx)].width = max_len + 2
+
+        link_col = len(headers) + 2
+        cell = ws.cell(row=1, column=link_col, value="Back to app")
+        cell.hyperlink = PA_APP_URL
+        cell.font = Font(color="0000FF", underline="single")  # синим + подчёркивание
+
         filename_xl = "Lease_Agreements.xlsx"
         filepath_xl = RESPONSES_PATH / filename_xl
         wb.save(filepath_xl)
