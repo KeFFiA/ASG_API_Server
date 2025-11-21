@@ -11,7 +11,7 @@ from pydantic.v1 import EmailStr
 from sqlalchemy import select
 
 from Config import RESPONSES_PATH, PA_APP_URL, CUSTOM_EXCEL_LEASE_HEADERS_ORDER
-from Database.Models import Lease_Outputs
+from Database.Models import Lease_Output
 from Schemas import JsonFileSchema
 from Schemas.Enums import service
 from Utils import remove_file
@@ -27,8 +27,8 @@ async def get_db(type: str, request: Request, background_tasks: BackgroundTasks)
     if type.lower() == 'lease_agr':
         main_db = await request.state.db.get_db("main")
         result = await main_db.execute(
-            select(Lease_Outputs)
-            .order_by(Lease_Outputs.id.asc())
+            select(Lease_Output)
+            .order_by(Lease_Output.id.asc())
         )
 
         rows = result.scalars().all()

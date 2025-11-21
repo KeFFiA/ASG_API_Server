@@ -29,7 +29,7 @@ class Guests(Base):
     invite_status: Mapped[int] = mapped_column(Integer, default=MSGraphAPI.InvitationStatusEnum.PENDING_ACCEPTANCE.code)
 
 
-class Lease_Outputs(Base):
+class Lease_Output(Base):
     filename: Mapped[str] = mapped_column(String, unique=True, nullable=False, index=True, name="File name")
     aircraft_count: Mapped[int] = mapped_column(Integer, default=0, name="Aircraft Count")
     engines_count: Mapped[int] = mapped_column(Integer, default=0, name="Engines Count")
