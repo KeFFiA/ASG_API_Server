@@ -30,6 +30,7 @@ class Guests(Base):
 
 
 class Lease_Outputs(Base):
+    filename: Mapped[str] = mapped_column(String, unique=True, nullable=False, index=True, name="File name")
     aircraft_count: Mapped[int] = mapped_column(Integer, default=0, name="Aircraft Count")
     engines_count: Mapped[int] = mapped_column(Integer, default=0, name="Engines Count")
     aircraft_type: Mapped[str] = mapped_column(String, nullable=True, name="Aircraft Type")
