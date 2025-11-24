@@ -68,7 +68,7 @@ async def get_db(type: str, request: Request, background_tasks: BackgroundTasks)
 
         # tbl headers
         for col_idx, header in enumerate(formatted_headers, start=1):
-            cell = ws.cell(row=2, column=col_idx, value=header)
+            cell = ws.cell(row=2, column=col_idx, value=header if header.lower() not in ["msn"] else header.upper())
             cell.fill = header_fill
             cell.font = header_font
             cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
