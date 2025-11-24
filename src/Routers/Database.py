@@ -38,15 +38,11 @@ async def get_db(type: str, request: Request, background_tasks: BackgroundTasks)
         ws = wb.active
         ws.title = "Lease Agreements"
 
-        # Получаем реальные названия колонок из БД через mapper
         mapper = inspect(Lease_Output)
         headers = [column.key for column in mapper.attrs]
 
-        print("Headers (using mapper.attrs):", headers)
-
         formatted_headers = [header.replace('_', ' ').title() for header in headers]
 
-        # Стили для кнопок и таблицы
         button_fill = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
         button_font = Font(color="FFFFFF", bold=True, size=12)
         header_fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
@@ -59,7 +55,6 @@ async def get_db(type: str, request: Request, background_tasks: BackgroundTasks)
             bottom=Side(style='thin')
         )
 
-        # Кнопка в первой строке
         ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(formatted_headers))
         cell = ws.cell(row=1, column=1, value="← Back to Application")
         cell.hyperlink = PA_APP_URL
@@ -68,10 +63,10 @@ async def get_db(type: str, request: Request, background_tasks: BackgroundTasks)
         cell.alignment = Alignment(horizontal='center', vertical='center')
         cell.border = border
 
-        # Устанавливаем высоту строки для кнопки
+        # btn height
         ws.row_dimensions[1].height = 30
 
-        # Заголовки таблицы
+        # tbl headers
         for col_idx, header in enumerate(formatted_headers, start=1):
             cell = ws.cell(row=2, column=col_idx, value=header)
             cell.fill = header_fill
@@ -79,14 +74,13 @@ async def get_db(type: str, request: Request, background_tasks: BackgroundTasks)
             cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
             cell.border = border
 
-        # Устанавливаем высоту строки для заголовков
+        # headers height
         ws.row_dimensions[2].height = 25
 
-        # Данные таблицы
+        # table data
         for row_idx, row in enumerate(rows, start=3):
             for col_idx, col_key in enumerate(headers, start=1):
                 value = getattr(row, col_key, None)
-                # Преобразуем значение в строку
                 if value is None:
                     cell_value = ""
                 elif isinstance(value, (datetime, date)):
@@ -98,24 +92,21 @@ async def get_db(type: str, request: Request, background_tasks: BackgroundTasks)
                 cell.font = data_font
                 cell.border = border
 
-                # Чередующаяся заливка строк для лучшей читаемости
+                # white/gray per line
                 if row_idx % 2 == 0:
                     cell.fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
                 else:
                     cell.fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
 
-        # Настраиваем ширину колонок с учетом содержимого
         for col_idx, col_name in enumerate(formatted_headers, start=1):
             max_len = len(col_name)
             for row_idx in range(3, len(rows) + 3):
                 cell_value = ws.cell(row=row_idx, column=col_idx).value
                 if cell_value is not None:
-                    # Ограничиваем максимальную ширину колонки для читаемости
                     max_len = min(max(max_len, len(str(cell_value))), 50)
             adjusted_width = max_len + 3
             ws.column_dimensions[get_column_letter(col_idx)].width = adjusted_width
 
-        # Кнопка в конце таблицы
         link_row = len(rows) + 3
         ws.merge_cells(start_row=link_row, start_column=1, end_row=link_row, end_column=len(formatted_headers))
 
@@ -126,13 +117,13 @@ async def get_db(type: str, request: Request, background_tasks: BackgroundTasks)
         cell.alignment = Alignment(horizontal='center', vertical='center')
         cell.border = border
 
-        # Устанавливаем высоту строки для нижней кнопки
+        # bottom btn height
         ws.row_dimensions[link_row].height = 30
 
-        # Добавляем фильтры к заголовкам таблицы
+        # filters for headers
         ws.auto_filter.ref = f"A2:{get_column_letter(len(formatted_headers))}{len(rows) + 2}"
 
-        # Замораживаем заголовки таблицы для удобной навигации
+        # freeze
         ws.freeze_panes = "A3"
 
         filename_xl = "Lease_Agreements.xlsx"
