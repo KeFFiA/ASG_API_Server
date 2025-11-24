@@ -4,7 +4,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Request, BackgroundTasks
 from fastapi.responses import FileResponse
-from openpyxl.styles import Font
+from openpyxl.styles import Font, Alignment
 from openpyxl.utils import get_column_letter
 from openpyxl.workbook import Workbook
 from pydantic.v1 import EmailStr
@@ -37,13 +37,22 @@ async def get_db(type: str, request: Request, background_tasks: BackgroundTasks)
         ws = wb.active
         ws.title = "Lease Agreements"
 
-        headers = CUSTOM_EXCEL_LEASE_HEADERS_ORDER
-        ws.append(headers)
+        headers = [column.key for column in Lease_Output.__table__.columns]
 
+        formatted_headers = []
+        for header in headers:
+            formatted_header = header.replace('_', ' ').title()
+            formatted_headers.append(formatted_header)
+
+        # Добавляем заголовки
+        ws.append(formatted_headers)
+
+        # Добавляем данные
         for row in rows:
-            ws.append([getattr(row, col, "") for col in headers])
+            ws.append([getattr(row, col_key, "") for col_key in headers])
 
-        for col_idx, col_name in enumerate(headers, start=1):
+        # Настраиваем ширину колонок
+        for col_idx, col_name in enumerate(formatted_headers, start=1):
             max_len = len(col_name)
             for row_idx in range(2, len(rows) + 2):
                 cell_value = ws.cell(row=row_idx, column=col_idx).value
@@ -52,10 +61,13 @@ async def get_db(type: str, request: Request, background_tasks: BackgroundTasks)
 
             ws.column_dimensions[get_column_letter(col_idx)].width = max_len + 2
 
-        link_col = len(headers) + 2
-        cell = ws.cell(row=1, column=link_col, value="Back to app")
+        link_row = len(rows) + 3  # Сразу после данных
+        ws.merge_cells(start_row=link_row, start_column=1, end_row=link_row, end_column=len(formatted_headers))
+
+        cell = ws.cell(row=link_row, column=1, value="Back to app")
         cell.hyperlink = PA_APP_URL
-        cell.font = Font(color="0000FF", underline="single")  # синим + подчёркивание
+        cell.font = Font(color="0000FF", underline="single")
+        cell.alignment = Alignment(horizontal='center', vertical='center')
 
         filename_xl = "Lease_Agreements.xlsx"
         filepath_xl = RESPONSES_PATH / filename_xl
