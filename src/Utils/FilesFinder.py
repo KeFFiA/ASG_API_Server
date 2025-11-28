@@ -30,15 +30,15 @@ class Finder:
                          path: Path,
                          extension: FilesExtensionEnum,
                          db_client: DatabaseClient,
-                         db_table: str,
+                         db: str,
                          func: Callable[..., Awaitable[None]],
                          **kwargs
                          ):
         while True:
-            async with db_client.session(db_table) as session:
-                _files, _count = await self.find(path=path, extension=extension.value)
-                if _count > 0:
-                    for _file in _files:
+            _files, _count = await self.find(path=path, extension=extension.value)
+            if _count > 0:
+                for _file in _files:
+                    async with db_client.session(db) as session:
                         logger.debug(f"[{extension.value.upper()}] Sending '{_file.split('\\')[-1]}' to {func.__name__} function")
                         await func(session, _file, **kwargs)
 

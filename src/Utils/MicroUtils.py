@@ -1,10 +1,14 @@
+import datetime
 import inspect
 import os
 import sys
 from pathlib import Path
+
+import numpy as np
 from fastapi import Request, BackgroundTasks, status
 from fastapi.responses import FileResponse
 from pydantic import ValidationError
+from sqlalchemy import Integer, Float, String, DateTime
 
 from Config import RESPONSES_PATH, FILES_PATH
 from Schemas import ErrorValidationResponse, ErrorValidObject
@@ -46,6 +50,46 @@ async def validation_error_file(request: Request, exc: ValidationError, filename
         background=background_tasks
     )
 
+
+def pandas_to_python_type(dtype):
+    if isinstance(dtype, np.dtype):
+        if np.issubdtype(dtype, np.integer):
+            return int
+        if np.issubdtype(dtype, np.floating):
+            return float
+        if np.issubdtype(dtype, np.bool_):
+            return bool
+        if np.issubdtype(dtype, np.datetime64):
+            return datetime.datetime
+
+        return str
+
+    dtype_str = str(dtype)
+
+    if "string" in dtype_str:
+        return str
+    if "Int" in dtype_str:
+        return int
+    if "Float" in dtype_str:
+        return float
+    if "boolean" in dtype_str:
+        return bool
+
+    return str
+
+
+def sqlalchemy_to_python_type(sql_type):
+    if isinstance(sql_type, Integer):
+        return int
+    elif isinstance(sql_type, Float):
+        return float
+    elif isinstance(sql_type, String):
+        return str
+    elif isinstance(sql_type, DateTime):
+        import datetime
+        return datetime.datetime
+    else:
+        return object
 
 _current_module = sys.modules[__name__]
 

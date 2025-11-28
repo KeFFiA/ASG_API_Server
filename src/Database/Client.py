@@ -25,6 +25,7 @@ class DatabaseClient:
                 pool_size=10,
                 max_overflow=20,
                 future=True,
+                pool_pre_ping=True,
             )
             self._engines[db_name] = engine
             self._session_factories[db_name] = async_sessionmaker(

@@ -8,7 +8,8 @@ from dotenv import load_dotenv, find_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-DEV_MODE = os.getenv("DEV_MODE") or False
+DEV_MODE = os.getenv("DEV_MODE") or True
+# TODO: TRUE - FALSE
 
 
 # PATH
@@ -30,6 +31,7 @@ if DEV_MODE:
     ROOT: Path = get_project_root() / "api_data"
     FILES_PATH: Path = ROOT / "input_files"
     EXCEL_FILES_PATH: Path = FILES_PATH / "excel_db"
+    CIRIUM_FILES_PATH: Path = EXCEL_FILES_PATH / "cirium"
     NOPASSED_PATH: Path = ROOT / "nopassed"
     RESPONSES_PATH: Path = ROOT / "responses"
     SUBSCRIPTION_FILE: Path = ROOT / "subscription_data.json"
@@ -43,6 +45,7 @@ else:
     ROOT: Path = get_project_root() / "api_data"
     FILES_PATH: Path = ROOT / "input_files"
     EXCEL_FILES_PATH: Path = FILES_PATH / "excel_db"
+    CIRIUM_FILES_PATH: Path = EXCEL_FILES_PATH / "cirium"
     NOPASSED_PATH: Path = ROOT / "nopassed"
     RESPONSES_PATH: Path = ROOT / "responses"
     SUBSCRIPTION_FILE: Path = ROOT / "subscription_data.json"
@@ -52,6 +55,7 @@ FILES_PATH.mkdir(parents=True, exist_ok=True)
 EXCEL_FILES_PATH.mkdir(parents=True, exist_ok=True)
 NOPASSED_PATH.mkdir(parents=True, exist_ok=True)
 RESPONSES_PATH.mkdir(parents=True, exist_ok=True)
+CIRIUM_FILES_PATH.mkdir(parents=True, exist_ok=True)
 
 
 def require_env(name: str, additional=None):

@@ -36,6 +36,20 @@ class ServiceBase(AsyncAttrs, DeclarativeBase):
         return _inflect.plural(cls.__name__.lower())
 
 
+# Base class for others models in Service DB
+class CiriumBase(AsyncAttrs, DeclarativeBase):
+    __abstract__ = True
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
+
+    @declared_attr.directive
+    def __tablename__(cls) -> str:
+        _inflect = inflect.engine()
+        return _inflect.plural(cls.__name__.lower())
+
+
 _current_module = sys.modules[__name__]
 
 __all__ = [

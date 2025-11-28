@@ -180,9 +180,10 @@ def register_middlewares(app):
             from .CSVFiles import process_csv_file
             from .JSONFiles import process_json_file
             from .EXCELFiles import process_excel_file
+            from .CiriumFiles import process_cirium_file
             from Scheduler import Scheduler
             from Scheduler.jobs import jobs, update_subscription_job
-            from Config import FILES_PATH, EXCEL_FILES_PATH
+            from Config import FILES_PATH, EXCEL_FILES_PATH, CIRIUM_FILES_PATH
 
             scheduler = Scheduler(jobs=jobs)
             scheduler.start()
@@ -194,14 +195,14 @@ def register_middlewares(app):
                 func=process_json_file,
                 path=FILES_PATH,
                 extension=FilesExtensionEnum.JSON,
-                db_table="service"
+                db="service"
             ))
             asyncio.create_task(finder.start_loop(  # CSV PROCESSOR
                 db_client=app.state.db_client,
                 func=process_csv_file,
                 path=FILES_PATH,
                 extension=FilesExtensionEnum.CSV,
-                db_table="main"
+                db="main"
             ))
 
             asyncio.create_task(finder.start_loop(  # EXCEL PROCESSOR
@@ -209,7 +210,15 @@ def register_middlewares(app):
                 func=process_excel_file,
                 path=EXCEL_FILES_PATH,
                 extension=FilesExtensionEnum.EXCEL,
-                db_table="main"
+                db="main"
+            ))
+
+            asyncio.create_task(finder.start_loop(  # EXCEL CIRIUM PROCESSOR
+                db_client=app.state.db_client,
+                func=process_cirium_file,
+                path=CIRIUM_FILES_PATH,
+                extension=FilesExtensionEnum.EXCEL,
+                db="cirium"
             ))
 
             asyncio.create_task(update_subscription_job(
