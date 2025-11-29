@@ -8,7 +8,7 @@ from dotenv import load_dotenv, find_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-DEV_MODE = os.getenv("DEV_MODE") or False
+DEV_MODE: bool = os.getenv("DEV_MODE", "false").lower() in ("1", "true", "yes", "on")
 
 
 # PATH

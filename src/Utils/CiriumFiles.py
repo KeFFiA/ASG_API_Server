@@ -188,6 +188,7 @@ async def process_cirium_file(session, file: str):
     if not file_path.exists():
         raise FileNotFoundError(f"Excel file not found: {file}")
     logger.info(f"Processed file {file_path.name}")
+
     try:
         rev = await get_or_create_revision(session)
 
