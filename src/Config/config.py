@@ -8,8 +8,7 @@ from dotenv import load_dotenv, find_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-DEV_MODE = os.getenv("DEV_MODE") or True
-# TODO: TRUE - FALSE
+DEV_MODE = os.getenv("DEV_MODE") or False
 
 
 # PATH
@@ -71,6 +70,8 @@ PATH = find_dotenv(filename=str(Path(ENV_PATH).absolute()))
 
 load_dotenv(dotenv_path=PATH)
 
+ENABLE_PERFORMANCE_LOGGER: bool = require_env("ENABLE_PERFORMANCE_LOGGER", False)
+
 # SERVER
 
 HOST: str = require_env("HOST", "0.0.0.0")
@@ -83,7 +84,7 @@ SELF_PORT: int = require_env("SELF_PORT", 8000)
 
 API_TITLE: str = require_env("API_TITLE", "AIXII API Server")
 API_DESCRIPTION: str = require_env("API_DESCRIPTION", "")
-API_VERSION: str = require_env("API_VERSION", "0.2.1")
+API_VERSION: str = require_env("API_VERSION", "0.3.2")
 API_SWAGGER_URL: str = require_env("API_SWAGGER_URL", "/api/docs")
 API_REDOC_URL: str = require_env("API_REDOC_URL", "/api/redoc")
 API_ROOT_URL: str = require_env("API_ROOT_URL", "/api/v1")

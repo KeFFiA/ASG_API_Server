@@ -1,5 +1,8 @@
 import asyncio
+import functools
+import inspect
 import json
+import time
 import uuid
 from functools import wraps
 from typing import Any, Callable, Optional, Coroutine
@@ -10,7 +13,7 @@ from fastapi.responses import JSONResponse
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
-from Config import setup_logger, DBSettings
+from Config import setup_logger, DBSettings, ENABLE_PERFORMANCE_LOGGER
 from Database import DatabaseClient
 from Schemas import ErrorValidationResponse, ErrorValidObject, ErrorResponse, DetailField
 from Schemas.Enums.service import FilesExtensionEnum
@@ -19,6 +22,11 @@ from Utils.FilesFinder import Finder
 logger = setup_logger(
     'fastapi_app',
     log_format='%(levelname)s:     [%(name)s] %(asctime)s | %(message)s'
+)
+
+perf_dec_logger = setup_logger(
+    "performance",
+    log_format="%(levelname)s:     [%(name)s] %(asctime)s | %(message)s"
 )
 
 engine_cache = {}
@@ -217,7 +225,7 @@ def register_middlewares(app):
                 db_client=app.state.db_client,
                 func=process_cirium_file,
                 path=CIRIUM_FILES_PATH,
-                extension=FilesExtensionEnum.EXCEL,
+                extension=FilesExtensionEnum.CIRIUM,
                 db="cirium"
             ))
 
@@ -313,4 +321,50 @@ def register_middlewares(app):
         logger.info("Shutdown completed. Bye!")
 
 
-__all__ = ["register_middlewares", "cache_query", "DBProxy"]
+def _performance_log(seconds: float, name):
+    if ENABLE_PERFORMANCE_LOGGER:
+        if seconds < 60:
+            perf_dec_logger.info(f"{name} completed in {seconds:.2f} seconds")
+        elif seconds < 600:
+            perf_dec_logger.warning(f"{name} completed in {seconds:.2f} seconds. Improve performance")
+        else:
+            perf_dec_logger.critical(f"{name} completed in {seconds:.2f} seconds. Improve performance!!")
+
+
+def performance_timer(func):
+    """
+    A decorator for measuring function execution time.
+    Supports both regular and async functions.
+    """
+    if inspect.iscoroutinefunction(func):
+        # --- ASYNC  ---
+        @functools.wraps(func)
+        async def wrapper(*args, **kwargs):
+            start = time.perf_counter()
+            result = await func(*args, **kwargs)
+            end = time.perf_counter()
+
+            elapsed = end - start
+            _performance_log(elapsed, func.__name__)
+
+            return result
+
+        return wrapper
+
+    else:
+        # --- SYNC  ---
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            start = time.perf_counter()
+            result = func(*args, **kwargs)
+            end = time.perf_counter()
+
+            elapsed = end - start
+            _performance_log(elapsed, func.__name__)
+
+            return result
+
+        return wrapper
+
+
+__all__ = ["register_middlewares", "cache_query", "DBProxy", "performance_timer"]

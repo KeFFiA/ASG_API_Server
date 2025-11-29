@@ -18,7 +18,11 @@ class Finder:
         logger.debug("Initialized finder(-s)")
 
     async def find(self, path: Path, extension: str) -> tuple[list[str], int]:
-        self.files = sorted(glob(os.path.join(path, f"*.{extension}")),
+        if extension.lower() == "cirium":
+            self.files = sorted(glob(os.path.join(path, f"*.xlsx")),
+                                key=os.path.getmtime)
+        else:
+            self.files = sorted(glob(os.path.join(path, f"*.{extension}")),
                             key=os.path.getmtime)
         self.count = len(self.files)
         logger.debug(f"[{extension.upper()}] Found {self.count} files")

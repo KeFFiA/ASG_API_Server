@@ -24,6 +24,7 @@ class FilesExtensionEnum(str, __enum):
     JSON = "json"
     EXCEL = "xlsx"
     TXT = "txt"
+    CIRIUM = "cirium"
 
 
 _current_module = sys.modules[__name__]

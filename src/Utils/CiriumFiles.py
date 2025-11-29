@@ -1,12 +1,14 @@
 import datetime
+import io
 from pathlib import Path
 
 import pandas as pd
+from asyncpg import PostgresError
 from sqlalchemy import select, insert, String, Float, Date, Boolean
 
 from Config import setup_logger
 from Database.Models import AircraftRevision, CiriumAircrafts
-
+from Utils import performance_timer
 
 logger = setup_logger("cirium_processor")
 
@@ -49,9 +51,9 @@ def bool_value(val: str | int | float | None) -> bool | None:
         return val
 
     if isinstance(val, (int, float)):
-        if val == 1:
+        if int(val) == 1:
             return True
-        if val == 0:
+        if int(val) == 0:
             return False
         return None
 
@@ -63,7 +65,8 @@ def bool_value(val: str | int | float | None) -> bool | None:
     return None
 
 
-async def get_or_create_today_revision(session) -> AircraftRevision:
+@performance_timer
+async def get_or_create_revision(session) -> AircraftRevision:
     today = datetime.date.today()
     last_rev = await session.scalar(
         select(AircraftRevision).order_by(AircraftRevision.revision_number.desc()).limit(1)
@@ -83,6 +86,7 @@ async def get_or_create_today_revision(session) -> AircraftRevision:
     return last_rev
 
 
+@performance_timer
 def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
     df.columns = df.columns.str.strip()
 
@@ -123,38 +127,88 @@ def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def df_to_csv_buffer(df: pd.DataFrame) -> io.BytesIO:
+    buffer = io.BytesIO()
+    df.to_csv(buffer, index=False, header=False, encoding="utf-8")
+    buffer.seek(0)
+    return buffer
+
+
+@performance_timer
+async def bulk_insert_df(
+        session,
+        table_name: str,
+        filename: str,
+        df: pd.DataFrame,
+        chunk_fallback: int = 3000,
+):
+    conn = await session.connection()
+    raw = await conn.get_raw_connection()
+    pgconn = raw.driver_connection
+
+    mapper = CiriumAircrafts.__mapper__
+    orm_to_db = {attr.key: attr.columns[0].name for attr in mapper.column_attrs}
+    df = df.rename(columns={k: v for k, v in orm_to_db.items()})
+
+    buffer = df_to_csv_buffer(df)
+    columns = list(df.columns)
+
+    try:
+        await pgconn.copy_to_table(
+            table_name,
+            source=buffer,
+            columns=columns,
+            format="csv"
+        )
+
+        await session.commit()
+        return len(df)
+
+    except PostgresError as _ex:
+        logger.debug(f"Processing file {filename} failed: {_ex}")
+
+        # fallback
+        records = df.to_dict(orient="records")
+        chunk = chunk_fallback
+
+        for i in range(0, len(records), chunk):
+            batch = records[i:i + chunk]
+            await session.execute(
+                insert(CiriumAircrafts),
+                batch
+            )
+
+        await session.commit()
+        return len(records)
+
+
+@performance_timer
 async def process_cirium_file(session, file: str):
     file_path = Path(file)
     if not file_path.exists():
-        raise FileNotFoundError(f"[Cirium] Excel file not found: {file}")
+        raise FileNotFoundError(f"Excel file not found: {file}")
 
     try:
+        rev = await get_or_create_revision(session)
+
         df = pd.read_excel(file_path)
-        rev = await get_or_create_today_revision(session)
-
         df = normalize_columns(df)
+        df = df.assign(revision_id=rev.id)
 
-        df["revision_id"] = rev.id
+        row: AircraftRevision = await session.get(AircraftRevision, rev.id)
+        len_rows = await bulk_insert_df(
+            session=session,
+            table_name="ciriumaircraft",
+            df=df,
+            filename=file_path.name
+        )
+        row.data_rows_count += len_rows
 
-        mapper = CiriumAircrafts.__mapper__
-        orm_to_db = {attr.key: attr.columns[0].name for attr in mapper.column_attrs}
-        df = df.rename(columns={v: k for k, v in orm_to_db.items()})
+        logger.info(f"Processed file {file_path.name}, rows: {len_rows}. Revision: {rev.revision_number}")
 
-        df = df.copy()
-
-        records = df.to_dict(orient="records")
-        if records:
-            row: AircraftRevision = await session.get(AircraftRevision, rev.id)
-            row.data_rows_count += len(records)
-            await session.execute(insert(CiriumAircrafts), records)
-            await session.commit()
-
-        logger.info(f"[Cirium] Processed file {file_path.name}, rows: {len(records)}. Revision: {rev.revision_number}")
-
-    except Exception as e:
-        logger.error(f"[Cirium] Processing file {file_path.name} failed: {e}")
-        raise
+    except Exception as _ex:
+        logger.error(f"Processing file {file_path.name} failed: {_ex}")
     finally:
         if file_path.exists():
             file_path.unlink()
-            logger.debug(f"[Cirium] Removed {file_path.name}")
+            logger.debug(f"Removed {file_path.name}")
