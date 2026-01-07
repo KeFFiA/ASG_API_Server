@@ -6,13 +6,20 @@ import aiohttp
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 
-from Config import AIRLABS_API_KEY, AIRLABS_API_URL
+from Config import AIRLABS_API_KEY, AIRLABS_API_URL, setup_logger
 from Database import DatabaseClient, FlightSnapshot, AircraftState
 from Database.Models import Registrations
 from Schemas import FlightsTrackerResponseSchema
+from Utils import performance_timer
 
 
+logger = setup_logger("airlabs_flights_api")
+
+
+@performance_timer
 async def tracker_api(regs: list[str] | None = None):
+    logger.info("[Tracker API] Starting query")
+
     client: DatabaseClient = DatabaseClient()
     if regs is None:
         async with client.session("main") as session:
@@ -32,13 +39,17 @@ async def tracker_api(regs: list[str] | None = None):
     async with aiohttp.ClientSession() as api_session:
         async with api_session.get(AIRLABS_API_URL + "flights", params=params,
                                    timeout=aiohttp.ClientTimeout(total=30)) as response:
-            response.raise_for_status()
+            try:
+                response.raise_for_status()
 
-            raw = await response.json()
-            flights: List[FlightsTrackerResponseSchema] = [
-                FlightsTrackerResponseSchema.model_validate(item)
-                for item in raw.get("response", [])
-            ]
+                raw = await response.json()
+                flights: List[FlightsTrackerResponseSchema] = [
+                    FlightsTrackerResponseSchema.model_validate(item)
+                    for item in raw.get("response", [])
+                ]
+                logger.debug("[Tracker API] API response OK")
+            except Exception as _ex:
+                logger.warning(f"[Tracker API] API response error: {_ex}")
 
     async with client.session("airlabs") as session:
         returned_regs = set()
@@ -110,6 +121,8 @@ async def tracker_api(regs: list[str] | None = None):
             await session.execute(stmt_miss)
 
         await session.commit()
+
+    logger.info("[Tracker API] Query completed")
 
 
 
