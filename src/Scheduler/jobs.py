@@ -1,5 +1,6 @@
 import inspect
 import sys
+from datetime import datetime, timezone, timedelta
 
 from msgraph import GraphServiceClient
 
@@ -54,11 +55,15 @@ async def update_subscription_job(db_proxy: DBProxy,
 
 jobs = [
     {
+        "id": "update_airlabs_flights",
         "name": "UpdateAirlabsFlights",
         "func": tracker_api,
-        "trigger": "interval",
-        "minutes": 30,
-        "next_run_time": None
+        "trigger": "cron",
+        "minute": "0,30",
+        "next_run_time": datetime.now(timezone.utc) + timedelta(minutes=1),
+        "max_instances": 1,
+        "coalesce": True,
+        "misfire_grace_time": 60,
     }
 ]
 
