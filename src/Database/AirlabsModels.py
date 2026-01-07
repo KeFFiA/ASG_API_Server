@@ -14,31 +14,31 @@ class FlightSnapshot(Base):
     hex: Mapped[str] = mapped_column(String(6), nullable=False)
     reg_number: Mapped[str] = mapped_column(String(16), nullable=False)
 
-    airline_icao: Mapped[str] = mapped_column(String(3))
-    airline_iata: Mapped[str] = mapped_column(String(2))
+    airline_icao: Mapped[str] = mapped_column(String(3), nullable=True)
+    airline_iata: Mapped[str] = mapped_column(String(2), nullable=True)
 
-    aircraft_icao: Mapped[str] = mapped_column(String(4))
+    aircraft_icao: Mapped[str] = mapped_column(String(4), nullable=True)
 
-    flight_icao: Mapped[str] = mapped_column(String(10))
-    flight_iata: Mapped[str] = mapped_column(String(10))
-    flight_number: Mapped[str] = mapped_column(String(10))
+    flight_icao: Mapped[str] = mapped_column(String(10), nullable=True)
+    flight_iata: Mapped[str] = mapped_column(String(10), nullable=True)
+    flight_number: Mapped[str] = mapped_column(String(10), nullable=True)
 
     # airports
-    dep_icao: Mapped[str] = mapped_column(String(4))
-    dep_iata: Mapped[str] = mapped_column(String(3))
-    arr_icao: Mapped[str] = mapped_column(String(4))
-    arr_iata: Mapped[str] = mapped_column(String(3))
+    dep_icao: Mapped[str] = mapped_column(String(4), nullable=True)
+    dep_iata: Mapped[str] = mapped_column(String(3), nullable=True)
+    arr_icao: Mapped[str] = mapped_column(String(4), nullable=True)
+    arr_iata: Mapped[str] = mapped_column(String(3), nullable=True)
 
     # geo / motion
-    lat: Mapped[float] = mapped_column(Float)
-    lng: Mapped[float] = mapped_column(Float)
-    alt: Mapped[int] = mapped_column(Integer)  # meters
-    dir: Mapped[int] = mapped_column(SmallInteger)  # degrees 0–360
-    speed: Mapped[int] = mapped_column(Integer)  # km/h
-    v_speed: Mapped[int] = mapped_column(Integer)  # km/h
+    lat: Mapped[float] = mapped_column(Float, nullable=True)
+    lng: Mapped[float] = mapped_column(Float, nullable=True)
+    alt: Mapped[float] = mapped_column(Float, nullable=True)  # meters
+    dir: Mapped[float] = mapped_column(Float, nullable=True)  # degrees 0–360
+    speed: Mapped[float] = mapped_column(Float, nullable=True)  # km/h
+    v_speed: Mapped[float] = mapped_column(Float, nullable=True)  # km/h
 
-    squawk: Mapped[str] = mapped_column(String(4))
-    flag: Mapped[str] = mapped_column(String(2))
+    squawk: Mapped[str] = mapped_column(String(4), nullable=True)
+    flag: Mapped[str] = mapped_column(String(2), nullable=True)
 
     status: Mapped[FlightStatusEnum] = mapped_column(
         Enum(
@@ -62,12 +62,14 @@ class FlightSnapshot(Base):
         primaryjoin="FlightSnapshot.reg_number==foreign(AircraftState.reg_number)"
     )
 
+    type: Mapped[str] = mapped_column(String, nullable=True)
+
 
 class AircraftState(Base):
-    reg_number: Mapped[str] = mapped_column(String(16), primary_key=True)
+    reg_number: Mapped[str] = mapped_column(String(16), primary_key=True, index=True, unique=True)
 
-    airline_icao: Mapped[str] = mapped_column(String(3), index=True)
-    airline_iata: Mapped[str] = mapped_column(String(2), index=True)
+    airline_icao: Mapped[str] = mapped_column(String(3), index=True, nullable=True)
+    airline_iata: Mapped[str] = mapped_column(String(2), index=True, nullable=True)
 
     status: Mapped[FlightStatusEnum] = mapped_column(
         Enum(
@@ -79,7 +81,7 @@ class AircraftState(Base):
         nullable=False
     )
 
-    last_update: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_update: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
 
     snapshot_id: Mapped[int | None] = mapped_column(
         BigInteger,

@@ -165,6 +165,12 @@ DREMIO_PORT = require_env("DREMIO_PORT", "9047")
 DREMIO_USER = require_env("DREMIO_USER", "dremio_user")
 DREMIO_PASS = require_env("DREMIO_PASS", "dremio_pass")
 
+
+# AIRLABS
+
+AIRLABS_API_KEY: str = require_env("AIRLABS_API_KEY")
+AIRLABS_API_URL: str = "https://airlabs.co/api/v9/"
+
 #
 
 PA_APP_URL = require_env("PA_APP_URL",

@@ -1,6 +1,7 @@
 from .MainModels import *
 from .ServiceModels import *
 from .CiriumModels import *
+from .AirlabsModels import *
 
 import inspect
 import sys
