@@ -193,8 +193,8 @@ def register_middlewares(app):
             from Scheduler.jobs import jobs, update_subscription_job
             from Config import FILES_PATH, EXCEL_FILES_PATH, CIRIUM_FILES_PATH
 
-            scheduler = Scheduler(jobs=jobs)
-            scheduler.start()
+            app.state.scheduler = Scheduler(jobs=jobs)
+            app.state.scheduler.start()
 
             finder = Finder()
 

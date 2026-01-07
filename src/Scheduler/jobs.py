@@ -57,7 +57,7 @@ jobs = [
         "name": "UpdateAirlabsFlights",
         "func": tracker_api,
         "trigger": "interval",
-        "hours": 1,
+        "minutes": 30,
         "next_run_time": None
     }
 ]
