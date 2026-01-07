@@ -25,24 +25,20 @@ async def tracker_api(regs: list[str] | None = None):
             result = await session.execute(stmt)
             regs = result.scalars().all()
 
-    print(regs)
     params = {
         "api_key": AIRLABS_API_KEY,
         "reg_number": ",".join(regs),
     }
-    print(params)
     async with aiohttp.ClientSession() as api_session:
         async with api_session.get(AIRLABS_API_URL + "flights", params=params,
                                    timeout=aiohttp.ClientTimeout(total=30)) as response:
             response.raise_for_status()
 
             raw = await response.json()
-            print(raw)
             flights: List[FlightsTrackerResponseSchema] = [
                 FlightsTrackerResponseSchema.model_validate(item)
                 for item in raw.get("response", [])
             ]
-            print(flights)
 
     async with client.session("airlabs") as session:
         returned_regs = set()
