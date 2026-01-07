@@ -1,4 +1,4 @@
-from .Enums import service, MSGraphAPI
+from .Enums import service, MSGraphAPI, Defaults
 from .Service import *
 from .APIDefaultResponses import *
 from .MSGraphInputSchema import *

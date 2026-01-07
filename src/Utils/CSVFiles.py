@@ -23,6 +23,7 @@ async def process_csv_file(session, csv_file: str):
                         msn=int(row["msn"]) if row["msn"] != "" else None,
                         aircraft_type=row["aircraft"],
                         indashboard=to_bool(row["indashboard"]),
+                        status=row["status"]
                     )
                     .execution_options(synchronize_session="fetch")
                 )
@@ -35,6 +36,7 @@ async def process_csv_file(session, csv_file: str):
                             msn=int(row["msn"]) if row["msn"] != "" else None,
                             aircraft_type=row["aircraft"],
                             indashboard=to_bool(row["indashboard"]),
+                            status=row["status"]
                         )
                     )
         logger.info(f"[CSV] Processed {csv_file}")

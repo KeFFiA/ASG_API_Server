@@ -3,7 +3,7 @@ import sys
 from datetime import datetime
 
 import inflect
-from sqlalchemy import Integer, func
+from sqlalchemy import func, BigInteger
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, declared_attr, Mapped, mapped_column
 
@@ -12,7 +12,7 @@ from sqlalchemy.orm import DeclarativeBase, declared_attr, Mapped, mapped_column
 class MainBase(AsyncAttrs, DeclarativeBase):
     __abstract__ = True
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 
@@ -26,7 +26,7 @@ class MainBase(AsyncAttrs, DeclarativeBase):
 class ServiceBase(AsyncAttrs, DeclarativeBase):
     __abstract__ = True
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 
@@ -36,11 +36,25 @@ class ServiceBase(AsyncAttrs, DeclarativeBase):
         return _inflect.plural(cls.__name__.lower())
 
 
-# Base class for others models in Service DB
+# Base class for others models in Cirium DB
 class CiriumBase(AsyncAttrs, DeclarativeBase):
     __abstract__ = True
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
+
+    @declared_attr.directive
+    def __tablename__(cls) -> str:
+        _inflect = inflect.engine()
+        return _inflect.plural(cls.__name__.lower())
+
+
+# Base class for others models in Airlabs DB
+class AirlabsBase(AsyncAttrs, DeclarativeBase):
+    __abstract__ = True
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 

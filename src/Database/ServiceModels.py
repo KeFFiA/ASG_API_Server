@@ -4,9 +4,9 @@ from typing import Optional
 
 from pydantic import EmailStr
 
-from sqlalchemy import String, Integer, Float
+from sqlalchemy import String, Integer, Float, UniqueConstraint, Index, event, DDL, Computed
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.dialects.postgresql import JSONB, ARRAY
+from sqlalchemy.dialects.postgresql import JSONB, ARRAY, UUID
 from pgvector.sqlalchemy import Vector as PGVector
 
 from .config import ServiceBase as Base
@@ -29,21 +29,36 @@ class DocumentEmbedding(Base):
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
     text: Mapped[str] = mapped_column(String, nullable=False)
     embedding: Mapped[PGVector] = mapped_column(PGVector(1024))
-    meta_data: Mapped[str] = mapped_column(String, nullable=True)
+    meta_data: Mapped[dict] = mapped_column(JSONB, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("file_name", "chunk_index", name="uq_document_chunk"),
+        Index("ix_document_file_name", "file_name"),
+    )
 
 
 class GlobalEmbedding(Base):
     text: Mapped[str] = mapped_column(String, nullable=False)
+    text_hash: Mapped[UUID] = mapped_column(
+        UUID,
+        Computed("md5(text)::uuid", persisted=True),
+        unique=True,
+    )
     embedding: Mapped[PGVector] = mapped_column(PGVector(1024))
-    meta_data: Mapped[str] = mapped_column(String, nullable=True)
+    meta_data: Mapped[dict] = mapped_column(JSONB, nullable=True)
 
 
 class FieldSynonym(Base):
-    field_name: Mapped[str] = mapped_column(String(255), index=True, nullable=False)
+    field_name: Mapped[str] = mapped_column(String(255), nullable=False)
     synonym: Mapped[str] = mapped_column(String(255), nullable=False)
-    embedding: Mapped[PGVector] = mapped_column(PGVector(1024), nullable=True)
+    embedding: Mapped[PGVector] = mapped_column(PGVector(1024))
     created_source: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     extra: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("field_name", "synonym", name="uq_field_synonym"),
+        Index("ix_field_synonym_field_name", "field_name"),
+    )
 
 
 class DremioViews(Base):
@@ -51,6 +66,34 @@ class DremioViews(Base):
     view_name: Mapped[str] = mapped_column(String, nullable=False)
     vds_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     path: Mapped[list] = mapped_column(ARRAY(String), nullable=False)
+
+
+
+# DocumentEmbedding
+event.listen(
+    DocumentEmbedding.__table__,
+    "after_create",
+    DDL("""
+    CREATE INDEX IF NOT EXISTS idx_document_embedding_ivf
+    ON ai12_service.public.documentembeddings
+    USING ivfflat (embedding vector_cosine_ops)
+    WITH (lists = 100);
+    """)
+)
+
+# GlobalEmbedding
+event.listen(
+    GlobalEmbedding.__table__,
+    "after_create",
+    DDL("""
+    CREATE INDEX IF NOT EXISTS idx_global_embedding_ivf
+    ON ai12_service.public.globalembeddings
+    USING ivfflat (embedding vector_cosine_ops)
+    WITH (lists = 100);
+    """)
+)
+
+
 
 _current_module = sys.modules[__name__]
 

@@ -42,6 +42,7 @@ DB_BOOL_COLS = {col.name for col in db_columns if isinstance(col.type, Boolean)}
 TRUE_VALUES = {"y", "yes", "true"}
 FALSE_VALUES = {"n", "no", "false"}
 
+# TODO: ^^^^ MOVE TO CONFIG ^^^^
 
 def bool_value(val: str | int | float | None) -> bool | None:
     if val is None or (isinstance(val, float) and pd.isna(val)) or pd.isna(val):

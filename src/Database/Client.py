@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Any
 
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine, AsyncSession
 
@@ -34,7 +34,7 @@ class DatabaseClient:
         return self._engines[db_name]
 
     @asynccontextmanager
-    async def session(self, db_name: str) -> AsyncGenerator[AsyncSession, None]:
+    async def session(self, db_name: str) -> AsyncGenerator[AsyncSession | Any, Any]:
         """Context manager for working with a session of a specific database"""
         if db_name not in self._session_factories:
             self._get_engine(db_name)
