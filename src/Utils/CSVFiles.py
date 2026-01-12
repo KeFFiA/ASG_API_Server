@@ -1,7 +1,7 @@
 import csv
 import os
 
-from sqlalchemy import update, insert
+from sqlalchemy import update, insert, delete
 
 from Config import setup_logger
 from Database.Models import Registrations, Airlines
@@ -42,25 +42,16 @@ async def process_csv_file(session, csv_file: str):
                         )
 
             if 'airlines' in csv_file:
+                await session.execute(delete(Airlines))
+                await session.commit()
+
                 for row in reader:
-                    stmt = (
-                        update(Airlines)
-                        .where(Airlines.airline_name == row["airline_name"])
-                        .values(
+                    await session.execute(
+                        insert(Airlines).values(
                             airline_name=row["airline_name"],
                             icao=row["icao"]
                         )
-                        .execution_options(synchronize_session="fetch")
                     )
-                    result = await session.execute(stmt)
-
-                    if result.rowcount == 0:
-                        await session.execute(
-                            insert(Airlines).values(
-                                airline_name=row["airline_name"],
-                                icao=row["icao"]
-                            )
-                        )
 
         logger.info(f"[CSV] Processed {csv_file}")
     except Exception as e:
