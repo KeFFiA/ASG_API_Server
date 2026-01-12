@@ -5,6 +5,7 @@ from datetime import datetime, timezone, timedelta
 from msgraph import GraphServiceClient
 
 from API.AirlabsAPI.FlightsAPI import tracker_api
+from API.FlightRadarAPI.LiveFlightsAPI import live_flights
 from API.Clients import MSGraphClient
 from API.Utils import create_or_update_subscription
 from Config import setup_logger
@@ -59,7 +60,18 @@ jobs = [
         "name": "UpdateAirlabsFlights",
         "func": tracker_api,
         "trigger": "cron",
-        "minute": "0,30",
+        "minute": "0,15,30,45",
+        "next_run_time": datetime.now(timezone.utc) + timedelta(minutes=1),
+        "max_instances": 1,
+        "coalesce": True,
+        "misfire_grace_time": 60,
+    },
+    {
+        "id": "update_flightradar_flights",
+        "name": "UpdateFlightradarFlights",
+        "func": live_flights,
+        "trigger": "cron",
+        "minute": "0,15,30,45",
         "next_run_time": datetime.now(timezone.utc) + timedelta(minutes=1),
         "max_instances": 1,
         "coalesce": True,

@@ -2,6 +2,7 @@ from .MainModels import *
 from .ServiceModels import *
 from .CiriumModels import *
 from .AirlabsModels import *
+from .FlightRadarModels import *
 
 import inspect
 import sys

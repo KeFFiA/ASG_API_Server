@@ -34,6 +34,7 @@ if DEV_MODE:
     NOPASSED_PATH: Path = ROOT / "nopassed"
     RESPONSES_PATH: Path = ROOT / "responses"
     SUBSCRIPTION_FILE: Path = ROOT / "subscription_data.json"
+    FLIGHT_RADAR_PATH: Path = ROOT / "flight_radar"
     # FILES_PATH: Path = Path(r"D:\FTPFolder\input_files")
     # EXCEL_FILES_PATH: Path = FILES_PATH / "excel_files"
     # NOPASSED_PATH: Path = Path(r"D:\FTPFolder\nopassed")
@@ -48,6 +49,8 @@ else:
     NOPASSED_PATH: Path = ROOT / "nopassed"
     RESPONSES_PATH: Path = ROOT / "responses"
     SUBSCRIPTION_FILE: Path = ROOT / "subscription_data.json"
+    FLIGHT_RADAR_PATH: Path = ROOT / "flight_radar"
+
 
 ROOT.mkdir(parents=True, exist_ok=True)
 FILES_PATH.mkdir(parents=True, exist_ok=True)
@@ -55,6 +58,7 @@ EXCEL_FILES_PATH.mkdir(parents=True, exist_ok=True)
 NOPASSED_PATH.mkdir(parents=True, exist_ok=True)
 RESPONSES_PATH.mkdir(parents=True, exist_ok=True)
 CIRIUM_FILES_PATH.mkdir(parents=True, exist_ok=True)
+FLIGHT_RADAR_PATH.mkdir(parents=True, exist_ok=True)
 
 
 def require_env(name: str, additional=None):
@@ -84,7 +88,7 @@ SELF_PORT: int = require_env("SELF_PORT", 8000)
 
 API_TITLE: str = require_env("API_TITLE", "AIXII API Server")
 API_DESCRIPTION: str = require_env("API_DESCRIPTION", "")
-API_VERSION: str = require_env("API_VERSION", "0.3.5")
+API_VERSION: str = require_env("API_VERSION", "0.3.6")
 API_SWAGGER_URL: str = require_env("API_SWAGGER_URL", "/api/docs")
 API_REDOC_URL: str = require_env("API_REDOC_URL", "/api/redoc")
 API_ROOT_URL: str = require_env("API_ROOT_URL", "/api/v1")
@@ -165,7 +169,6 @@ DREMIO_PORT = require_env("DREMIO_PORT", "9047")
 DREMIO_USER = require_env("DREMIO_USER", "dremio_user")
 DREMIO_PASS = require_env("DREMIO_PASS", "dremio_pass")
 
-
 # AIRLABS
 
 AIRLABS_API_KEY: str = require_env("AIRLABS_API_KEY")
@@ -177,10 +180,23 @@ PA_APP_URL = require_env("PA_APP_URL",
                          "https://apps.powerapps.com/play/e/default-7ed13fa4-3b96-4f55-8254-4902942ef466/a/e599ee0c-0b10-409b-bcc3-c0520ebfcf48?tenantId=7ed13fa4-3b96-4f55-8254-4902942ef466&hint=20e3f4e3-fad9-4b45-b069-78883539860f")
 CUSTOM_EXCEL_LEASE_HEADERS_ORDER = [
     "lessee", "lessor", "aircraft_count", "aircraft_type", "msn", "aircraft_registration", "engines_count",
-    "engines_manufacturer", "engines_models", "engine1_msn", "engine2_msn", "dated",  "damage_proceeds_threshold",
+    "engines_manufacturer", "engines_models", "engine1_msn", "engine2_msn", "dated", "damage_proceeds_threshold",
     "aircraft_agreed_value", "aircraft_hull_all_risks", "min_liability_coverages", "all_risks_deductible", "currency",
     "id", "created_at", "updated_at"
 ]
+
+# Flight Radar
+
+FLIGHT_RADAR_URL: str = require_env("FLIGHT_RADAT_URL", "https://fr24api.flightradar24.com/api")
+FLIGHT_RADAR_API_KEY: str = require_env("FLIGHT_RADAR_API_KEY")
+FLIGHT_RADAR_SECONDS_BETWEEN_REQUESTS: float = require_env("FLIGHT_RADAR_SECONDS_BETWEEN_REQUESTS", 60 / 90)
+FLIGHT_RADAR_RANGE_DAYS: int = require_env("FLIGHT_RADAR_RANGE_DAYS", 14)
+FLIGHT_RADAR_MAX_REG_PER_BATCH: int = require_env("FLIGHT_RADAR_MAX_REG_PER_BATCH", 15)
+FLIGHT_RADAR_HEADERS: dict = {
+    "Authorization": f"Bearer {FLIGHT_RADAR_API_KEY}",
+    "Accept-Version": "v1",
+    "Accept": "application/json"
+}
 
 # IMPORTS
 
