@@ -14,7 +14,6 @@ from Utils import parse_dt, ensure_naive_utc, write_csv, parse_date_or_datetime,
 logger = setup_logger("flightradar")
 
 
-@performance_timer
 async def fetch_date_range(
         icao: Optional[str],
         regs: Optional[List[str]],
@@ -26,7 +25,7 @@ async def fetch_date_range(
 ) -> List[dict] | None:
     client: DatabaseClient = DatabaseClient()
 
-    logger.info("[Flight Summary] Starting query Fetch Date Range")
+    logger.debug("[Flight Summary] Starting query Fetch Date Range")
 
     if icao is not None:
         _icao = icao.upper()
@@ -155,7 +154,7 @@ async def fetch_date_range(
 
                 next_from = max_takeoff + timedelta(seconds=1)
 
-        logger.info("[Flight Summary] Query Fetch Date Ranges completed")
+        logger.debug("[Flight Summary] Query Fetch Date Ranges completed")
 
         if len(processing_flights) < 1:
             return None
