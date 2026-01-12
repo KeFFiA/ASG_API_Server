@@ -20,6 +20,11 @@ class Registrations(Base):
     status: Mapped[str] = mapped_column(String, nullable=False)
 
 
+class Airlines(Base):
+    airline_name: Mapped[str] = mapped_column(String, index=True)
+    icao: Mapped[str] = mapped_column(String, index=True)
+
+
 class Guests(Base):
     guest_email: Mapped[str] = mapped_column(String, unique=True)
     guest_upn: Mapped[str] = mapped_column(String)
