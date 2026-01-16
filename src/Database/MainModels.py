@@ -14,7 +14,7 @@ except ModuleNotFoundError:
 
 class Registrations(Base):
     reg: Mapped[str] = mapped_column(String, index=True)
-    msn: Mapped[int] = mapped_column(Integer, nullable=False, unique=True)
+    msn: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     aircraft_type: Mapped[str] = mapped_column(String, nullable=True)
     indashboard: Mapped[bool] = mapped_column(Boolean, default=False)
     status: Mapped[str] = mapped_column(String, nullable=False)

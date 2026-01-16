@@ -71,7 +71,7 @@ jobs = [
         "name": "UpdateFlightradarFlights",
         "func": live_flights,
         "trigger": "cron",
-        "minute": "0,15,30,45",
+        "minute": "0,30",
         "next_run_time": datetime.now(timezone.utc) + timedelta(minutes=1),
         "max_instances": 1,
         "coalesce": True,
