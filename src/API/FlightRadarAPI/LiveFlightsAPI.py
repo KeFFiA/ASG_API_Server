@@ -144,7 +144,7 @@ async def live_flights_adaptive(
                         for f in flights_data
                     ]
 
-                    async with db_client.session("main") as session:
+                    async with db_client.session("flightradar") as session:
                         session.add_all(records)
                         await session.commit()
 
