@@ -128,7 +128,7 @@ async def live_flights_adaptive(
                             gspeed=f.get("gspeed"),
                             vspeed=f.get("vspeed"),
                             squawk=f.get("squawk"),
-                            timestamp=f.get("timestamp"),
+                            timestamp=ensure_naive_utc(parse_dt(f.get("timestamp"))),
                             source=f.get("source"),
                             hex=f.get("hex"),
                             type=f.get("type"),
@@ -139,7 +139,7 @@ async def live_flights_adaptive(
                             orig_icao=f.get("orig_icao"),
                             dest_iata=f.get("dest_iata"),
                             dest_icao=f.get("dest_icao"),
-                            eta=f.get("eta"),
+                            eta=ensure_naive_utc(parse_dt(f.get("eta")))
                         )
                         for f in flights_data
                     ]
