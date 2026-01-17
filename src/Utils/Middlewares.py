@@ -11,10 +11,11 @@ from fastapi import Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from redis.asyncio import Redis
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
 from Config import setup_logger, DBSettings, ENABLE_PERFORMANCE_LOGGER
-from Database import DatabaseClient
+from Database import DatabaseClient, Registrations
 from Schemas import ErrorValidationResponse, ErrorValidObject, ErrorResponse, DetailField
 from Schemas.Enums.service import FilesExtensionEnum
 from Utils.FilesFinder import Finder
@@ -192,6 +193,19 @@ def register_middlewares(app):
             from Scheduler import Scheduler
             from Scheduler.jobs import jobs, update_subscription_job
             from Config import FILES_PATH, EXCEL_FILES_PATH, CIRIUM_FILES_PATH
+            from API.FlightRadarAPI.LiveFlightsAPI import FlightPollingStorage
+
+            fr = FlightPollingStorage(username, password, host, port)
+            async with app.state.db_client.session("main") as session:
+                stmt = (
+                    select(
+                        Registrations.reg
+                    )
+                    .where(Registrations.indashboard == True)
+                )
+                result = await session.execute(stmt)
+                regs = result.scalars().all()
+            await fr.init_regs(regs=regs)
 
             app.state.scheduler = Scheduler(jobs=jobs)
             app.state.scheduler.start()
