@@ -53,6 +53,8 @@ async def update_subscription_job(db_proxy: DBProxy,
         logger.error(f"Subscription update job failed: {_ex}")
         return False
 
+now = datetime.now(timezone.utc)
+next_hour = (now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1))
 
 jobs = [
     {
@@ -72,7 +74,7 @@ jobs = [
         "func": live_flights_adaptive,
         "trigger": "interval",
         "minutes": 15,
-        "next_run_time": datetime.now(timezone.utc) + timedelta(minutes=1),
+        "next_run_time": next_hour,
         "max_instances": 1,
         "coalesce": True,
         "misfire_grace_time": 60,

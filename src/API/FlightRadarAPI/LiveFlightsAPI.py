@@ -90,7 +90,6 @@ async def live_flights_adaptive(
     db_client = DatabaseClient()
 
     regs_to_check = await redis_storage.get_regs_to_check()
-    print(regs_to_check)
 
     if not regs_to_check:
         logger.info("[Live Flights] Nothing to check — skipping API call")
