@@ -88,7 +88,7 @@ SELF_PORT: int = require_env("SELF_PORT", 8000)
 
 API_TITLE: str = require_env("API_TITLE", "AIXII API Server")
 API_DESCRIPTION: str = require_env("API_DESCRIPTION", "")
-API_VERSION: str = require_env("API_VERSION", "0.3.7")
+API_VERSION: str = require_env("API_VERSION", "0.3.8")
 API_SWAGGER_URL: str = require_env("API_SWAGGER_URL", "/api/docs")
 API_REDOC_URL: str = require_env("API_REDOC_URL", "/api/redoc")
 API_ROOT_URL: str = require_env("API_ROOT_URL", "/api/v1")
@@ -187,7 +187,7 @@ CUSTOM_EXCEL_LEASE_HEADERS_ORDER = [
 
 # Flight Radar
 
-FLIGHT_RADAR_URL: str = require_env("FLIGHT_RADAT_URL", "https://fr24api.flightradar24.com/api")
+FLIGHT_RADAR_URL: str = require_env("FLIGHT_RADAR_URL", "https://fr24api.flightradar24.com/api")
 FLIGHT_RADAR_API_KEY: str = require_env("FLIGHT_RADAR_API_KEY")
 FLIGHT_RADAR_SECONDS_BETWEEN_REQUESTS: float = require_env("FLIGHT_RADAR_SECONDS_BETWEEN_REQUESTS", 60 / 90)
 FLIGHT_RADAR_RANGE_DAYS: int = require_env("FLIGHT_RADAR_RANGE_DAYS", 14)
@@ -197,6 +197,13 @@ FLIGHT_RADAR_HEADERS: dict = {
     "Accept-Version": "v1",
     "Accept": "application/json"
 }
+
+FLIGHT_RADAR_REDIS_POLLING_KEY: str = "flights:polling"
+FLIGHT_RADAR_REDIS_META_KEY: str = "flights:meta"
+
+FLIGHT_RADAR_CHECK_INTERVAL_MISS: int = require_env("FLIGHT_RADAR_CHECK_INTERVAL_MISS", 15 * 60)
+FLIGHT_RADAR_CHECK_INTERVAL_FOUND: int = require_env("FLIGHT_RADAR_CHECK_INTERVAL_FOUND", 30 * 60)
+FLIGHT_RADAR_REDIS_TTL_SECONDS: int = require_env("FLIGHT_RADAR_REDIS_TTL_SECONDS", 2 * 60 * 60)
 
 # IMPORTS
 

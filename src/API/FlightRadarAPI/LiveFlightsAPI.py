@@ -1,141 +1,160 @@
+import json
+import time
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List, Optional, Set
 
 import aiohttp
+from redis.asyncio import Redis
 from sqlalchemy import select
 
 from Config import FLIGHT_RADAR_HEADERS, \
-    FLIGHT_RADAR_MAX_REG_PER_BATCH, FLIGHT_RADAR_URL
+    FLIGHT_RADAR_MAX_REG_PER_BATCH, FLIGHT_RADAR_URL, FLIGHT_RADAR_REDIS_POLLING_KEY, FLIGHT_RADAR_REDIS_META_KEY, \
+    FLIGHT_RADAR_CHECK_INTERVAL_MISS, FLIGHT_RADAR_CHECK_INTERVAL_FOUND, FLIGHT_RADAR_REDIS_TTL_SECONDS, DBSettings
 from Database import LivePositions, DatabaseClient, Registrations
 from Utils import get_today_range_utc, get_earliest_time, ensure_naive_utc, parse_dt, write_csv, performance_timer
 from .FlightSummary import fetch_all_ranges, logger
-
 
 _last_flights: Optional[List[dict]] = None
 _last_run_date: datetime | None = None
 
 
-@performance_timer
-async def live_flights(storage_mode: str = "db",
-                       csv_path: Optional[str] = None, regs: Optional[List[str]] = None):
-    global _last_flights, _last_run_date
+class FlightPollingStorage:
+    def __init__(self, username: str, password: str, host: str, port: int):
+        self.redis = Redis(username=username, password=password, host=host, port=port, decode_responses=True)
 
-    logger.info("[Live Flights] Starting query")
+    async def init_regs(self, regs: List[str]):
+        """
+        First launch - all aircraft available for immediate inspection
+        """
+        now = time.time()
+        mapping = {reg: now for reg in regs}
+        await self.redis.zadd(FLIGHT_RADAR_REDIS_POLLING_KEY, mapping)
+        await self.redis.expire(FLIGHT_RADAR_REDIS_POLLING_KEY, FLIGHT_RADAR_REDIS_TTL_SECONDS)
+        await self.redis.expire(FLIGHT_RADAR_REDIS_META_KEY, FLIGHT_RADAR_REDIS_TTL_SECONDS)
 
-    client: DatabaseClient = DatabaseClient()
-    now = datetime.now(timezone.utc)
+    async def get_regs_to_check(self) -> List[str]:
+        now = time.time()
+        return await self.redis.zrangebyscore(
+            FLIGHT_RADAR_REDIS_POLLING_KEY, min=0, max=now
+        )
 
-    first_run = (_last_run_date != now)
-    _last_run_date = now
+    async def update_reg(self, reg: str, found: bool):
+        now = time.time()
 
-    if regs is None:
-        async with client.session("main") as session:
-            stmt = (
-                select(
-                    Registrations.reg
-                )
-                .where(Registrations.indashboard == True)
-            )
-            result = await session.execute(stmt)
-            regs = result.scalars().all()
+        next_check = now + (
+            FLIGHT_RADAR_CHECK_INTERVAL_FOUND if found else FLIGHT_RADAR_CHECK_INTERVAL_MISS
+        )
 
-    if first_run:
-        start_date, end_date = get_today_range_utc()
-    else:
-        earliest = get_earliest_time(_last_flights)
-        if earliest:
-            start_date = earliest
-        else:
-            # Fallback
-            start_date, end_date = get_today_range_utc()
-        _, end_date = get_today_range_utc()
+        await self.redis.zadd(
+            FLIGHT_RADAR_REDIS_POLLING_KEY, {reg: next_check}
+        )
 
-    flights_nested = await fetch_all_ranges(registrations=regs, start_date=start_date, end_date=end_date,
-                                            storage_mode=storage_mode)
-    _last_flights = flights_nested
-
-    flight_ids = list({
-        flight.get("flight")
-        for group in flights_nested if group is not None
-        for flight in group if flight.get("flight")
-    })
-
-    flight_id_batches = (
-        [flight_ids[i:i + FLIGHT_RADAR_MAX_REG_PER_BATCH] for i in
-         range(0, len(flight_ids), FLIGHT_RADAR_MAX_REG_PER_BATCH)]
-        if flight_ids else [None]
-    )
-
-    for batch_index, flight_batch in enumerate(flight_id_batches):
-        if flight_batch:
-            logger.debug(f"\n[Live Flights] Processing a batch of flights {batch_index + 1} out of {len(flight_id_batches)}")
-        params = {
-            "flights": ",".join(flight_batch),
-            "limit": 20000
+        meta = {
+            "state": "airborne" if found else "ground",
+            "last_seen": datetime.now(timezone.utc).isoformat() if found else None,
+            "updated_at": datetime.now(timezone.utc).isoformat()
         }
-        async with client.session("flightradar") as session:
-            async with aiohttp.ClientSession() as http:
-                async with http.get(f"{FLIGHT_RADAR_URL}/live/flight-positions/full", headers=FLIGHT_RADAR_HEADERS,
-                                    params=params) as resp:
-                    try:
-                        if resp.status != 200:
-                            logger.error(f"{resp.status}: {await resp.text()}")
-                            break
 
-                        flights = await resp.json()
-                        if not flights or not flights.get("data"):
-                            logger.debug("[Live Flights] No data for the current interval.")
-                            break
+        await self.redis.hset(
+            FLIGHT_RADAR_REDIS_META_KEY, reg, json.dumps(meta)
+        )
 
-                        flights_data = flights["data"]
-                        if not flights_data:
-                            break
+        await self.redis.expire(FLIGHT_RADAR_REDIS_POLLING_KEY, FLIGHT_RADAR_REDIS_TTL_SECONDS)
+        await self.redis.expire(FLIGHT_RADAR_REDIS_META_KEY, FLIGHT_RADAR_REDIS_TTL_SECONDS)
 
-                        flights = []
-                        csv_rows = []
 
-                        for flight in flights_data:
-                            row_data = {
-                                "fr24_id": flight.get("fr24_id"),
-                                "flight": flight.get("flight"),
-                                "callsign": flight.get("callsign"),
-                                "lat": flight.get("lat"),
-                                "lon": flight.get("lon"),
-                                "track": flight.get("track"),
-                                "alt": flight.get("alt"),
-                                "gspeed": flight.get("gspeed"),
-                                "vspeed": flight.get("vspeed"),
-                                "squawk": flight.get("squawk"),
-                                "timestamp": ensure_naive_utc(parse_dt(flight.get("timestamp"))),
-                                "source": flight.get("source"),
-                                "hex": flight.get("hex"),
-                                "type": flight.get("type"),
-                                "reg": flight.get("reg"),
-                                "painted_as": flight.get("painted_as"),
-                                "operating_as": flight.get("operating_as"),
-                                "orig_iata": flight.get("orig_iata"),
-                                "orig_icao": flight.get("orig_icao"),
-                                "dest_iata": flight.get("dest_iata"),
-                                "dest_icao": flight.get("dest_icao"),
-                                "eta": ensure_naive_utc(parse_dt(flight.get("eta")))
-                            }
+@performance_timer
+async def live_flights_adaptive(
+    storage_mode: str = "db"
+):
+    logger.info("[Live Flights] Adaptive polling started")
+    username, password, host, port = DBSettings().get_reddis_credentials()
 
-                            if storage_mode in ("db", "both"):
-                                flights.append(LivePositions(**row_data))
-                            if storage_mode in ("csv", "both"):
-                                csv_rows.append(row_data)
+    redis_storage = FlightPollingStorage(username, password, host, port)
+    db_client = DatabaseClient()
 
-                    except Exception as e:
-                        logger.warning(f"[Live Flights] Record processing error: {e}")
+    regs_to_check = await redis_storage.get_regs_to_check()
 
-                    if flights and storage_mode in ("db", "both"):
-                        session.add_all(flights)
+    if not regs_to_check:
+        logger.info("[Live Flights] Nothing to check — skipping API call")
+        return
+
+    logger.info(f"[Live Flights] Checking {len(regs_to_check)} aircrafts")
+
+    batches = [
+        regs_to_check[i:i + FLIGHT_RADAR_MAX_REG_PER_BATCH]
+        for i in range(0, len(regs_to_check), FLIGHT_RADAR_MAX_REG_PER_BATCH)
+    ]
+
+    found_regs: Set[str] = set()
+
+    async with aiohttp.ClientSession() as http:
+        for batch in batches:
+            params = {
+                "regs": ",".join(batch),
+                "limit": 20000
+            }
+
+            async with http.get(
+                f"{FLIGHT_RADAR_URL}/live/flight-positions/full",
+                headers=FLIGHT_RADAR_HEADERS,
+                params=params
+            ) as resp:
+
+                if resp.status != 200:
+                    logger.error(f"{resp.status}: {await resp.text()}")
+                    continue
+
+                payload = await resp.json()
+                flights_data = payload.get("data", [])
+
+                if not flights_data:
+                    continue
+
+                found_regs.update(
+                    flight.get("reg") for flight in flights_data if flight.get("reg")
+                )
+
+                if storage_mode in ("db", "both"):
+                    records = [
+                        LivePositions(
+                            fr24_id=f.get("fr24_id"),
+                            flight=f.get("flight"),
+                            callsign=f.get("callsign"),
+                            lat=f.get("lat"),
+                            lon=f.get("lon"),
+                            track=f.get("track"),
+                            alt=f.get("alt"),
+                            gspeed=f.get("gspeed"),
+                            vspeed=f.get("vspeed"),
+                            squawk=f.get("squawk"),
+                            timestamp=f.get("timestamp"),
+                            source=f.get("source"),
+                            hex=f.get("hex"),
+                            type=f.get("type"),
+                            reg=f.get("reg"),
+                            painted_as=f.get("painted_as"),
+                            operating_as=f.get("operating_as"),
+                            orig_iata=f.get("orig_iata"),
+                            orig_icao=f.get("orig_icao"),
+                            dest_iata=f.get("dest_iata"),
+                            dest_icao=f.get("dest_icao"),
+                            eta=f.get("eta"),
+                        )
+                        for f in flights_data
+                    ]
+
+                    async with db_client.session("main") as session:
+                        session.add_all(records)
                         await session.commit()
-                        logger.debug(f"[Live Flights] Saved {len(flights)} new records to DB.")
 
-                    if csv_rows and storage_mode in ("csv", "both") and csv_path:
-                        write_csv(csv_rows, csv_path)
-                        logger.debug(f"[Live Flights] Appended {len(csv_rows)} records to CSV.")
+    for reg in regs_to_check:
+        await redis_storage.update_reg(
+            reg=reg,
+            found=reg in found_regs
+        )
 
-    logger.info("Query completed")
+    logger.info(
+        f"[Live Flights] Completed. Active: {len(found_regs)}, inactive: {len(regs_to_check) - len(found_regs)}"
+    )
 
