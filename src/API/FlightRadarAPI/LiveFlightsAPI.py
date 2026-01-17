@@ -91,7 +91,7 @@ async def live_flights_adaptive(
     async with aiohttp.ClientSession() as http:
         for batch in batches:
             params = {
-                "regs": ",".join(batch),
+                "registrations": ",".join(batch),
                 "limit": 20000
             }
 
