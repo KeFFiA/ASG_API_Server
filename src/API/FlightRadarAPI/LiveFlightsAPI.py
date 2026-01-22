@@ -39,6 +39,13 @@ class FlightPollingStorage:
         await self.redis.expire(FLIGHT_RADAR_REDIS_POLLING_KEY, FLIGHT_RADAR_REDIS_TTL_SECONDS)
         await self.redis.expire(FLIGHT_RADAR_REDIS_META_KEY, FLIGHT_RADAR_REDIS_TTL_SECONDS)
 
+
+    async def get_all_regs(self, limit: int = 1000) -> list[str]:
+        return await self.redis.zrange(
+            FLIGHT_RADAR_REDIS_POLLING_KEY, 0, limit - 1
+        )
+
+
     async def get_regs_to_check(self, limit: int = 1000) -> list[str]:
         now = time.time()
 
@@ -90,8 +97,14 @@ async def live_flights_adaptive(
     regs_to_check = await redis_storage.get_regs_to_check()
 
     if not regs_to_check:
-        logger.info("[Live Flights] Nothing to check — skipping API call")
-        return
+        total = await redis_storage.redis.zcard(FLIGHT_RADAR_REDIS_POLLING_KEY)
+
+        if total > 0:
+            logger.info("[Live Flights] Bootstrap run — forcing initial check")
+            regs_to_check = await redis_storage.get_all_regs()
+        else:
+            logger.info("[Live Flights] Nothing to check — skipping API call")
+            return
 
     logger.info(f"[Live Flights] Checking {len(regs_to_check)} aircrafts")
 
