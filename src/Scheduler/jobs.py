@@ -55,17 +55,17 @@ async def update_subscription_job(db_proxy: DBProxy,
 
 
 jobs = [
-    {
-        "id": "update_airlabs_flights",
-        "name": "UpdateAirlabsFlights",
-        "func": tracker_api,
-        "trigger": "cron",
-        "minute": "0,15,30,45",
-        "next_run_time": next_quarter(datetime.now(timezone.utc)),
-        "max_instances": 1,
-        "coalesce": True,
-        "misfire_grace_time": 60,
-    },
+    # {
+    #     "id": "update_airlabs_flights",
+    #     "name": "UpdateAirlabsFlights",
+    #     "func": tracker_api,
+    #     "trigger": "cron",
+    #     "minute": "0,15,30,45",
+    #     "next_run_time": next_quarter(datetime.now(timezone.utc)),
+    #     "max_instances": 1,
+    #     "coalesce": True,
+    #     "misfire_grace_time": 60,
+    # },
     {
         "id": "update_flightradar_flights",
         "name": "UpdateFlightradarFlights",
