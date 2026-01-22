@@ -14,8 +14,8 @@ class FlightSnapshot(Base):
     hex: Mapped[str] = mapped_column(String(6), nullable=False)
     reg_number: Mapped[str] = mapped_column(String(16), nullable=False)
 
-    airline_icao: Mapped[str] = mapped_column(String(3), nullable=True)
-    airline_iata: Mapped[str] = mapped_column(String(2), nullable=True)
+    airline_icao: Mapped[str] = mapped_column(String(4), nullable=True)
+    airline_iata: Mapped[str] = mapped_column(String(4), nullable=True)
 
     aircraft_icao: Mapped[str] = mapped_column(String(4), nullable=True)
 
@@ -25,9 +25,9 @@ class FlightSnapshot(Base):
 
     # airports
     dep_icao: Mapped[str] = mapped_column(String(4), nullable=True)
-    dep_iata: Mapped[str] = mapped_column(String(3), nullable=True)
+    dep_iata: Mapped[str] = mapped_column(String(4), nullable=True)
     arr_icao: Mapped[str] = mapped_column(String(4), nullable=True)
-    arr_iata: Mapped[str] = mapped_column(String(3), nullable=True)
+    arr_iata: Mapped[str] = mapped_column(String(4), nullable=True)
 
     # geo / motion
     lat: Mapped[float] = mapped_column(Float, nullable=True)
@@ -38,7 +38,7 @@ class FlightSnapshot(Base):
     v_speed: Mapped[float] = mapped_column(Float, nullable=True)  # km/h
 
     squawk: Mapped[str] = mapped_column(String(4), nullable=True)
-    flag: Mapped[str] = mapped_column(String(2), nullable=True)
+    flag: Mapped[str] = mapped_column(String(4), nullable=True)
 
     status: Mapped[FlightStatusEnum] = mapped_column(
         Enum(
@@ -68,8 +68,8 @@ class FlightSnapshot(Base):
 class AircraftState(Base):
     reg_number: Mapped[str] = mapped_column(String(16), primary_key=True, index=True, unique=True)
 
-    airline_icao: Mapped[str] = mapped_column(String(3), index=True, nullable=True)
-    airline_iata: Mapped[str] = mapped_column(String(2), index=True, nullable=True)
+    airline_icao: Mapped[str] = mapped_column(String(4), index=True, nullable=True)
+    airline_iata: Mapped[str] = mapped_column(String(4), index=True, nullable=True)
 
     status: Mapped[FlightStatusEnum] = mapped_column(
         Enum(

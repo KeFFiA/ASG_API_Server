@@ -40,26 +40,23 @@ class FlightPollingStorage:
         await self.redis.expire(FLIGHT_RADAR_REDIS_META_KEY, FLIGHT_RADAR_REDIS_TTL_SECONDS)
 
     async def get_regs_to_check(self, limit: int = 1000) -> list[str]:
-        """
-        Atomically fetch and remove ready registrations
-        """
         now = time.time()
 
-        regs = await self.redis.zrangebyscore(
-            FLIGHT_RADAR_REDIS_POLLING_KEY, min=0, max=now, start=0, num=limit
+        return await self.redis.zrangebyscore(
+            FLIGHT_RADAR_REDIS_POLLING_KEY,
+            min=0,
+            max=now,
+            start=0,
+            num=limit
         )
-        if not regs:
-            return []
-
-        await self.redis.zrem(FLIGHT_RADAR_REDIS_POLLING_KEY, *regs)
-        return regs
 
     async def update_reg(self, reg: str, found: bool):
         now = time.time()
 
         next_check = now + (
-            FLIGHT_RADAR_CHECK_INTERVAL_FOUND if found
-            else FLIGHT_RADAR_CHECK_INTERVAL_MISS
+            FLIGHT_RADAR_CHECK_INTERVAL_FOUND
+            if found else
+            FLIGHT_RADAR_CHECK_INTERVAL_MISS
         )
 
         await self.redis.zadd(
@@ -73,10 +70,11 @@ class FlightPollingStorage:
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
 
-        await self.redis.hset(FLIGHT_RADAR_REDIS_META_KEY, reg, json.dumps(meta))
-
-        await self.redis.expire(FLIGHT_RADAR_REDIS_POLLING_KEY, FLIGHT_RADAR_REDIS_TTL_SECONDS)
-        await self.redis.expire(FLIGHT_RADAR_REDIS_META_KEY, FLIGHT_RADAR_REDIS_TTL_SECONDS)
+        await self.redis.hset(
+            FLIGHT_RADAR_REDIS_META_KEY,
+            reg,
+            json.dumps(meta)
+        )
 
 
 @performance_timer

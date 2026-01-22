@@ -8,7 +8,8 @@ from dotenv import load_dotenv, find_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-DEV_MODE: bool = os.getenv("DEV_MODE", "false").lower() in ("1", "true", "yes", "on", True)
+# DEV_MODE: bool = os.getenv("DEV_MODE", "false").lower() in ("1", "true", "yes", "on", True)
+DEV_MODE: bool = True
 
 
 # PATH
@@ -88,7 +89,7 @@ SELF_PORT: int = require_env("SELF_PORT", 8000)
 
 API_TITLE: str = require_env("API_TITLE", "AIXII API Server")
 API_DESCRIPTION: str = require_env("API_DESCRIPTION", "")
-API_VERSION: str = require_env("API_VERSION", "0.3.8")
+API_VERSION: str = require_env("API_VERSION", "0.3.9")
 API_SWAGGER_URL: str = require_env("API_SWAGGER_URL", "/api/docs")
 API_REDOC_URL: str = require_env("API_REDOC_URL", "/api/redoc")
 API_ROOT_URL: str = require_env("API_ROOT_URL", "/api/v1")

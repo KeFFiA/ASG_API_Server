@@ -1,6 +1,6 @@
 import inspect
 import sys
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
 from msgraph import GraphServiceClient
 
@@ -9,7 +9,7 @@ from API.FlightRadarAPI.LiveFlightsAPI import live_flights_adaptive
 from API.Clients import MSGraphClient
 from API.Utils import create_or_update_subscription
 from Config import setup_logger
-from Utils import DBProxy
+from Utils import DBProxy, next_quarter
 
 logger = setup_logger("scheduler_processor")
 
@@ -53,8 +53,6 @@ async def update_subscription_job(db_proxy: DBProxy,
         logger.error(f"Subscription update job failed: {_ex}")
         return False
 
-now = datetime.now(timezone.utc)
-next_hour = (now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1))
 
 jobs = [
     {
@@ -63,7 +61,7 @@ jobs = [
         "func": tracker_api,
         "trigger": "cron",
         "minute": "0,15,30,45",
-        "next_run_time": datetime.now(timezone.utc) + timedelta(minutes=1),
+        "next_run_time": next_quarter(datetime.now(timezone.utc)),
         "max_instances": 1,
         "coalesce": True,
         "misfire_grace_time": 60,
@@ -74,7 +72,7 @@ jobs = [
         "func": live_flights_adaptive,
         "trigger": "interval",
         "minutes": 15,
-        "next_run_time": next_hour,
+        "next_run_time": next_quarter(datetime.now(timezone.utc)),
         "max_instances": 1,
         "coalesce": True,
         "misfire_grace_time": 60,

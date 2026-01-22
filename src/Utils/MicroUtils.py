@@ -1,5 +1,5 @@
 import csv
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import inspect
 import os
 import sys
@@ -93,6 +93,13 @@ def sqlalchemy_to_python_type(sql_type):
     else:
         return object
 
+
+def next_quarter(dt: datetime) -> datetime:
+    dt = dt.replace(second=0, microsecond=0)
+    minutes = ((dt.minute // 15) + 1) * 15
+    if minutes == 60:
+        return dt.replace(minute=0) + timedelta(hours=1)
+    return dt.replace(minute=minutes)
 
 
 def write_csv(rows: List[dict], path: str):

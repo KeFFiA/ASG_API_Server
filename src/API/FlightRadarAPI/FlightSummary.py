@@ -8,7 +8,7 @@ from sqlalchemy import select
 from Config import setup_logger, FLIGHT_RADAR_HEADERS, FLIGHT_RADAR_SECONDS_BETWEEN_REQUESTS, \
     FLIGHT_RADAR_MAX_REG_PER_BATCH, FLIGHT_RADAR_RANGE_DAYS, FLIGHT_RADAR_URL, FLIGHT_RADAR_PATH
 from Database import DatabaseClient
-from Database.Models import FlightSummary
+from Database.Models import FlightSummary, Registrations
 from Utils import parse_dt, ensure_naive_utc, write_csv, parse_date_or_datetime, performance_timer
 
 logger = setup_logger("flightradar")
@@ -170,6 +170,18 @@ async def fetch_all_ranges(
         storage_mode: str = "both",
         csv_path: Optional[str] = FLIGHT_RADAR_PATH / f"flights_{datetime.strftime(datetime.now(), '%Y%m%d_%H%M')}.csv"
 ):
+    if registrations is None and icao is None:
+        client: DatabaseClient = DatabaseClient()
+        async with client.session("main") as session:
+            stmt = (
+                select(
+                    Registrations.reg
+                )
+                .where(Registrations.indashboard == True)
+            )
+            result = await session.execute(stmt)
+            registrations = result.scalars().all()
+
     logger.info("[Flight Summary] Starting query Fetch All Ranges")
 
     start_dt = parse_date_or_datetime(start_date)
@@ -217,40 +229,20 @@ if __name__ == "__main__":
     # ICAO = "GLO, CEB, AVA"
     # ICAO = "UAE"
     # ICAO = "RSX"
-    ICAO = "VSV, ABY, RBG, CXI, RAM, VJC, CAI"
+    # ICAO = "VSV, ABY, RBG, CXI, RAM, VJC, CAI"
     # ICAO = "SAA, PGT"
-    # ICAO = None
+    ICAO = None
 
     # START_DATE = "2022-06-02"
     START_DATE = "2022-06-01"
-    END_DATE = "2026-01-05"
+    END_DATE = "2026-01-22"
 
     storage_mode = "both"  # "db", "csv", or "both"
 
     REGISTRATIONS = None
-    # REGISTRATIONS = ['9H-SWN', '9H-CGC ', 'YL-LDN', '9H-SWM', '9H-AMU', '9H-MLQ', 'YL-LDE', 'UP-B3739', 'YL-LDK',
-    #                  '9H-SWJ', '9H-SLE', '9H-AMJ', '9H-SLF', '9H-SMD', '9H-SLI', 'HS-SXB', 'OM-EDH', '9H-SLC', 'LV-NVI',
-    #                  'LY-MLI', '9H-CGN', 'LY-MLJ', '9H-PTP', 'ES-SAA', '9H-SLG', 'UP-B3727', '9H-AMV', 'UP-B3732',
-    #                  'VH-TBA', 'LY-NVF', 'OM-LEX', 'YL-LDQ', 'UP-CJ004', 'LY-FLT ', 'UP-B3735', 'LY-NVL', 'UP-B3722',
-    #                  '9A-ZAG', '9A-BTN', '9H-MLR', 'YL-LDL', '9H-SLJ', '9H-ETA', '9H-SWB', 'YL-LDZ', 'ES-SAZ', '9H-SWG',
-    #                  'OM-NEX', '9H-MLL', '9H-AML', 'UP-B5702', 'UP-B3720', '9H-SWK', 'UP-B3733', '9H-SWA', '9H-MLC',
-    #                  'OM-FEX', '9H-MLO', 'G-HAGI', 'UP-B3729', '9H-AMH', '9A-BER', '9H-SWF', 'HS-SXE', 'OM-OEX',
-    #                  '9H-MLE', '9H-MLX', '9H-ORN', 'UP-B3731', 'LY-MLG', 'YL-LDW', 'G-LESO', '9H-SLH', '9H-SLL',
-    #                  '9H-DRA', 'HS-SXA', 'HS-SXD', 'OM-EDI', 'OM-EDA', 'YL-LDS', '9H-CEN', '9H-SLD', 'HS-SXC',
-    #                  'UP-B3730', 'YL-LDX', 'YL-LCV', '9H-SWE', 'YL-LDR', 'UP-B3736', 'YL-LDP', '9H-CGG', 'UP-B3740',
-    #                  'UP-B5703', '9H-CHA', 'UP-B5705', '9H-SWI', '9H-MLD', 'UP-B3741', '9H-MLU', 'OM-IEX', 'LY-NVG',
-    #                  '9H-AMM', 'ES-SAW', '9H-CGD', '9H-GKK', '9H-SWD', '9H-CGI', 'OM-EDG', '9A-BTL', '9H-CGE', 'D-ANNA',
-    #                  'UP-CJ008', 'VH-L7A', 'G-HODL', 'UP-B3721', 'D-ASMR', 'UP-B5704', '9H-SLK', 'LY-MLN', '9H-AMP',
-    #                  'UP-B3726', '9H-CGA', '9H-DOR', '9H-MLS', 'OM-JEX', 'UP-CJ005', 'YL-LDI', 'OM-EDE', '9H-HYA',
-    #                  'OM-EDC', '9H-AMK', '9A-SHO', '9H-SMG', '9H-SMH', '9A-BTK', '9H-SZF', 'UP-B6703', '9H-AME',
-    #                  '9A-MUC', 'ES-SAD', 'OM-MEX', '9A-BWK', 'G-WEAH', 'YL-LDV', '9H-SLM', 'LY-NVE', 'UP-B3725',
-    #                  '9H-MLV', 'LV-NVJ', 'YL-LCQ', 'YL-LDU', 'UP-B3734', '9H-GKJ', 'YL-LDD', '9H-ARI', '9H-TAU',
-    #                  'UP-B3737', 'LY-VEL', 'YL-LDF', '9H-SWC', 'UP-B3738', '9H-MLZ', '9H-CGR', 'LY-NVH', '9H-CGJ',
-    #                  'YL-LDM', '2-VSLP', 'ES-SAF', 'LY-MLK', '9H-CHI', 'OM-HEX', 'UP-B3742', 'UP-CJ011', 'OM-KEX',
-    #                  '9H-MLB', 'RP-TBA', '9H-AMI', '9H-MLW', '9H-LYR', '9H-MLP', 'LY-MLF', 'YL-LDJ', 'UP-B3723',
-    #                  '9H-MLY', '9H-CGB', 'ES-SAB', '9H-GEM', 'D-ASGK', 'ES-SAG', 'ES-SAX', 'LY-NVM', 'YL-LDO', 'YL-LCT',
-    #                  'OM-EDF', 'UP-B3724', 'LY-NVN', '9H-CGK', '9A-IRM', '9H-ERI', 'OM-EDD', 'ES-SAY', 'G-CRUX',
-    #                  '9A-BTI', 'ES-SAM', 'OM-EDB']
+
+
+    csv_path = FLIGHT_RADAR_PATH / f"flights_01_22_2026.csv"
 
     asyncio.run(fetch_all_ranges(
         start_date=START_DATE,
