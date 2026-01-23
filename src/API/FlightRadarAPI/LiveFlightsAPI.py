@@ -1,6 +1,6 @@
 import json
 import time
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import List, Optional, Set
 
 import aiohttp
@@ -23,39 +23,61 @@ _last_run_date: datetime | None = None
 
 class FlightPollingStorage:
     def __init__(self, username: str, password: str, host: str, port: int):
-        self.redis = Redis(username=username, password=password, host=host, port=port, decode_responses=True)
+        self.redis = Redis(
+            username=username,
+            password=password,
+            host=host,
+            port=port,
+            decode_responses=True
+        )
 
     async def init_regs(self, regs: list[str]):
         now = time.time()
-
         regs = [r for r in regs if r]
         if not regs:
             return
 
-        mapping = {reg: now for reg in regs}
-
-        await self.redis.zadd(FLIGHT_RADAR_REDIS_POLLING_KEY, mapping)
-
-        await self.redis.expire(FLIGHT_RADAR_REDIS_POLLING_KEY, FLIGHT_RADAR_REDIS_TTL_SECONDS)
-        await self.redis.expire(FLIGHT_RADAR_REDIS_META_KEY, FLIGHT_RADAR_REDIS_TTL_SECONDS)
-
-
-    async def get_all_regs(self, limit: int = 1000) -> list[str]:
-        return await self.redis.zrange(
-            FLIGHT_RADAR_REDIS_POLLING_KEY, 0, limit - 1
+        await self.redis.zadd(
+            FLIGHT_RADAR_REDIS_POLLING_KEY,
+            {reg: now for reg in regs}
         )
 
+        await self.redis.expire(
+            FLIGHT_RADAR_REDIS_POLLING_KEY,
+            FLIGHT_RADAR_REDIS_TTL_SECONDS
+        )
+        await self.redis.expire(
+            FLIGHT_RADAR_REDIS_META_KEY,
+            FLIGHT_RADAR_REDIS_TTL_SECONDS
+        )
 
-    async def get_regs_to_check(self, limit: int = 1000) -> list[str]:
+    async def get_regs_for_cycle(self, limit: int = 1000) -> list[str]:
         now = time.time()
 
-        return await self.redis.zrangebyscore(
+        ready = set(await self.redis.zrangebyscore(
             FLIGHT_RADAR_REDIS_POLLING_KEY,
             min=0,
             max=now,
             start=0,
             num=limit
-        )
+        ))
+
+        meta_raw = await self.redis.hgetall(FLIGHT_RADAR_REDIS_META_KEY)
+        revisit: set[str] = set()
+
+        for reg, raw in meta_raw.items():
+            try:
+                meta = json.loads(raw)
+            except Exception:
+                continue
+
+            if (
+                    meta.get("state") == "airborne"
+                    and meta.get("last_seen_ts", 0) <= now - FLIGHT_RADAR_CHECK_INTERVAL_FOUND
+            ):
+                revisit.add(reg)
+
+        return list(ready | revisit)
 
     async def update_reg(self, reg: str, found: bool):
         now = time.time()
@@ -73,8 +95,8 @@ class FlightPollingStorage:
 
         meta = {
             "state": "airborne" if found else "ground",
-            "last_seen": datetime.now(timezone.utc).isoformat() if found else None,
-            "updated_at": datetime.now(timezone.utc).isoformat()
+            "last_seen_ts": now if found else None,
+            "updated_at_ts": now
         }
 
         await self.redis.hset(
@@ -83,28 +105,29 @@ class FlightPollingStorage:
             json.dumps(meta)
         )
 
+        await self.redis.expire(
+            FLIGHT_RADAR_REDIS_POLLING_KEY,
+            FLIGHT_RADAR_REDIS_TTL_SECONDS
+        )
+        await self.redis.expire(
+            FLIGHT_RADAR_REDIS_META_KEY,
+            FLIGHT_RADAR_REDIS_TTL_SECONDS
+        )
+
 
 @performance_timer
-async def live_flights_adaptive(
-        storage_mode: str = "db"
-):
+async def live_flights_adaptive(storage_mode: str = "db"):
     logger.info("[Live Flights] Adaptive polling started")
-    username, password, host, port = DBSettings().get_reddis_credentials()
 
+    username, password, host, port = DBSettings().get_reddis_credentials()
     redis_storage = FlightPollingStorage(username, password, host, port)
     db_client = DatabaseClient()
 
-    regs_to_check = await redis_storage.get_regs_to_check()
+    regs_to_check = await redis_storage.get_regs_for_cycle()
 
     if not regs_to_check:
-        total = await redis_storage.redis.zcard(FLIGHT_RADAR_REDIS_POLLING_KEY)
-
-        if total > 0:
-            logger.info("[Live Flights] Bootstrap run — forcing initial check")
-            regs_to_check = await redis_storage.get_all_regs()
-        else:
-            logger.info("[Live Flights] Nothing to check — skipping API call")
-            return
+        logger.info("[Live Flights] Nothing to check — skipping API call")
+        return
 
     logger.info(f"[Live Flights] Checking {len(regs_to_check)} aircrafts")
 
@@ -117,15 +140,13 @@ async def live_flights_adaptive(
 
     async with aiohttp.ClientSession() as http:
         for batch in batches:
-            params = {
-                "registrations": ",".join(batch),
-                "limit": 20000
-            }
-
             async with http.get(
                     f"{FLIGHT_RADAR_URL}/live/flight-positions/full",
                     headers=FLIGHT_RADAR_HEADERS,
-                    params=params
+                    params={
+                        "registrations": ",".join(batch),
+                        "limit": 20000
+                    }
             ) as resp:
 
                 if resp.status != 200:
@@ -139,7 +160,7 @@ async def live_flights_adaptive(
                     continue
 
                 found_regs.update(
-                    flight.get("reg") for flight in flights_data if flight.get("reg")
+                    f.get("reg") for f in flights_data if f.get("reg")
                 )
 
                 if storage_mode in ("db", "both"):
@@ -182,6 +203,6 @@ async def live_flights_adaptive(
         )
 
     logger.info(
-        f"[Live Flights] Completed. Active: {len(found_regs)}, inactive: {len(regs_to_check) - len(found_regs)}"
+        f"[Live Flights] Completed. Active: {len(found_regs)}, "
+        f"inactive: {len(regs_to_check) - len(found_regs)}"
     )
-
