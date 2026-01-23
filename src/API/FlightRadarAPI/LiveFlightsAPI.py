@@ -8,7 +8,8 @@ from redis.asyncio import Redis
 
 from Config import FLIGHT_RADAR_HEADERS, \
     FLIGHT_RADAR_MAX_REG_PER_BATCH, FLIGHT_RADAR_URL, FLIGHT_RADAR_REDIS_POLLING_KEY, FLIGHT_RADAR_REDIS_META_KEY, \
-    FLIGHT_RADAR_CHECK_INTERVAL_MISS, FLIGHT_RADAR_CHECK_INTERVAL_FOUND, FLIGHT_RADAR_REDIS_TTL_SECONDS, DBSettings
+    FLIGHT_RADAR_CHECK_INTERVAL_MISS, FLIGHT_RADAR_CHECK_INTERVAL_FOUND, FLIGHT_RADAR_REDIS_TTL_SECONDS, DBSettings, \
+    FLIGHT_RADAR_FORCE_RECHECK_MISS
 from Database import LivePositions, DatabaseClient
 from Utils import ensure_naive_utc, parse_dt, performance_timer
 
@@ -54,7 +55,7 @@ class FlightPollingStorage:
     async def get_regs_for_cycle(self, limit: int = 1000) -> list[str]:
         now = time.time()
 
-        ready = set(await self.redis.zrangebyscore(
+        scheduled = set(await self.redis.zrangebyscore(
             FLIGHT_RADAR_REDIS_POLLING_KEY,
             min=0,
             max=now,
@@ -63,7 +64,7 @@ class FlightPollingStorage:
         ))
 
         meta_raw = await self.redis.hgetall(FLIGHT_RADAR_REDIS_META_KEY)
-        revisit: set[str] = set()
+        forced: set[str] = set()
 
         for reg, raw in meta_raw.items():
             try:
@@ -72,12 +73,12 @@ class FlightPollingStorage:
                 continue
 
             if (
-                    meta.get("state") == "airborne"
-                    and meta.get("last_seen_ts", 0) <= now - FLIGHT_RADAR_CHECK_INTERVAL_FOUND
+                    meta.get("state") == "ground"
+                    and meta.get("updated_at_ts", 0) <= now - FLIGHT_RADAR_FORCE_RECHECK_MISS
             ):
-                revisit.add(reg)
+                forced.add(reg)
 
-        return list(ready | revisit)
+        return list(scheduled | forced)
 
     async def update_reg(self, reg: str, found: bool):
         now = time.time()
