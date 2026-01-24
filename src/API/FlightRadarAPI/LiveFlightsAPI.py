@@ -5,12 +5,14 @@ from typing import List, Optional, Set
 
 import aiohttp
 from redis.asyncio import Redis
+from sqlalchemy import select
 
 from Config import FLIGHT_RADAR_HEADERS, \
     FLIGHT_RADAR_MAX_REG_PER_BATCH, FLIGHT_RADAR_URL, FLIGHT_RADAR_REDIS_POLLING_KEY, FLIGHT_RADAR_REDIS_META_KEY, \
-    FLIGHT_RADAR_CHECK_INTERVAL_MISS, FLIGHT_RADAR_CHECK_INTERVAL_FOUND, FLIGHT_RADAR_REDIS_TTL_SECONDS, DBSettings, \
-    FLIGHT_RADAR_FORCE_RECHECK_MISS
-from Database import LivePositions, DatabaseClient
+    FLIGHT_RADAR_CHECK_INTERVAL_MISS, FLIGHT_RADAR_CHECK_INTERVAL_FOUND, DBSettings, \
+    FLIGHT_RADAR_FORCE_RECHECK_MISS, FLIGHT_RADAR_BOOTSTRAP_KEY
+from Database import DatabaseClient
+from Database.Models import Registrations, LivePositions
 from Utils import ensure_naive_utc, parse_dt, performance_timer
 
 try:
@@ -32,24 +34,24 @@ class FlightPollingStorage:
             decode_responses=True
         )
 
-    async def init_regs(self, regs: list[str]):
-        now = time.time()
-        regs = [r for r in regs if r]
+    async def bootstrap(self, regs: list[str]):
         if not regs:
             return
 
+        exists = await self.redis.exists(FLIGHT_RADAR_REDIS_POLLING_KEY)
+        if exists:
+            return
+
+        now = time.time()
         await self.redis.zadd(
             FLIGHT_RADAR_REDIS_POLLING_KEY,
             {reg: now for reg in regs}
         )
 
-        await self.redis.expire(
-            FLIGHT_RADAR_REDIS_POLLING_KEY,
-            FLIGHT_RADAR_REDIS_TTL_SECONDS
-        )
-        await self.redis.expire(
-            FLIGHT_RADAR_REDIS_META_KEY,
-            FLIGHT_RADAR_REDIS_TTL_SECONDS
+        await self.redis.set(
+            FLIGHT_RADAR_BOOTSTRAP_KEY,
+            "1",
+            ex=24 * 60 * 60
         )
 
     async def get_regs_for_cycle(self, limit: int = 1000) -> list[str]:
@@ -73,8 +75,8 @@ class FlightPollingStorage:
                 continue
 
             if (
-                    meta.get("state") == "ground"
-                    and meta.get("updated_at_ts", 0) <= now - FLIGHT_RADAR_FORCE_RECHECK_MISS
+                meta.get("state") == "ground"
+                and meta.get("updated_at_ts", 0) <= now - FLIGHT_RADAR_FORCE_RECHECK_MISS
             ):
                 forced.add(reg)
 
@@ -106,14 +108,6 @@ class FlightPollingStorage:
             json.dumps(meta)
         )
 
-        await self.redis.expire(
-            FLIGHT_RADAR_REDIS_POLLING_KEY,
-            FLIGHT_RADAR_REDIS_TTL_SECONDS
-        )
-        await self.redis.expire(
-            FLIGHT_RADAR_REDIS_META_KEY,
-            FLIGHT_RADAR_REDIS_TTL_SECONDS
-        )
 
 
 @performance_timer
@@ -123,6 +117,17 @@ async def live_flights_adaptive(storage_mode: str = "db"):
     username, password, host, port = DBSettings().get_reddis_credentials()
     redis_storage = FlightPollingStorage(username, password, host, port)
     db_client = DatabaseClient()
+
+    async with db_client.session("main") as session:
+        stmt = (
+            select(
+                Registrations.reg
+            )
+            .where(Registrations.indashboard == True)
+        )
+        result = await session.execute(stmt)
+        all_regs = result.scalars().all()
+    await redis_storage.bootstrap(all_regs)
 
     regs_to_check = await redis_storage.get_regs_for_cycle()
 

@@ -195,18 +195,6 @@ def register_middlewares(app):
             from Config import FILES_PATH, EXCEL_FILES_PATH, CIRIUM_FILES_PATH
             from API.FlightRadarAPI.LiveFlightsAPI import FlightPollingStorage
 
-            fr = FlightPollingStorage(username, password, host, port)
-            async with app.state.db_client.session("main") as session:
-                stmt = (
-                    select(
-                        Registrations.reg
-                    )
-                    .where(Registrations.indashboard == True)
-                )
-                result = await session.execute(stmt)
-                regs = result.scalars().all()
-            await fr.init_regs(regs=regs)
-
             app.state.scheduler = Scheduler(jobs=jobs)
             app.state.scheduler.start()
 
