@@ -51,7 +51,7 @@ class CustomLogHandler(RotatingFileHandler):
 
 
 log_format = (
-    '%(levelname)s:     [%(name)s] %(asctime)s|%(filename)s-%(lineno)d: %(message)s'
+    '%(levelname)s:     [%(name)s] %(asctime)s | %(filename)s-%(lineno)d: %(message)s'
 )
 
 

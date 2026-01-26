@@ -5,6 +5,7 @@ from sqlalchemy import select, asc, text
 
 from Database import DatabaseClient
 from Database.Models import LivePositions
+from Utils import ensure_naive_utc
 
 try:
     from .FlightSummary import logger
@@ -40,7 +41,7 @@ async def get_earliest_live_position_last_hour(
     reg: str,
 ):
 
-    now = datetime.now(UTC)
+    now = ensure_naive_utc(datetime.now(UTC))
     one_hour_ago = now - timedelta(hours=1, minutes=10)
 
     async with client.session("flightradar") as session:
