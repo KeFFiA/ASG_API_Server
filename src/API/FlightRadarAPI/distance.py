@@ -106,7 +106,7 @@ async def calculate_distance_metric(
         return haversine_distance_km(
             prev.lat, prev.lon,
             lat, lon
-        )
+        ) + prev.actual_distance
 
     if orig_iata:
         airport = await get_airport_coords_by_iata(client, orig_iata)
