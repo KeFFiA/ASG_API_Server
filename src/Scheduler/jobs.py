@@ -1,6 +1,6 @@
 import inspect
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from msgraph import GraphServiceClient
 
@@ -72,7 +72,7 @@ jobs = [
         "func": live_flights_adaptive,
         "trigger": "cron",
         "minute": "0,15,30,45",
-        "next_run_time": 1,
+        "next_run_time": datetime.now(timezone.utc) + timedelta(minutes=1),
         "max_instances": 1,
         "coalesce": True,
         "misfire_grace_time": 60,
