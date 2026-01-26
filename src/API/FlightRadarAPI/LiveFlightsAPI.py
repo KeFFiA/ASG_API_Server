@@ -17,8 +17,10 @@ from Utils import ensure_naive_utc, parse_dt, performance_timer
 
 try:
     from .FlightSummary import logger
+    from .distance import calculate_distance_metric
 except:
     from API.FlightRadarAPI.FlightSummary import logger
+    from API.FlightRadarAPI.FlightSummary import calculate_distance_metric
 
 _last_flights: Optional[List[dict]] = None
 _last_run_date: datetime | None = None
@@ -193,7 +195,8 @@ async def live_flights_adaptive(storage_mode: str = "db"):
                             orig_icao=f.get("orig_icao"),
                             dest_iata=f.get("dest_iata"),
                             dest_icao=f.get("dest_icao"),
-                            eta=ensure_naive_utc(parse_dt(f.get("eta")))
+                            eta=ensure_naive_utc(parse_dt(f.get("eta"))),
+                            actual_distance=await calculate_distance_metric(reg=f.get("reg"), new_flight=f)
                         )
                         for f in flights_data
                     ]
@@ -212,3 +215,6 @@ async def live_flights_adaptive(storage_mode: str = "db"):
         f"[Live Flights] Completed. Active: {len(found_regs)}, "
         f"inactive: {len(regs_to_check) - len(found_regs)}"
     )
+
+
+
