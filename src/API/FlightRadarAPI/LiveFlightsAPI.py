@@ -196,7 +196,7 @@ async def live_flights_adaptive(storage_mode: str = "db"):
                             dest_iata=f.get("dest_iata"),
                             dest_icao=f.get("dest_icao"),
                             eta=ensure_naive_utc(parse_dt(f.get("eta"))),
-                            actual_distance=await calculate_distance_metric(reg=f.get("reg"), new_flight=f)
+                            # actual_distance=await calculate_distance_metric(reg=f.get("reg"), new_flight=f)
                         )
                         for f in flights_data
                     ]
