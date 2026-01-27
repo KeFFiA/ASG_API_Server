@@ -4,7 +4,6 @@ from datetime import datetime, timezone, timedelta
 
 from msgraph import GraphServiceClient
 
-from API.AirlabsAPI.FlightsAPI import tracker_api
 from API.FlightRadarAPI.LiveFlightsAPI import live_flights_adaptive
 from API.Clients import MSGraphClient
 from API.Utils import create_or_update_subscription
@@ -72,7 +71,7 @@ jobs = [
         "func": live_flights_adaptive,
         "trigger": "cron",
         "minute": "0,15,30,45",
-        # "next_run_time": datetime.now(timezone.utc) + timedelta(minutes=1),
+        "next_run_time": next_quarter(datetime.now(timezone.utc)),
         "max_instances": 1,
         "coalesce": True,
         "misfire_grace_time": 60,
