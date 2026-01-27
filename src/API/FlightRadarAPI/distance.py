@@ -102,13 +102,13 @@ async def calculate_distance_metric(
     )
 
     if prev and prev.lat is not None and prev.lon is not None:
-        logger.info(f"[Distance calculator] Return: {haversine_distance_km(prev.lat, prev.lon, lat, lon)}")
+        logger.info(f"[Distance calculator] Return by calc: {haversine_distance_km(prev.lat, prev.lon, lat, lon) + prev.actual_distance}")
         return haversine_distance_km(
             prev.lat, prev.lon,
             lat, lon
         ) + prev.actual_distance
 
-    if orig_iata:
+    if orig_iata and prev is None:
         airport = await get_airport_coords_by_iata(client, orig_iata)
         if airport:
             a_lat, a_lon = airport
@@ -118,12 +118,15 @@ async def calculate_distance_metric(
                 lat, lon
             )
 
-    if gspeed < 120:
-        logger.info(f"[Distance calculator] Fallback by gspeed: 0.0")
-        return 0.0
+    if orig_iata is None and prev is None:
+        if gspeed >= 120:
+            logger.info(f"[Distance calculator] Return by gspeed: {gspeed * 1.825 / 5}")
+            return gspeed * 1.825 / 5
+        if gspeed < 120:
+            logger.info(f"[Distance calculator] Fallback by gspeed: 0.0")
+            return 0.0
 
-    logger.info(f"[Distance calculator] Return by gspeed: {gspeed * 1.825 / 5}")
-    return gspeed * 1.825 / 5
+    return 0.0
 
 
 
