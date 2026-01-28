@@ -76,3 +76,4 @@ class LivePositions(Base):
 
     actual_distance: Mapped[float] = mapped_column(Float, nullable=True, default=0.0)
 
+
