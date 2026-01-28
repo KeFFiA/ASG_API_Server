@@ -102,6 +102,17 @@ def next_quarter(dt: datetime) -> datetime:
     return dt.replace(minute=minutes)
 
 
+def next_ten_minutes(dt: datetime) -> datetime:
+    dt = dt.replace(second=0, microsecond=0)
+
+    minutes = ((dt.minute // 10) + 1) * 10
+
+    if minutes == 60:
+        return dt.replace(minute=0) + timedelta(hours=1)
+
+    return dt.replace(minute=minutes)
+
+
 def write_csv(rows: List[dict], path: str):
     file_exists = Path(path).exists()
     with open(path, "a", newline="", encoding="utf-8") as f:

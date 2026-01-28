@@ -1,7 +1,8 @@
 import math
 from datetime import datetime, timedelta, UTC
+from typing import Optional
 
-from sqlalchemy import select, asc, text
+from sqlalchemy import select, text, desc
 
 from Database import DatabaseClient
 from Database.Models import LivePositions
@@ -14,10 +15,9 @@ except:
 
 
 def haversine_distance_km(
-    lat1: float, lon1: float,
-    lat2: float, lon2: float
+        lat1: float, lon1: float,
+        lat2: float, lon2: float
 ) -> float:
-
     R = 6371.0
 
     lat1, lon1, lat2, lon2 = map(math.radians, (lat1, lon1, lat2, lon2))
@@ -26,9 +26,9 @@ def haversine_distance_km(
     dlon = lon2 - lon1
 
     a = (
-        math.sin(dlat / 2) ** 2 +
-        math.cos(lat1) * math.cos(lat2) *
-        math.sin(dlon / 2) ** 2
+            math.sin(dlat / 2) ** 2 +
+            math.cos(lat1) * math.cos(lat2) *
+            math.sin(dlon / 2) ** 2
     )
 
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
@@ -36,22 +36,40 @@ def haversine_distance_km(
     return R * c
 
 
-async def get_earliest_live_position_last_hour(
-    client,
-    reg: str,
-):
+async def get_time_delta(start: Optional[datetime] = None, end: Optional[datetime] = None,
+                         reg: Optional[str] = None, flight_number: Optional[str] = None) -> timedelta:
+    if reg and flight_number:
+        client = DatabaseClient()
+        prev = await get_latest_live_position(client=client, reg=reg, flight_number=flight_number)
+        if prev:
+            start = prev.created_at
 
+    if end is None:
+        end = ensure_naive_utc(datetime.now(UTC))
+
+    if start is None:
+        return timedelta(0)
+
+    try:
+        return end - start
+    except Exception as _ex:
+        logger.warning(f"[Distance calculator] Fallback to timedelta = 0. Exception: {_ex}")
+        return timedelta(0)
+
+
+async def get_latest_live_position(client, reg: str, flight_number: str):
     now = ensure_naive_utc(datetime.now(UTC))
-    one_hour_ago = now - timedelta(hours=1, minutes=10)
+    one_hour_ago = now - timedelta(hours=2)
 
     async with client.session("flightradar") as session:
         stmt = (
             select(LivePositions)
             .where(
                 LivePositions.reg == reg,
+                LivePositions.flight == flight_number,
                 LivePositions.created_at >= one_hour_ago,
             )
-            .order_by(asc(LivePositions.created_at))
+            .order_by(desc(LivePositions.created_at))
             .limit(1)
         )
 
@@ -79,10 +97,7 @@ async def get_airport_coords_by_iata(client, iata: str):
         return row.latitude, row.longitude
 
 
-async def calculate_distance_metric(
-    reg: str,
-    new_flight: dict
-) -> float:
+async def calculate_distance_metric(reg: str, new_flight: dict) -> float:
     client = DatabaseClient()
 
     lat = new_flight.get("lat")
@@ -90,23 +105,25 @@ async def calculate_distance_metric(
     gspeed = new_flight.get("gspeed")
     orig_iata = new_flight.get("orig_iata")
 
-    logger.info(f"[Distance calculator] Calculating distance metric, lon: {lon}, lat: {lat}, gspeed: {gspeed}, orig_iata: {orig_iata}")
+    logger.info(
+        f"[Distance calculator] Calculating distance metric, lon: {lon}, lat: {lat}, gspeed: {gspeed}, orig_iata: {orig_iata}")
 
     if lat is None or lon is None:
         logger.info("[Distance calculator] Fallback to 0.0")
         return 0.0
 
-    prev = await get_earliest_live_position_last_hour(
+    prev = await get_latest_live_position(
         client=client,
-        reg=reg
+        reg=reg,
+        flight_number=new_flight.get("flight"),
     )
 
     if prev and prev.lat is not None and prev.lon is not None:
-        logger.info(f"[Distance calculator] Return by calc: {haversine_distance_km(prev.lat, prev.lon, lat, lon) + prev.actual_distance}")
+        logger.info(f"[Distance calculator] Return by calc: {haversine_distance_km(prev.lat, prev.lon, lat, lon)}")
         return haversine_distance_km(
             prev.lat, prev.lon,
             lat, lon
-        ) + prev.actual_distance
+        )
 
     if orig_iata and prev is None:
         airport = await get_airport_coords_by_iata(client, orig_iata)
@@ -129,8 +146,8 @@ async def calculate_distance_metric(
     return 0.0
 
 
-
 if __name__ == "__main__":
     import asyncio
+
     client = DatabaseClient()
     asyncio.run(get_airport_coords_by_iata(client=client, iata="DXB"))

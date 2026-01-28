@@ -8,7 +8,7 @@ from API.FlightRadarAPI.LiveFlightsAPI import live_flights_adaptive
 from API.Clients import MSGraphClient
 from API.Utils import create_or_update_subscription
 from Config import setup_logger
-from Utils import DBProxy, next_quarter
+from Utils import DBProxy, next_quarter, next_ten_minutes
 
 logger = setup_logger("scheduler_processor")
 
@@ -70,8 +70,8 @@ jobs = [
         "name": "UpdateFlightradarFlights",
         "func": live_flights_adaptive,
         "trigger": "cron",
-        "minute": "0,15,30,45",
-        "next_run_time": next_quarter(datetime.now(timezone.utc)),
+        "minute": "0,10,20,30,40,50",
+        "next_run_time": next_ten_minutes(datetime.now(timezone.utc)),
         "max_instances": 1,
         "coalesce": True,
         "misfire_grace_time": 60,

@@ -17,7 +17,7 @@ from Utils import ensure_naive_utc, parse_dt, performance_timer
 
 try:
     from .FlightSummary import logger
-    from .distance import calculate_distance_metric
+    from .distance import calculate_distance_metric, get_time_delta
 except:
     from API.FlightRadarAPI.FlightSummary import logger
     from API.FlightRadarAPI.FlightSummary import calculate_distance_metric
@@ -196,7 +196,8 @@ async def live_flights_adaptive(storage_mode: str = "db"):
                             dest_iata=f.get("dest_iata"),
                             dest_icao=f.get("dest_icao"),
                             eta=ensure_naive_utc(parse_dt(f.get("eta"))),
-                            # actual_distance=await calculate_distance_metric(reg=f.get("reg"), new_flight=f)
+                            actual_distance=await calculate_distance_metric(reg=f.get("reg"), new_flight=f),
+                            time_delta=await get_time_delta(reg=f.get("reg"), flight_number=f.get("flight"))
                         )
                         for f in flights_data
                     ]

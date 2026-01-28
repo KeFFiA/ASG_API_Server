@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
-from sqlalchemy import DateTime, String, Integer, Float, Boolean
+from sqlalchemy import DateTime, String, Integer, Float, Boolean, Interval
 
 from .config import FlightRadarBase as Base
 from sqlalchemy.orm import Mapped, mapped_column
@@ -75,5 +75,5 @@ class LivePositions(Base):
     eta: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
 
     actual_distance: Mapped[float] = mapped_column(Float, nullable=True, default=0.0)
-
+    time_delta: Mapped[timedelta] = mapped_column(Interval, nullable=True)
 

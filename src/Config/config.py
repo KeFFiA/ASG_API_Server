@@ -88,7 +88,7 @@ SELF_PORT: int = require_env("SELF_PORT", 8000)
 
 API_TITLE: str = require_env("API_TITLE", "AIXII API Server")
 API_DESCRIPTION: str = require_env("API_DESCRIPTION", "")
-API_VERSION: str = require_env("API_VERSION", "0.4.0")
+API_VERSION: str = require_env("API_VERSION", "0.4.1")
 API_SWAGGER_URL: str = require_env("API_SWAGGER_URL", "/api/docs")
 API_REDOC_URL: str = require_env("API_REDOC_URL", "/api/redoc")
 API_ROOT_URL: str = require_env("API_ROOT_URL", "/api/v1")
@@ -202,9 +202,9 @@ FLIGHT_RADAR_REDIS_POLLING_KEY: str = "flights:polling"
 FLIGHT_RADAR_REDIS_META_KEY: str = "flights:meta"
 FLIGHT_RADAR_BOOTSTRAP_KEY: str = "fr:bootstrap_done"
 
-FLIGHT_RADAR_CHECK_INTERVAL_MISS: int = require_env("FLIGHT_RADAR_CHECK_INTERVAL_MISS", 13 * 60)
-FLIGHT_RADAR_CHECK_INTERVAL_FOUND: int = require_env("FLIGHT_RADAR_CHECK_INTERVAL_FOUND", 28 * 60)
-FLIGHT_RADAR_FORCE_RECHECK_MISS: int = require_env("FLIGHT_RADAR_FORCE_RECHECK_MISS", 13 * 60)
+FLIGHT_RADAR_CHECK_INTERVAL_MISS: int = require_env("FLIGHT_RADAR_CHECK_INTERVAL_MISS", 8 * 60)
+FLIGHT_RADAR_CHECK_INTERVAL_FOUND: int = require_env("FLIGHT_RADAR_CHECK_INTERVAL_FOUND", 18 * 60)
+FLIGHT_RADAR_FORCE_RECHECK_MISS: int = require_env("FLIGHT_RADAR_FORCE_RECHECK_MISS", 8 * 60)
 
 # IMPORTS
 
