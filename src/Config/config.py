@@ -92,6 +92,7 @@ API_VERSION: str = require_env("API_VERSION", "0.5.0a")
 API_SWAGGER_URL: str = require_env("API_SWAGGER_URL", "/api/docs")
 API_REDOC_URL: str = require_env("API_REDOC_URL", "/api/redoc")
 API_ROOT_URL: str = require_env("API_ROOT_URL", "/api/v1")
+API_OPENAPI_VERSION: str = require_env("API_OPENAPI_VERSION", "3.0.2")
 
 # CORS
 
