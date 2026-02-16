@@ -6,14 +6,20 @@ from .config import PowerPlatformBase as Base
 
 
 class UserAssignedLicenseLink(Base):
-    user_id: Mapped[str] = mapped_column(ForeignKey('users.user_id'))
-    license_id: Mapped[str] = mapped_column(ForeignKey('userassignedlicenses.license_id'))
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey('users.user_id'),
+        primary_key=True
+    )
+    license_id: Mapped[str] = mapped_column(
+        ForeignKey('userassignedlicenses.license_id'),
+        primary_key=True
+    )
 
     user = relationship("User", back_populates="assigned_licenses_links")
     license = relationship("UserAssignedLicense", back_populates="users_links")
 
 class User(Base):
-    user_id: Mapped[str] = mapped_column(String, primary_key=True, index=True, unique=True)
+    user_id: Mapped[str] = mapped_column(String, primary_key=True, unique=True)
     display_name: Mapped[str] = mapped_column(String, nullable=True)
     given_name: Mapped[str] = mapped_column(String, nullable=True)
     surname: Mapped[str] = mapped_column(String, nullable=True)
@@ -57,7 +63,7 @@ class User(Base):
 
 
 class UserAssignedLicense(Base):
-    license_id: Mapped[str] = mapped_column(String, primary_key=True, index=True, unique=True)
+    license_id: Mapped[str] = mapped_column(String, primary_key=True, unique=True)
     sku_id: Mapped[str] = mapped_column(String)
     disabled_plans: Mapped[str] = mapped_column(String, nullable=True)
 
@@ -69,7 +75,7 @@ class UserAssignedLicense(Base):
 
 
 class UserAssignedPlan(Base):
-    plan_id: Mapped[str] = mapped_column(String, primary_key=True, index=True, unique=True)
+    plan_id: Mapped[str] = mapped_column(String, primary_key=True, unique=True)
     capability_status: Mapped[str] = mapped_column(String, nullable=True)
     service: Mapped[str] = mapped_column(String, nullable=True)
 
@@ -78,7 +84,7 @@ class UserAssignedPlan(Base):
 
 
 class UserDrive(Base):
-    drive_id: Mapped[str] = mapped_column(String, primary_key=True, index=True, unique=True)
+    drive_id: Mapped[str] = mapped_column(String, primary_key=True, unique=True)
     drive_type: Mapped[str] = mapped_column(String, nullable=True)
 
     user_id: Mapped[str] = mapped_column(ForeignKey('users.user_id'))
@@ -86,7 +92,7 @@ class UserDrive(Base):
 
 
 class UserMessage(Base):
-    message_id: Mapped[str] = mapped_column(String, primary_key=True, index=True, unique=True)
+    message_id: Mapped[str] = mapped_column(String, primary_key=True, unique=True)
     subject: Mapped[str] = mapped_column(String, nullable=True)
     body_preview: Mapped[str] = mapped_column(String, nullable=True)
 
@@ -95,7 +101,7 @@ class UserMessage(Base):
 
 
 class UserCalendar(Base):
-    calendar_id: Mapped[str] = mapped_column(String, primary_key=True, index=True, unique=True)
+    calendar_id: Mapped[str] = mapped_column(String, primary_key=True, unique=True)
     name: Mapped[str] = mapped_column(String, nullable=True)
 
     user_id: Mapped[str] = mapped_column(ForeignKey('users.user_id'))
@@ -103,7 +109,7 @@ class UserCalendar(Base):
 
 
 class UserPhoto(Base):
-    photo_id: Mapped[str] = mapped_column(String, primary_key=True, index=True, unique=True)
+    photo_id: Mapped[str] = mapped_column(String, primary_key=True, unique=True)
     url: Mapped[str] = mapped_column(String, nullable=True)
 
     user_id: Mapped[str] = mapped_column(ForeignKey('users.user_id'))
@@ -111,7 +117,7 @@ class UserPhoto(Base):
 
 
 class UserContact(Base):
-    contact_id: Mapped[str] = mapped_column(String, primary_key=True, index=True, unique=True)
+    contact_id: Mapped[str] = mapped_column(String, primary_key=True, unique=True)
     display_name: Mapped[str] = mapped_column(String, nullable=True)
     email: Mapped[str] = mapped_column(String, nullable=True)
 
@@ -120,7 +126,7 @@ class UserContact(Base):
 
 
 class Application(Base):
-    application_id: Mapped[str] = mapped_column(String, primary_key=True, index=True, unique=True)
+    application_id: Mapped[str] = mapped_column(String, primary_key=True, unique=True)
     application_name: Mapped[str] = mapped_column(String, nullable=True)
     application_description: Mapped[str] = mapped_column(String, nullable=True)
 
