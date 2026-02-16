@@ -8,6 +8,7 @@ from API.FlightRadarAPI.LiveFlightsAPI import live_flights_adaptive
 from API.Clients import MSGraphClient
 from API.Utils import create_or_update_subscription
 from Config import setup_logger
+from Scheduler.MSGraphJobs import update_users_job
 from Utils import DBProxy, next_quarter, next_ten_minutes
 
 logger = setup_logger("scheduler_processor")
@@ -54,17 +55,6 @@ async def update_subscription_job(db_proxy: DBProxy,
 
 
 jobs = [
-    # {
-    #     "id": "update_airlabs_flights",
-    #     "name": "UpdateAirlabsFlights",
-    #     "func": tracker_api,
-    #     "trigger": "cron",
-    #     "minute": "0,15,30,45",
-    #     "next_run_time": next_quarter(datetime.now(timezone.utc)),
-    #     "max_instances": 1,
-    #     "coalesce": True,
-    #     "misfire_grace_time": 60,
-    # },
     {
         "id": "update_flightradar_flights",
         "name": "UpdateFlightradarFlights",
@@ -75,8 +65,20 @@ jobs = [
         "max_instances": 1,
         "coalesce": True,
         "misfire_grace_time": 60,
+    },
+    {
+        "id": "update_microsoft_users",
+        "name": "UpdateMicrosoftUsers",
+        "func": update_users_job,
+        "trigger": "interval",
+        "minutes": 10,
+        "next_run_time": next_ten_minutes(datetime.now(timezone.utc)),
+        "max_instances": 1,
+        "coalesce": True,
+        "misfire_grace_time": 60,
     }
 ]
+
 
 _current_module = sys.modules[__name__]
 

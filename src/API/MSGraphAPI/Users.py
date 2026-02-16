@@ -1,7 +1,5 @@
-import asyncio
 import inspect
 import sys
-from datetime import datetime
 
 from msgraph.generated.models.invited_user_message_info import InvitedUserMessageInfo
 from msgraph.generated.models.user import User
@@ -15,8 +13,10 @@ from API.Clients import MSGraphClient
 from API.Exceptions.MSGraphErrors import InvalidUserFilterError
 from Schemas import InviteUserSchema
 from Schemas.Enums.MSGraphAPI import UserTypesEnum
+from Utils import performance_timer
 
 
+@performance_timer
 async def get_users(_client: MSGraphClient = MSGraphClient()) -> UserCollectionResponse:
     """
     Returns all the users in the system.
@@ -28,9 +28,8 @@ async def get_users(_client: MSGraphClient = MSGraphClient()) -> UserCollectionR
     client = _client.client
 
     try:
-        users = await client.users.get()
+        users: UserCollectionResponse = await client.users.get()
         if users and users.value:
-            print(users)
             return users
         else:
             raise LookupError("Users not found")
@@ -38,7 +37,8 @@ async def get_users(_client: MSGraphClient = MSGraphClient()) -> UserCollectionR
         raise Exception(_ex)
 
 
-async def get_user(_client: MSGraphClient = MSGraphClient().client, **kwargs) -> User:
+@performance_timer
+async def get_user(_client: MSGraphClient = MSGraphClient(), **kwargs) -> User:
     """
     Returns one user by ONE filter
 
@@ -75,6 +75,7 @@ async def get_user(_client: MSGraphClient = MSGraphClient().client, **kwargs) ->
         raise Exception(_ex)
 
 
+@performance_timer
 async def invite_guest_user(_client: MSGraphClient = MSGraphClient(),
                             _dbClient: DatabaseClient = DatabaseClient(),
                             *,
@@ -135,11 +136,16 @@ __all__ = [
 ]
 
 if __name__ == '__main__':
-    asyncio.run(invite_guest_user(
-        email="ogienko.12003@gmail.com",
-        inviter="alexander.ogienko@formagiclife.com",
-        display_name="Alexander TestUser",
-        custom_message="Test invite user message",
-        user_type='guest'
-    )
-    )
+    import asyncio
+
+    # asyncio.run(invite_guest_user(
+    #     email="ogienko.12003@gmail.com",
+    #     inviter="alexander.ogienko@formagiclife.com",
+    #     display_name="Alexander TestUser",
+    #     custom_message="Test invite user message",
+    #     user_type='guest'
+    # )
+    # )
+
+    asyncio.run(get_users())
+    # asyncio.run(get_user(id="f06be41e-b730-462b-9a2b-709f64730abf"))

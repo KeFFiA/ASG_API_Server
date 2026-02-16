@@ -234,15 +234,15 @@ if __name__ == "__main__":
     ICAO = None
 
     # START_DATE = "2022-06-02"
-    START_DATE = "2022-06-01"
-    END_DATE = "2026-01-22"
+    START_DATE = "2026-01-22"
+    END_DATE = "2026-02-01"
 
     storage_mode = "both"  # "db", "csv", or "both"
 
     REGISTRATIONS = None
 
 
-    csv_path = FLIGHT_RADAR_PATH / f"flights_01_22_2026.csv"
+    csv_path = FLIGHT_RADAR_PATH / f"flights_01_28_2026.csv"
 
     asyncio.run(fetch_all_ranges(
         start_date=START_DATE,

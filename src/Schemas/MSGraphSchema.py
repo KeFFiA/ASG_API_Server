@@ -31,6 +31,11 @@ class InviteUserSchema(BaseModel):
     redirect_url: Optional[HttpUrl] = Field("https://myaccount.microsoft.com/organizations", description="Redirect URL after accepting invitation. Only HTTPS allowed")
 
 
+class GetUserSchemaQuerry(BaseModel):
+    user_email: EmailStr = Query(description="Email of the user")
+
+
+
 _current_module = sys.modules[__name__]
 
 __all__ = [

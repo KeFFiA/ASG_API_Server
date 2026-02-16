@@ -30,7 +30,6 @@ class WarningResponse(BaseResponse):
     code: int = Field(..., title="", description="Warning status code")
 
 
-
 class ErrorValidObject(BaseModel):
     field: str = Field(..., title="", description="Field name")
     description: str = Field(..., title="", description="Error description")
@@ -39,6 +38,10 @@ class ErrorValidObject(BaseModel):
 class ErrorValidationResponse(BaseResponse):
     detail: List[ErrorValidObject] = Field(..., title="", description="Error details")
     code: int = Field(default=status.HTTP_422_UNPROCESSABLE_ENTITY, title="", description="Error status code")
+
+
+class SuccessDataResponse(SuccessResponse):
+    data: List[dict] = Field(..., title="", description="Success data")
 
 
 _current_module = sys.modules[__name__]

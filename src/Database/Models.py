@@ -3,6 +3,7 @@ from .ServiceModels import *
 from .CiriumModels import *
 from .AirlabsModels import *
 from .FlightRadarModels import *
+from .PowerPlatformModels import *
 
 import inspect
 import sys

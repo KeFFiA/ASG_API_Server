@@ -1,9 +1,10 @@
 from datetime import datetime, timedelta
+from typing import Optional, List
 
-from sqlalchemy import DateTime, String, Integer, Float, Boolean, Interval, text
+from sqlalchemy import DateTime, String, Integer, Float, Boolean, Interval, text, ForeignKey
 
 from .config import FlightRadarBase as Base
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
 class FlightSummary(Base):
@@ -76,4 +77,56 @@ class LivePositions(Base):
 
     actual_distance: Mapped[float] = mapped_column(Float, nullable=True, default=0.0)
     time_delta: Mapped[timedelta] = mapped_column(Interval, nullable=False, server_default=text("INTERVAL '0'"))
+
+
+class Airport(Base):
+    name: Mapped[str] = mapped_column(String, nullable=False)
+
+    iata: Mapped[Optional[str]] = mapped_column(String(3), nullable=True, index=True)
+    icao: Mapped[Optional[str]] = mapped_column(String(4), nullable=True, index=True)
+
+    lon: Mapped[float] = mapped_column(Float, nullable=False)
+    lat: Mapped[float] = mapped_column(Float, nullable=False)
+
+    elevation: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    city: Mapped[str] = mapped_column(String, nullable=False)
+    state: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+
+    country_code: Mapped[str] = mapped_column(String(2), nullable=False)
+    country_name: Mapped[str] = mapped_column(String, nullable=False)
+
+    timezone_name: Mapped[str] = mapped_column(String, nullable=False)
+    timezone_offset: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    runways: Mapped[List["AirportRunway"]] = relationship(
+        back_populates="airport",
+        cascade="all, delete-orphan"
+    )
+
+
+class AirportRunway(Base):
+    airport_id: Mapped[int] = mapped_column(
+        ForeignKey(Airport.id, ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+
+    designator: Mapped[str] = mapped_column(String, nullable=False)
+    heading: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    length: Mapped[int] = mapped_column(Integer, nullable=False)
+    width: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    elevation: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    thr_lat: Mapped[float] = mapped_column(Float, nullable=False)
+    thr_lon: Mapped[float] = mapped_column(Float, nullable=False)
+
+    surface_type: Mapped[str] = mapped_column(String, nullable=False)
+    surface_description: Mapped[str] = mapped_column(String, nullable=False)
+
+    airport: Mapped["Airport"] = relationship(back_populates="runways")
+
+
 
