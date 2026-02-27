@@ -50,9 +50,6 @@ async def process_data(request: Request,
     start_date_str, end_date_str = payload.start_date.strftime("%Y-%m-%d"), payload.end_date.strftime("%Y-%m-%d")
     regs, airlines = payload.regs, payload.airlines
 
-    print(regs, airlines)
-
-
     background_tasks.add_task(
         fetch_all_ranges,
         registrations=regs,
