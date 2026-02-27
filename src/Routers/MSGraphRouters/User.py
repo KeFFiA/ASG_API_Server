@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import selectinload
 
 from Config import setup_logger
-from Database import User, ApplicationAccess, UserAssignedLicenseLink
+from Database import User, ApplicationAccess
 from Schemas import ErrorValidationResponse, ErrorResponse, SuccessDataResponse, DetailField
 from Schemas.Enums import service
 from Utils import DBProxy
@@ -32,7 +32,6 @@ async def query_all_users(session, user_id: Optional[str] = None) -> List[dict]:
         result = await session.execute(
             select(User)
             .options(
-                selectinload(User.assigned_licenses_links).selectinload(UserAssignedLicenseLink.license),
                 selectinload(User.assigned_plans),
                 selectinload(User.drives),
                 selectinload(User.messages),
@@ -46,7 +45,6 @@ async def query_all_users(session, user_id: Optional[str] = None) -> List[dict]:
         result = await session.execute(
             select(User)
             .options(
-                selectinload(User.assigned_licenses_links).selectinload(UserAssignedLicenseLink.license),
                 selectinload(User.assigned_plans),
                 selectinload(User.drives),
                 selectinload(User.messages),
@@ -80,51 +78,11 @@ async def query_all_users(session, user_id: Optional[str] = None) -> List[dict]:
             "employee_hire_date": u.employee_hire_date.isoformat() if u.employee_hire_date else None,
             "created_date_time": u.created_date_time.isoformat() if u.created_date_time else None,
             "manager_id": u.manager_id,
-            "assigned_licenses": [
-                {
-                    "license_id": l.license_id,
-                    "sku_id": l.sku_id,
-                    "disabled_plans": l.disabled_plans
-                } for l in u.assigned_licenses
-            ],
-            "assigned_plans": [
-                {
-                    "plan_id": p.plan_id,
-                    "capability_status": p.capability_status,
-                    "service": p.service
-                } for p in u.assigned_plans
-            ],
-            "drives": [
-                {
-                    "drive_id": d.drive_id,
-                    "drive_type": d.drive_type
-                } for d in u.drives
-            ],
-            "messages": [
-                {
-                    "message_id": m.message_id,
-                    "subject": m.subject,
-                    "body_preview": m.body_preview
-                } for m in u.messages
-            ],
-            "calendars": [
-                {
-                    "calendar_id": c.calendar_id,
-                    "name": c.name
-                } for c in u.calendars
-            ],
             "photos": [
                 {
                     "photo_id": p.photo_id,
                     "url": p.url
                 } for p in u.photos
-            ],
-            "contacts": [
-                {
-                    "contact_id": c.contact_id,
-                    "display_name": c.display_name,
-                    "email": c.email
-                } for c in u.contacts
             ],
             "application_accesses": [
                 {

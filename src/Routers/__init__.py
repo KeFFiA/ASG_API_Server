@@ -5,3 +5,4 @@ from .Webhook import router as webhook
 from .MSGraphRouters.UserInvite import router as invite_user
 from .MSGraphRouters.User import router as user
 from .Database import router as database
+from .FlightRadar import router as flight_radar
