@@ -1,10 +1,11 @@
 import inspect
 import sys
+from datetime import datetime
 from typing import Optional
 
 from pydantic import EmailStr
 
-from sqlalchemy import String, Integer, Float, UniqueConstraint, Index, event, DDL, Computed
+from sqlalchemy import String, Integer, Float, UniqueConstraint, Index, event, DDL, Computed, Date
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import JSONB, ARRAY, UUID
 from pgvector.sqlalchemy import Vector as PGVector
@@ -16,8 +17,8 @@ class PBIRequestFRSummaryData(Base):
     correlation_id: Mapped[UUID] = mapped_column(UUID, unique=True, nullable=False)
     user: Mapped[str] = mapped_column(String, nullable=False)
     rows_fetched: Mapped[int] = mapped_column(Integer, nullable=True)
-    current_date_from: Mapped[str] = mapped_column(String, nullable=True)
-    current_date_to: Mapped[str] = mapped_column(String, nullable=True)
+    current_date_from: Mapped[datetime] = mapped_column(Date, nullable=True)
+    current_date_to: Mapped[datetime] = mapped_column(Date, nullable=True)
     current_regs: Mapped[str] = mapped_column(String, nullable=True)
     current_airlines: Mapped[str] = mapped_column(String, nullable=True)
     estimate_time: Mapped[float] = mapped_column(Float, nullable=True)
