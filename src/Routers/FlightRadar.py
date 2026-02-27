@@ -1,15 +1,12 @@
-from typing import Annotated, List, Optional
+from typing import Annotated
 
-from fastapi import APIRouter, Request, status, Query
-from sqlalchemy import select
+from fastapi import APIRouter, Request, status, Query, BackgroundTasks
 from fastapi.responses import JSONResponse
-from sqlalchemy.orm import selectinload
 
 from API.FlightRadarAPI.FlightSummary import fetch_all_ranges
 from Config import setup_logger
 from Schemas import ErrorValidationResponse, ErrorResponse, SuccessDataResponse, DetailField, RequestFRFlightSummary
 from Schemas.Enums import service
-from Utils import DBProxy
 
 logger = setup_logger(name="flightradar_api")
 
@@ -28,7 +25,9 @@ FlightRadarResponses = {
 
 
 @router.post("/flightsummary")
-async def process_data(request: Request, _payload: Annotated[RequestFRFlightSummary, Query()]):
+async def process_data(request: Request,
+                       background_tasks: BackgroundTasks,
+                       _payload: Annotated[RequestFRFlightSummary, Query()]):
     payload = RequestFRFlightSummary(
         **_payload.model_dump()
     )
@@ -56,8 +55,8 @@ async def process_data(request: Request, _payload: Annotated[RequestFRFlightSumm
     if payload.airlines:
         regs, airlines = None, payload.airlines
 
-
-    await fetch_all_ranges(
+    background_tasks.add_task(
+        fetch_all_ranges,
         registrations=regs,
         icao=airlines,
         start_date=start_date_str,
