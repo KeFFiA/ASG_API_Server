@@ -11,7 +11,6 @@ async def update_users_job():
     client = DatabaseClient()
     async with client.session("powerplatform") as session:
         for user in users.value:
-            print(user)
             # === User ===
             stmt_user = insert(User).values(
                 user_id=user.id,

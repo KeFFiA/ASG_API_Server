@@ -61,6 +61,8 @@ async def process_data(request: Request,
         icao=airlines,
         start_date=start_date_str,
         end_date=end_date_str,
+        user=payload.user,
+        correlation_id=request.state.correlation_id,
     )
 
     response = SuccessDataResponse(
