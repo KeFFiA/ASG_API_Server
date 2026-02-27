@@ -239,8 +239,8 @@ async def fetch_all_ranges(
                         if record:
                             record.current_regs = ", ".join(reg_batch) or None
                             record.current_airlines = icao or None
-                            record.current_date_from = range_start
-                            record.current_date_to = range_end
+                            record.current_date_from = range_start.strftime("%Y-%m-%d")
+                            record.current_date_to = range_end.strftime("%Y-%m-%d")
                             if len(registration_batches) > 1:
                                 record.estimate_time = (len(date_ranges) - i) * 5.5 * len(registration_batches)
                             else:
