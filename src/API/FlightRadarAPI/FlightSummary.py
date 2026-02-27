@@ -242,9 +242,15 @@ async def fetch_all_ranges(
                             record.current_date_from = range_start.strftime("%Y-%m-%d")
                             record.current_date_to = range_end.strftime("%Y-%m-%d")
                             if len(registration_batches) > 1:
-                                record.estimate_time = (len(date_ranges) - i) * 5.5 * len(registration_batches)
+                                if i + 1 == len(date_ranges) and batch_index + 1 == len(registration_batches):
+                                    record.estimate_time = 0
+                                else:
+                                    record.estimate_time = (len(date_ranges) - i) * 5.5 * len(registration_batches)
                             else:
-                                record.estimate_time = (len(date_ranges) - i) * 5.5
+                                if i + 1 == len(date_ranges):
+                                    record.estimate_time = 0
+                                else:
+                                    record.estimate_time = (len(date_ranges) - i) * 5.5
 
                             service_session.add(record)
                             await service_session.commit()
