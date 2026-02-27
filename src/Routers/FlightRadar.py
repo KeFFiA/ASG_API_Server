@@ -48,12 +48,8 @@ async def process_data(request: Request,
         return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=response.model_dump(mode="json"))
 
     start_date_str, end_date_str = payload.start_date.strftime("%Y-%m-%d"), payload.end_date.strftime("%Y-%m-%d")
-    regs, airlines = None, None
+    regs, airlines = payload.regs, payload.airlines
 
-    if payload.regs:
-        regs, airlines = payload.regs, None
-    if payload.airlines:
-        regs, airlines = None, payload.airlines
 
     background_tasks.add_task(
         fetch_all_ranges,
