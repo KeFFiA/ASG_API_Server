@@ -28,12 +28,8 @@ async def fetch_date_range(
 
     logger.debug("[Flight Summary] Starting query Fetch Date Range")
 
-    if icao is not None:
-        _icao = icao.upper()
-    else:
-        _icao = icao
     async with client.session("flightradar") as session:
-        logger.debug(f"[Flight Summary] Range Processing: {range_from} - {range_to} | ICAO={_icao} | REGS={regs}")
+        logger.debug(f"[Flight Summary] Range Processing: {range_from} - {range_to} | ICAO={icao} | REGS={regs}")
         next_from = range_from
 
         processing_flights: List[dict] = []
@@ -44,7 +40,7 @@ async def fetch_date_range(
                 "limit": 20000
             }
             if icao:
-                params["painted_as"] = _icao
+                params["painted_as"] = ",".join(icao)
             if regs:
                 params["registrations"] = ",".join(regs)
 
