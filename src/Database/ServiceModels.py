@@ -12,6 +12,17 @@ from pgvector.sqlalchemy import Vector as PGVector
 from .config import ServiceBase as Base
 
 
+class PBIRequestFRSummaryData(Base):
+    correlation_id: Mapped[UUID] = mapped_column(UUID, unique=True, nullable=False)
+    user: Mapped[str] = mapped_column(String, nullable=False)
+    rows_fetched: Mapped[int] = mapped_column(Integer, nullable=True)
+    current_date_from: Mapped[str] = mapped_column(String, nullable=True)
+    current_date_to: Mapped[str] = mapped_column(String, nullable=True)
+    current_regs: Mapped[str] = mapped_column(String, nullable=True)
+    current_airlines: Mapped[str] = mapped_column(String, nullable=True)
+    estimate_time: Mapped[float] = mapped_column(Float, nullable=True)
+
+
 class PDF_Queue(Base):
     filename: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     type: Mapped[str] = mapped_column(String, nullable=False)

@@ -12,6 +12,7 @@ class RequestFRFlightSummary(BaseModel):
     airlines: Optional[List[str]] = Query(default=None)
     start_date: datetime = Query()
     end_date: datetime = Query()
+    user: Optional[str] = Query(default=None)
 
     @model_validator(mode="after")
     def validate_dates(self):

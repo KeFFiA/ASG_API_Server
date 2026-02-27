@@ -1,13 +1,14 @@
 import asyncio
 from datetime import datetime, timedelta
 from typing import Optional, List
+from uuid import UUID
 
 import aiohttp
 from sqlalchemy import select
 
 from Config import setup_logger, FLIGHT_RADAR_HEADERS, FLIGHT_RADAR_SECONDS_BETWEEN_REQUESTS, \
     FLIGHT_RADAR_MAX_REG_PER_BATCH, FLIGHT_RADAR_RANGE_DAYS, FLIGHT_RADAR_URL, FLIGHT_RADAR_PATH
-from Database import DatabaseClient
+from Database import DatabaseClient, PBIRequestFRSummaryData
 from Database.Models import FlightSummary, Registrations
 from Utils import parse_dt, ensure_naive_utc, write_csv, parse_date_or_datetime, performance_timer
 
@@ -165,13 +166,15 @@ async def fetch_date_range(
 async def fetch_all_ranges(
         start_date: str,
         end_date: str,
+        user: Optional[str] = None,
+        correlation_id: Optional[UUID] = None,
         icao: Optional[str] = None,
         registrations: Optional[List[str]] = None,
-        storage_mode: str = "both",
+        storage_mode: str = "db",
         csv_path: Optional[str] = FLIGHT_RADAR_PATH / f"flights_{datetime.strftime(datetime.now(), '%Y%m%d_%H%M')}.csv"
 ):
+    client: DatabaseClient = DatabaseClient()
     if registrations is None and icao is None:
-        client: DatabaseClient = DatabaseClient()
         async with client.session("main") as session:
             stmt = (
                 select(
@@ -204,12 +207,44 @@ async def fetch_all_ranges(
     )
 
     async with aiohttp.ClientSession() as http:
+        if correlation_id:
+            async with client.session("service") as service_session:
+                init_record = PBIRequestFRSummaryData(
+                    correlation_id=correlation_id,
+                    user=user
+                )
+                service_session.add(init_record)
+                await service_session.commit()
+
         for batch_index, reg_batch in enumerate(registration_batches):
             if reg_batch:
                 logger.debug(
                     f"\n[Flight Summary] Processing a batch of registrations {batch_index + 1} out of {len(registration_batches)}")
+
             for i, (range_start, range_end) in enumerate(date_ranges):
                 logger.debug(f"[Flight Summary] Range {i + 1} out of {len(date_ranges)}")
+
+                if correlation_id:
+                    async with client.session("service") as service_session:
+                        result = await service_session.execute(
+                            select(PBIRequestFRSummaryData)
+                            .where(PBIRequestFRSummaryData.correlation_id == correlation_id)
+                        )
+                        record: PBIRequestFRSummaryData = result.scalar_one_or_none()
+
+                        if record:
+                            record.current_regs = ", ".join(reg_batch) or None
+                            record.current_airlines = icao or None
+                            record.current_date_from = range_start
+                            record.current_date_to = range_end
+                            if len(registration_batches) > 1:
+                                record.estimate_time = (len(date_ranges) - i) * 5.5 * len(registration_batches)
+                            else:
+                                record.estimate_time = (len(date_ranges) - i) * 5.5
+
+                            service_session.add(record)
+                            await service_session.commit()
+
                 flights.append(await fetch_date_range(
                     icao=icao,
                     regs=reg_batch,
@@ -219,6 +254,21 @@ async def fetch_all_ranges(
                     storage_mode=storage_mode,
                     csv_path=csv_path
                 ))
+
+                if correlation_id:
+                    async with client.session("service") as service_session:
+                        result = await service_session.execute(
+                            select(PBIRequestFRSummaryData)
+                            .where(PBIRequestFRSummaryData.correlation_id == correlation_id)
+                        )
+                        record: PBIRequestFRSummaryData = result.scalar_one_or_none()
+
+                        if record:
+                            record.rows_fetched = len(flights)
+
+                            service_session.add(record)
+                            await service_session.commit()
+
         logger.info("[Flight Summary] Query Fetch All Ranges completed")
 
         return flights
