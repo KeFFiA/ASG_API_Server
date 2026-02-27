@@ -4,7 +4,7 @@ from typing import Optional, List
 from uuid import UUID
 
 import aiohttp
-from sqlalchemy import select
+from sqlalchemy import select, delete
 
 from Config import setup_logger, FLIGHT_RADAR_HEADERS, FLIGHT_RADAR_SECONDS_BETWEEN_REQUESTS, \
     FLIGHT_RADAR_MAX_REG_PER_BATCH, FLIGHT_RADAR_RANGE_DAYS, FLIGHT_RADAR_URL, FLIGHT_RADAR_PATH
@@ -209,6 +209,10 @@ async def fetch_all_ranges(
     async with aiohttp.ClientSession() as http:
         if correlation_id:
             async with client.session("service") as service_session:
+                await service_session.execute(
+                    delete(PBIRequestFRSummaryData)
+                    .where(PBIRequestFRSummaryData.user == user)
+                )
                 init_record = PBIRequestFRSummaryData(
                     correlation_id=correlation_id,
                     user=user
