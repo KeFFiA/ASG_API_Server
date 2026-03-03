@@ -59,11 +59,11 @@ class ApplicationAccess(Base):
         Index("ix_app_access_rules_gin", "rules", postgresql_using="gin"),
     )
 
-    user_id: Mapped[int] = mapped_column( ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"), primary_key=True)
 
-    application_id: Mapped[int] = mapped_column( ForeignKey("applications.id", ondelete="CASCADE"), primary_key=True)
+    application_id: Mapped[UUID] = mapped_column(ForeignKey("applications.application_id", ondelete="CASCADE"), primary_key=True)
 
-    rules: Mapped[list[int]] = mapped_column( ARRAY(Integer), nullable=False, default=list)
+    rules: Mapped[list[int]] = mapped_column(ARRAY(Integer), nullable=False, default=list)
 
     main_access: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     super_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

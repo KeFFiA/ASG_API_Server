@@ -59,8 +59,8 @@ jobs = [
         "id": "update_flightradar_flights",
         "name": "UpdateFlightradarFlights",
         "func": live_flights_adaptive,
-        "trigger": "cron",
-        "minute": "0,10,20,30,40,50",
+        "trigger": "interval",
+        "minutes": 10,
         "next_run_time": next_ten_minutes(datetime.now(timezone.utc)),
         "max_instances": 1,
         "coalesce": True,
@@ -79,6 +79,7 @@ jobs = [
     }
 ]
 
+# TODOo: fix
 
 _current_module = sys.modules[__name__]
 

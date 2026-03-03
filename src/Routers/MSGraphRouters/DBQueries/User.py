@@ -61,21 +61,21 @@ async def query_all_users(session, user_id: Optional[str] = None) -> List[dict]:
     return users_data
 
 
-async def query_user_access(session, user_id: Optional[UUID] = None,
-                            application_id: Optional[UUID] = None)-> GetUserAccessResponseSchema:
+async def query_user_access(session, user_id: UUID,
+                            application_id: Optional[UUID] = None) -> GetUserAccessResponseSchema:
+    if not user_id:
+        raise ValueError("User ID required")
     try:
-        if not user_id:
-            raise ValueError("User ID required")
 
         stmt = (
             select(ApplicationAccess)
             .options(joinedload(ApplicationAccess.application))
-            .join(User, User.id == ApplicationAccess.user_id)
+            .join(User, User.user_id == ApplicationAccess.user_id)
             .where(User.user_id == user_id)
         )
 
         if application_id:
-            stmt = stmt.where(ApplicationAccess.application.has(application_id=application_id))
+            stmt = stmt.where(ApplicationAccess.application_id == application_id)
 
         result = await session.execute(stmt)
         accesses = result.scalars().all()
@@ -96,9 +96,6 @@ async def query_user_access(session, user_id: Optional[UUID] = None,
         ).model_dump(mode="json")
     except Exception as _ex:
         raise _ex
-
-
-
 
 
 _current_module = sys.modules[__name__]

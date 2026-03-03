@@ -14,7 +14,7 @@ async def update_users_job():
 
     async with client.session("powerplatform") as session:
 
-        apps_result = await session.execute(select(Application.id))
+        apps_result = await session.execute(select(Application.application_id))
         application_ids = [row[0] for row in apps_result.all()]
 
         for graph_user in users.value:
@@ -58,7 +58,7 @@ async def update_users_job():
                         'created_date_time': graph_user.created_date_time,
                     }
                 )
-                .returning(User.id)
+                .returning(User.user_id)
             )
 
             result = await session.execute(stmt_user)
