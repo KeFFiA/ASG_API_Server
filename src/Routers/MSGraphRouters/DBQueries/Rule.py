@@ -1,3 +1,4 @@
+from typing import Optional
 from uuid import UUID
 
 from sqlalchemy import select
@@ -6,9 +7,12 @@ from Database import ApplicationRule
 from Schemas import GetRulesResponseSchema, RulesSchema, GetRuleResponseSchema
 
 
-async def query_all_rules(session) -> GetRulesResponseSchema:
+async def query_rules(session, application_id: Optional[UUID] = None) -> GetRulesResponseSchema:
     try:
         stmt = select(ApplicationRule)
+        if application_id:
+            stmt = stmt.where(ApplicationRule.application_id == application_id)
+
         result = await session.execute(stmt)
         rules = result.scalars().all()
 
