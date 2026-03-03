@@ -5,6 +5,7 @@ from typing import List, Optional
 
 from fastapi import Query
 from pydantic import BaseModel, EmailStr, HttpUrl, Field
+from uuid import UUID
 
 from .Enums.MSGraphAPI import UserTypesEnum
 
@@ -33,6 +34,26 @@ class InviteUserSchema(BaseModel):
 
 class GetUserSchemaQuery(BaseModel):
     user_email: EmailStr = Query(description="Email of the user")
+
+
+class ApplicationIdQuery(BaseModel):
+    application_id: Optional[UUID] = Query(default=None, description="Application ID")
+
+
+class ApplicationAccessResponseSchema(BaseModel):
+    application_id: UUID
+    rules: List[int]
+    main_access: bool
+    super_admin: bool
+
+
+class GetUserAccessResponseSchema(BaseModel):
+    user_id: UUID
+    applications: List[ApplicationAccessResponseSchema]
+
+    class Config:
+        from_attributes = True
+
 
 
 

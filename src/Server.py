@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import Routers
 from Config import API_TITLE, API_DESCRIPTION, API_VERSION, API_SWAGGER_URL, API_REDOC_URL, API_ROOT_URL, \
     CORS_ORIGINS, CORS_CREDENTIALS, CORS_METHODS, CORS_HEADERS, API_OPENAPI_VERSION
+from Schemas import ErrorValidationResponse
 from Utils import register_middlewares
 
 app = FastAPI(
@@ -13,7 +14,8 @@ app = FastAPI(
     docs_url=API_SWAGGER_URL,
     redoc_url=API_REDOC_URL,
     root_path=API_ROOT_URL,
-    openapi_version=API_OPENAPI_VERSION
+    openapi_version=API_OPENAPI_VERSION,
+    responses={422: {"model": ErrorValidationResponse, "description": "Validation Error"},}
 )
 
 register_middlewares(app)

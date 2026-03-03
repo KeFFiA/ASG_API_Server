@@ -1,7 +1,6 @@
 import random
 from datetime import datetime, date
 from pathlib import Path
-from typing import Optional
 
 from fastapi import APIRouter, Request, BackgroundTasks
 from fastapi.responses import FileResponse

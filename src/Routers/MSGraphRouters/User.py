@@ -1,112 +1,42 @@
-from typing import Annotated, List, Optional
+from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Request, status, Query
-from sqlalchemy import select
-from fastapi.responses import JSONResponse
-from sqlalchemy.orm import selectinload
 
 from Config import setup_logger
-from Database import User, ApplicationAccess
-from Schemas import ErrorValidationResponse, ErrorResponse, SuccessDataResponse, DetailField
+from Schemas import ApplicationIdQuery, \
+    GetUserAccessResponseSchema, DefaultResponse
 from Schemas.Enums import service
-from Utils import DBProxy
+from Utils import DBProxy, success_response, warning_response, error_response
+from .DBQueries.User import query_all_users, query_user_access
 
 logger = setup_logger(name="msgraph_users")
+
+MSGraphResponses = {
+    200: {"model": DefaultResponse, "description": "Success"},
+    400: {"model": DefaultResponse, "description": "Bad Request"},
+    500: {"model": DefaultResponse, "description": "Server error"},
+}
 
 router = APIRouter(
     prefix="/msgraph",
     tags=[service.APITagsEnum.MSGRAPH],
-    responses={422: {"model": ErrorValidationResponse}},
+    responses=MSGraphResponses,
 )
-
-
-MSGraphResponses = {
-    200: {"model": SuccessDataResponse, "description": "Success"},
-    400: {"model": ErrorResponse, "description": "Bad Request"},
-    500: {"model": ErrorResponse, "description": "Server error"},
-}
-
-
-async def query_all_users(session, user_id: Optional[str] = None) -> List[dict]:
-    if user_id is None:
-        result = await session.execute(
-            select(User)
-            .options(
-                selectinload(User.assigned_plans),
-                selectinload(User.drives),
-                selectinload(User.messages),
-                selectinload(User.calendars),
-                selectinload(User.photos),
-                selectinload(User.contacts),
-                selectinload(User.application_accesses).selectinload(ApplicationAccess.application)
-            )
-        )
-    else:
-        result = await session.execute(
-            select(User)
-            .options(
-                selectinload(User.assigned_plans),
-                selectinload(User.drives),
-                selectinload(User.messages),
-                selectinload(User.calendars),
-                selectinload(User.photos),
-                selectinload(User.contacts),
-                selectinload(User.application_accesses).selectinload(ApplicationAccess.application)
-            )
-            .where(User.user_id == user_id)
-        )
-    users: List[User] = result.scalars().all()
-
-    users_data = []
-    for u in users:
-        if "ADMIN" in u.display_name.upper():
-            continue
-        users_data.append({
-            "user_id": u.user_id,
-            "display_name": u.display_name,
-            "given_name": u.given_name,
-            "surname": u.surname,
-            "user_principal_name": u.user_principal_name,
-            "account_enabled": u.account_enabled,
-            "mail": u.mail,
-            "mobile_phone": u.mobile_phone,
-            "city": u.city,
-            "country": u.country,
-            "department": u.department,
-            "job_title": u.job_title,
-            "employee_id": u.employee_id,
-            "employee_hire_date": u.employee_hire_date.isoformat() if u.employee_hire_date else None,
-            "created_date_time": u.created_date_time.isoformat() if u.created_date_time else None,
-            "manager_id": u.manager_id,
-            "photos": [
-                {
-                    "photo_id": p.photo_id,
-                    "url": p.url
-                } for p in u.photos
-            ],
-            "application_accesses": [
-                {
-                    "application_id": a.application_id,
-                    "application_name": a.application.application_name,
-                    "rules": a.rules,
-                    "main_access": a.main_access,
-                    "super_admin": a.super_admin
-                } for a in u.application_accesses
-            ]
-        })
-    return users_data
 
 
 @router.get(
     path="/users",
     description="Get users information",
     status_code=status.HTTP_200_OK,
-    response_model=SuccessDataResponse
+    response_model=DefaultResponse
 )
 async def users(request: Request):
     db_proxy: DBProxy = request.app.state.db_proxy
+
     async def db_query(session):
         return await query_all_users(session)
+
     try:
         cache_key = "users:all"
         users_data = await db_proxy.get_or_cache(
@@ -117,41 +47,26 @@ async def users(request: Request):
         )
 
         if len(users_data) > 0:
-            response = SuccessDataResponse(
-                correlationId=request.state.correlation_id,
-                code=status.HTTP_200_OK,
-                detail=[DetailField(msg="Users retrieved successfully")],
-                data=users_data
-            )
-            return JSONResponse(status_code=status.HTTP_200_OK, content=response.model_dump(mode="json"))
+            return success_response(request=request, data=users_data, msg="Users retrieved successfully")
         else:
-            response = SuccessDataResponse(
-                correlationId=request.state.correlation_id,
-                code=status.HTTP_200_OK,
-                detail=[DetailField(msg="Users not found")],
-                data=users_data
-            )
-            return JSONResponse(status_code=status.HTTP_200_OK, content=response.model_dump(mode="json"))
+            return warning_response(request=request, data=users_data, msg="Users not found")
 
-    except Exception as e:
-        response = ErrorResponse(
-            correlationId=request.state.correlation_id,
-            code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=[DetailField(msg=f"{e.__class__.__name__}: {str(e)}")]
-        )
-        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=response.model_dump(mode="json"))
+    except Exception as _ex:
+        return error_response(request=request, exc=_ex)
 
 
 @router.get(
     path="/users/{user_id}",
     description="Get user information",
     status_code=status.HTTP_200_OK,
-    response_model=SuccessDataResponse
+    response_model=DefaultResponse
 )
 async def users(request: Request, user_id: str):
     db_proxy: DBProxy = request.app.state.db_proxy
+
     async def db_query(session):
         return await query_all_users(session, user_id)
+
     try:
         cache_key = f"users:{user_id}"
         user_data = await db_proxy.get_or_cache(
@@ -162,26 +77,42 @@ async def users(request: Request, user_id: str):
         )
 
         if len(user_data) > 0:
-            response = SuccessDataResponse(
-                correlationId=request.state.correlation_id,
-                code=status.HTTP_200_OK,
-                detail=[DetailField(msg="User retrieved successfully")],
-                data=user_data
-            )
-            return JSONResponse(status_code=status.HTTP_200_OK, content=response.model_dump(mode="json"))
+            return success_response(request=request, data=user_data, msg="User retrieved successfully")
         else:
-            response = SuccessDataResponse(
-                correlationId=request.state.correlation_id,
-                code=status.HTTP_200_OK,
-                detail=[DetailField(msg="User not found")],
-                data=user_data
-            )
-            return JSONResponse(status_code=status.HTTP_200_OK, content=response.model_dump(mode="json"))
+            return warning_response(request=request, data=user_data, msg="User not found")
 
-    except Exception as e:
-        response = ErrorResponse(
-            correlationId=request.state.correlation_id,
-            code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=[DetailField(msg=f"{e.__class__.__name__}: {str(e)}")]
+    except Exception as _ex:
+        return error_response(request=request, exc=_ex)
+
+
+@router.get(
+    path="/users/{user_id}/access",
+    description="Get user's access rules",
+    status_code=status.HTTP_200_OK,
+    response_model=DefaultResponse
+)
+async def users_access(request: Request, user_id: UUID, _payload: Annotated[ApplicationIdQuery, Query()]):
+    payload = ApplicationIdQuery(
+        **_payload.model_dump()
+    )
+    db_proxy: DBProxy = request.app.state.db_proxy
+
+    async def db_query(session):
+        return await query_user_access(session, user_id, payload.application_id)
+
+    try:
+        if payload.application_id is None:
+            cache_key = f"user_access:{user_id}"
+        else:
+            cache_key = f"user_access:{user_id}|{payload.application_id}"
+        user_data: GetUserAccessResponseSchema = await db_proxy.get_or_cache(
+            key=cache_key,
+            db_name="powerplatform",
+            query_func=db_query,
+            ttl=120
         )
-        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=response.model_dump(mode="json"))
+
+        return success_response(request=request, data=user_data, msg="User's rules retrieved successfully")
+    except Exception as _ex:
+        logger.error(f"Failed to get user's access rules: {_ex}")
+        return error_response(request=request, exc=_ex)

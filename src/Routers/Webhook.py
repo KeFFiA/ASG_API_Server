@@ -1,12 +1,10 @@
-from uuid import UUID
-
 from fastapi import APIRouter, Request, status
-from fastapi.responses import JSONResponse
 
 from API.Utils import create_or_update_subscription
 from Config import setup_logger, MS_WEBHOOK_SECRET
-from Schemas import SuccessResponse, ErrorResponse, DetailField
+from Schemas import DefaultResponse
 from Schemas.Enums import service
+from Utils import success_response, warning_response
 
 logger = setup_logger(name="webhooks")
 
@@ -15,11 +13,10 @@ router = APIRouter(
     tags=[service.APITagsEnum.WEBHOOK],
 )
 
-
 MSGraphWebhookResponses = {
-    200: {"model": SuccessResponse, "description": "Success"},
-    510: {"model": ErrorResponse, "description": "Client state not authorized"},
-    500: {"model": ErrorResponse, "description": "Server error"},
+    200: {"model": DefaultResponse, "description": "Success"},
+    510: {"model": DefaultResponse, "description": "Client state not authorized"},
+    500: {"model": DefaultResponse, "description": "Server error"},
 }
 
 
@@ -37,31 +34,24 @@ async def microsoft(request: Request):
     validation_token = data.get("validationToken")
     if validation_token:
         logger.info("[MicrosoftGraph] Validation token received, responding with plain text")
-        return JSONResponse(
-            content=validation_token,
-            media_type="text/plain",
-            status_code=status.HTTP_200_OK
-        )
+        return success_response(request=request, data=validation_token, media_type="text/plain")
 
     # clientState check
     for value in data.get("value", []):
         if value.get("clientState") != MS_WEBHOOK_SECRET:
             logger.info("[MicrosoftGraph] Webhook clientState({}) not recognised".format(value.get("clientState")))
 
-            error_response = ErrorResponse(
-                correlationId=request.state.correlation_id,
-                detail=[DetailField(msg=f"{value.get('clientState')} code not authorized")],
-                code=status.HTTP_510_NOT_EXTENDED,
-            )
-
-            return JSONResponse(status_code=status.HTTP_510_NOT_EXTENDED, content=error_response.model_dump(mode="json"))
+            return warning_response(request=request, msg=f"{value.get('clientState')} code not authorized",
+                                    status_code=status.HTTP_510_NOT_EXTENDED)
 
     for event in data.get("value", []):
         user_id = event["resourceData"]["id"]
     #     TODO: Final this shit
 
+
 MSGraphWebhookResponses.pop(200)
-MSGraphWebhookResponses[202] = {"model": SuccessResponse, "description": "Accepted"}
+MSGraphWebhookResponses[202] = {"model": DefaultResponse, "description": "Accepted"}
+
 
 @router.post("/microsoft/lifecycle",
              status_code=status.HTTP_202_ACCEPTED,
@@ -77,11 +67,8 @@ async def microsoft_lifecycle(request: Request):
     validation_token = data.get("validationToken")
     if validation_token:
         logger.info("[MicrosoftGraph] Validation token received, responding with plain text")
-        return JSONResponse(
-            content=validation_token,
-            media_type="text/plain",
-            status_code=status.HTTP_200_OK
-        )
+        return success_response(request=request, data=validation_token, media_type="text/plain",
+                                status_code=status.HTTP_202_ACCEPTED)
 
     # clientState check
 
@@ -90,19 +77,12 @@ async def microsoft_lifecycle(request: Request):
             logger.info(
                 "[MicrosoftGraph] Lifecycle webhook clientState({}) not recognised".format(value.get("clientState")))
 
-            error_response = ErrorResponse(
-                correlationId=request.state.correlation_id,
-                detail=[DetailField(msg=f"{value.get('clientState')} code not authorized")],
-                code=status.HTTP_510_NOT_EXTENDED,
-            )
+            return warning_response(request=request, msg=f"{value.get('clientState')} code not authorized",
+                                    status_code=status.HTTP_510_NOT_EXTENDED)
 
-            return JSONResponse(status_code=status.HTTP_510_NOT_EXTENDED, content=error_response.model_dump(mode="json"))
         if value.get("lifecycleEvent") == "reauthorizationRequired":
             subscription_id = value.get("subscriptionId")
             await create_or_update_subscription(subscription_id=subscription_id, db_proxy=request.state.db)
-            success_response = SuccessResponse(
-                correlationId=request.state.correlation_id,
-                detail=[DetailField(msg="Subscription reauthorized")],
-                code=status.HTTP_202_ACCEPTED,
-            )
-            return JSONResponse(status_code=status.HTTP_202_ACCEPTED, content=success_response.model_dump(mode="json"))
+
+            return success_response(request=request, data=validation_token, status_code=status.HTTP_202_ACCEPTED,
+                                    msg="Subscription reauthorized")

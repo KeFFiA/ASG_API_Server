@@ -29,7 +29,7 @@ async def fetch_date_range(
     logger.debug("[Flight Summary] Starting query Fetch Date Range")
 
     async with client.session("flightradar") as session:
-        logger.debug(f"[Flight Summary] Range Processing: {range_from} - {range_to} | ICAO={icao} | REGS={regs}")
+        logger.debug(f"[Flight Summary] Range Processing: {range_from} - {range_to} | ICAO={', '.join(icao)} | REGS={regs}")
         next_from = range_from
 
         processing_flights: List[dict] = []
@@ -287,18 +287,24 @@ if __name__ == "__main__":
     # ICAO = "RSX"
     # ICAO = "VSV, ABY, RBG, CXI, RAM, VJC, CAI"
     # ICAO = "SAA, PGT"
-    ICAO = None
+    # ICAO = None
+    # ICAO = ["ADY", "MAC", "BTI", "ABB", "MSC"]
+    # ICAO = ["MNE", "APK", "ATC", "AZW", "LNK"]
+    # ICAO = ["SYG", "AYG", "AVA", "LRC", "GLG"]
+    # ICAO = ["TAI", "AVR", "GUG", "NVD", "AEB"]
+    # ICAO = ["MLH", "AHY", "BBT", "BBL", "CND"]
+    ICAO = ["EZY", "EJU", "EZS", "ETH", "EWG", "EWL", "EXV", "FZW", "KNE"]
 
-    # START_DATE = "2022-06-02"
-    START_DATE = "2026-01-22"
-    END_DATE = "2026-02-01"
+    START_DATE = "2022-06-01"
+    # START_DATE = "2025-07-09"
+    END_DATE = "2026-02-27"
 
     storage_mode = "both"  # "db", "csv", or "both"
 
     REGISTRATIONS = None
 
 
-    csv_path = FLIGHT_RADAR_PATH / f"flights_01_28_2026.csv"
+    csv_path = FLIGHT_RADAR_PATH / f"flights_02_28_2026_1.csv"
 
     asyncio.run(fetch_all_ranges(
         start_date=START_DATE,

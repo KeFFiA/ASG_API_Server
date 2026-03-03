@@ -1,12 +1,12 @@
 from datetime import datetime
-from sqlalchemy import DateTime, String, Boolean, ForeignKey, Integer
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy import DateTime, String, Boolean, ForeignKey, Integer, Index
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .config import PowerPlatformBase as Base
 
 
 class User(Base):
-    user_id: Mapped[str] = mapped_column(String, unique=True, index=True)
+    user_id: Mapped[UUID] = mapped_column(UUID, unique=True, index=True)
 
     display_name: Mapped[str] = mapped_column(String, nullable=True)
     given_name: Mapped[str] = mapped_column(String, nullable=True)
@@ -35,14 +35,7 @@ class User(Base):
         back_populates="direct_reports"
     )
 
-    direct_reports: Mapped[list["User"]] = relationship(
-        back_populates="manager"
-    )
-
-    photos: Mapped[list["UserPhoto"]] = relationship(
-        back_populates="user",
-        cascade="all, delete-orphan"
-    )
+    direct_reports: Mapped[list["User"]] = relationship(back_populates="manager")
 
     application_accesses: Mapped[list["ApplicationAccess"]] = relationship(
         back_populates="user",
@@ -50,20 +43,8 @@ class User(Base):
     )
 
 
-class UserPhoto(Base):
-    photo_id: Mapped[str] = mapped_column(String, unique=True, index=True)
-    url: Mapped[str] = mapped_column(String, nullable=True)
-
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True
-    )
-    user: Mapped["User"] = relationship(back_populates="photos")
-
-
 class Application(Base):
-    application_id: Mapped[str] = mapped_column(String, unique=True, index=True)
+    application_id: Mapped[UUID] = mapped_column(UUID, unique=True, index=True)
     application_name: Mapped[str] = mapped_column(String, nullable=True)
     application_description: Mapped[str] = mapped_column(String, nullable=True)
 
@@ -74,20 +55,20 @@ class Application(Base):
 
 
 class ApplicationAccess(Base):
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True
+    __table_args__ = (
+        Index("ix_app_access_rules_gin", "rules", postgresql_using="gin"),
     )
 
-    application_id: Mapped[int] = mapped_column(
-        ForeignKey("applications.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True
-    )
+    user_id: Mapped[int] = mapped_column( ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
 
-    rules: Mapped[list[int]] = mapped_column(ARRAY(Integer), nullable=False, default=list)
+    application_id: Mapped[int] = mapped_column( ForeignKey("applications.id", ondelete="CASCADE"), primary_key=True)
+
+    rules: Mapped[list[int]] = mapped_column( ARRAY(Integer), nullable=False, default=list)
+
     main_access: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     super_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
     user: Mapped["User"] = relationship(back_populates="application_accesses")
+
     application: Mapped["Application"] = relationship(back_populates="application_accesses")
+
