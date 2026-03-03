@@ -40,9 +40,15 @@ class ApplicationIdQuery(BaseModel):
     application_id: Optional[UUID] = Query(default=None, description="Application ID")
 
 
+class RulesSchema(BaseModel):
+    rule_id: int
+    rule_name: str
+    rule_description: Optional[str]
+
+
 class ApplicationAccessResponseSchema(BaseModel):
     application_id: UUID
-    rules: List[int]
+    rules: List[RulesSchema]
     main_access: bool
     super_admin: bool
 

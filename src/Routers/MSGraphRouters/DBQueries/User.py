@@ -1,15 +1,16 @@
 import inspect
 import sys
-from typing import Annotated, List, Optional
+from typing import List, Optional
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload, joinedload
+
 from Database import User, ApplicationAccess
-from Schemas import GetUserAccessResponseSchema, ApplicationAccessResponseSchema
+from Schemas import GetUserAccessResponseSchema, ApplicationAccessResponseSchema, RulesSchema
 
 
-async def query_all_users(session, user_id: Optional[str] = None) -> List[dict]:
+async def query_all_users(session, user_id: Optional[UUID] = None) -> List[dict]:
     if user_id is None:
         result = await session.execute(
             select(User)
@@ -66,12 +67,13 @@ async def query_user_access(session, user_id: UUID,
     if not user_id:
         raise ValueError("User ID required")
     try:
-
         stmt = (
             select(ApplicationAccess)
-            .options(joinedload(ApplicationAccess.application))
-            .join(User, User.user_id == ApplicationAccess.user_id)
-            .where(User.user_id == user_id)
+            .options(
+                joinedload(ApplicationAccess.application),
+                selectinload(ApplicationAccess.rules)
+            )
+            .where(ApplicationAccess.user_id == user_id)
         )
 
         if application_id:
@@ -80,15 +82,18 @@ async def query_user_access(session, user_id: UUID,
         result = await session.execute(stmt)
         accesses = result.scalars().all()
 
-        applications_list = [
-            ApplicationAccessResponseSchema(
-                application_id=access.application.application_id,
-                rules=access.rules,
-                main_access=access.main_access,
-                super_admin=access.super_admin
+        applications_list = []
+        for access in accesses:
+            applications_list.append(
+                ApplicationAccessResponseSchema(
+                    application_id=access.application.application_id,
+                    rules=[
+                        RulesSchema(rule_id=rule.id, rule_name=rule.rule_name, rule_description=rule.rule_description)
+                        for rule in access.rules],
+                    main_access=access.main_access,
+                    super_admin=access.super_admin
+                )
             )
-            for access in accesses
-        ]
 
         return GetUserAccessResponseSchema(
             user_id=user_id,

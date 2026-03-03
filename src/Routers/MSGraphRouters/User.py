@@ -61,7 +61,7 @@ async def users(request: Request):
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse
 )
-async def users(request: Request, user_id: str):
+async def users(request: Request, user_id: UUID):
     db_proxy: DBProxy = request.app.state.db_proxy
 
     async def db_query(session):

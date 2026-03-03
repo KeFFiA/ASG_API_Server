@@ -70,7 +70,6 @@ async def update_users_job():
                     {
                         "user_id": db_user_id,
                         "application_id": app_id,
-                        "rules": [],
                         "main_access": False,
                         "super_admin": False,
                     }
