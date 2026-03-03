@@ -61,6 +61,14 @@ class GetUserAccessResponseSchema(BaseModel):
         from_attributes = True
 
 
+class GetRuleResponseSchema(BaseModel):
+    application_id: UUID
+    rules: List[RulesSchema]
+
+
+class GetRulesResponseSchema(BaseModel):
+    application: List[GetRuleResponseSchema]
+
 
 
 _current_module = sys.modules[__name__]
