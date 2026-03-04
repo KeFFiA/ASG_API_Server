@@ -2,7 +2,7 @@ from datetime import datetime
 from uuid import UUID as UUID_Python
 
 from sqlalchemy import DateTime, String, Boolean, ForeignKey, ForeignKeyConstraint, UniqueConstraint, Table, Column, \
-    Integer
+    Integer, LargeBinary
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -125,3 +125,10 @@ class ApplicationFont(Base):
     font_size: Mapped[int] = mapped_column(Integer, nullable=False)
     font_color: Mapped[str] = mapped_column(String, nullable=False)
     font_weight: Mapped[str] = mapped_column(String, nullable=False)
+
+
+class ApplicationAsset(Base):
+    asset_name: Mapped[str] = mapped_column(String, nullable=False)
+    asset_description: Mapped[str] = mapped_column(String, nullable=True)
+    mime_type: Mapped[str] = mapped_column(String, nullable=False)
+    base64: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)

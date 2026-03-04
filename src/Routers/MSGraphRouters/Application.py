@@ -54,4 +54,5 @@ async def get_fonts(request: Request, _payload: Annotated[ApplicationSizeQuery, 
             return warning_response(request=request, data=fonts_data, msg="Fonts not found")
 
     except Exception as _ex:
+        logger.error(f"Failed to get fonts: {_ex}")
         return error_response(request=request, exc=_ex)

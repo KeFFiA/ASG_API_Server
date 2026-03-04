@@ -79,4 +79,5 @@ async def get_rules(request: Request, application_id: UUID):
             return warning_response(request=request, data=rules_data, msg="Rules not found")
 
     except Exception as _ex:
+        logger.error(f"Failed to get rules: {_ex}")
         return error_response(request=request, exc=_ex)
