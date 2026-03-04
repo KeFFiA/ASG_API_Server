@@ -1,7 +1,8 @@
 from datetime import datetime
 from uuid import UUID as UUID_Python
 
-from sqlalchemy import DateTime, String, Boolean, ForeignKey, ForeignKeyConstraint, UniqueConstraint, Table, Column
+from sqlalchemy import DateTime, String, Boolean, ForeignKey, ForeignKeyConstraint, UniqueConstraint, Table, Column, \
+    Integer
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -115,3 +116,12 @@ class ApplicationRule(Base):
     application: Mapped["Application"] = relationship(
         back_populates="rules"
     )
+
+
+class ApplicationFont(Base):
+    screen_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    usage_name: Mapped[str] = mapped_column(String, nullable=False)
+    font_name: Mapped[str] = mapped_column(String, nullable=False)
+    font_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    font_color: Mapped[str] = mapped_column(String, nullable=False)
+    font_weight: Mapped[str] = mapped_column(String, nullable=False)

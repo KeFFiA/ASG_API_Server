@@ -40,6 +40,10 @@ class ApplicationIdQuery(BaseModel):
     application_id: Optional[UUID] = Query(default=None, description="Application ID")
 
 
+class ApplicationSizeQuery(BaseModel):
+    screen_size: Optional[int] = Query(default=None, description="Screen size")
+
+
 class RulesSchema(BaseModel):
     rule_id: int
     rule_name: str
@@ -68,6 +72,21 @@ class GetRuleResponseSchema(BaseModel):
 
 class GetRulesResponseSchema(BaseModel):
     application: List[GetRuleResponseSchema]
+
+
+class FontsSchema(BaseModel):
+    font_name: str
+    font_size: int
+    font_color: str
+    font_weight: str
+    screen_size: int
+    usage_name: str
+
+
+
+class GetFontsResponseSchema(BaseModel):
+    font: List[FontsSchema]
+
 
 
 

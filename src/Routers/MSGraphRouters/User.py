@@ -19,14 +19,14 @@ MSGraphResponses = {
 }
 
 router = APIRouter(
-    prefix="/msgraph",
+    prefix="/msgraph/users",
     tags=[service.APITagsEnum.MSGRAPH],
     responses=MSGraphResponses,
 )
 
 
 @router.get(
-    path="/users",
+    path="/",
     description="Get users information",
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse
@@ -56,7 +56,7 @@ async def users(request: Request):
 
 
 @router.get(
-    path="/users/{user_id}",
+    path="/{user_id}",
     description="Get user information",
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse
@@ -86,7 +86,7 @@ async def users(request: Request, user_id: UUID):
 
 
 @router.get(
-    path="/users/{user_id}/access",
+    path="/{user_id}/access",
     description="Get user's access rules",
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse

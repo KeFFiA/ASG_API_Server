@@ -17,13 +17,13 @@ MSGraphResponses = {
 }
 
 router = APIRouter(
-    prefix="/msgraph",
+    prefix="/msgraph/rules",
     tags=[service.APITagsEnum.MSGRAPH],
     responses=MSGraphResponses,
 )
 
 @router.get(
-    path="/rules",
+    path="/",
     description="Get all rules",
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse
@@ -53,7 +53,7 @@ async def get_rules(request: Request):
 
 
 @router.get(
-    path="/rules/{application_id}",
+    path="/{application_id}",
     description="Get all rules",
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse
