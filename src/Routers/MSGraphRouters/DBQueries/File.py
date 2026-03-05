@@ -28,7 +28,7 @@ async def query_load_file(session, file_name: str, file_description: Optional[st
         raise _ex
 
 
-async def query_file(session, file_name: Optional[str], file_id: Optional[int]) -> GetFileResponseSchema:
+async def query_file(session, file_name: Optional[str], file_id: Optional[int]) -> GetFileResponseSchema | None:
     try:
         stmt = select(ApplicationAsset)
         if file_name:
@@ -40,8 +40,7 @@ async def query_file(session, file_name: Optional[str], file_id: Optional[int]) 
         file: ApplicationAsset = result.scalars().one_or_none()
 
         if not file:
-            return GetFileResponseSchema(file_name=None, file_description=None,
-                                         file_data=None).model_dump(mode="json")
+            return None
         encoded = b64encode(file.base64).decode()
         data_uri = f"data:{file.mime_type};base64,{encoded}"
 

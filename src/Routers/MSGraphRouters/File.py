@@ -90,7 +90,7 @@ async def get_file(request: Request, _payload: Annotated[ApplicationFileQuery, Q
             query_func=db_query,
             ttl=600
         )
-        if file_data.get("file_data"):
+        if file_data:
             return success_response(request=request, data=file_data, msg="File retrieved successfully")
         return warning_response(request=request, msg="File not found", status_code=status.HTTP_404_NOT_FOUND)
     except Exception as _ex:
