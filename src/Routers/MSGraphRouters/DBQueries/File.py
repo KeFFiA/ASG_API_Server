@@ -7,7 +7,7 @@ from Database import ApplicationAsset
 from Schemas import GetFileResponseSchema
 
 
-async def query_load_file(session, file_name: str, file_description: Optional[str], file_data: str) -> bool:
+async def query_load_file(session, file_name: str, file_description: Optional[str], file_data: str) -> ApplicationAsset:
     try:
         header, encoded = file_data.split(",", 1)
         mime_type = header.split(";")[0].replace("data:", "")
@@ -23,7 +23,7 @@ async def query_load_file(session, file_name: str, file_description: Optional[st
         session.add(file)
         await session.commit()
 
-        return True
+        return file
     except Exception as _ex:
         raise _ex
 
