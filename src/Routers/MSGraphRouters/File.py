@@ -1,9 +1,9 @@
 from typing import Annotated
 
-from fastapi import APIRouter, status, Request, Query
+from fastapi import APIRouter, status, Request, Query, Body
 
 from Config import setup_logger
-from Schemas import DefaultResponse, ApplicationFileQuery, ApplicationFileLoadQuery, GetFileResponseSchema
+from Schemas import DefaultResponse, ApplicationFileQuery, ApplicationFileLoadBody
 from Schemas.Enums import service
 from Utils import DBProxy, success_response, error_response, warning_response
 from .DBQueries.File import query_load_file, query_file
@@ -14,6 +14,7 @@ MSGraphResponses = {
     200: {"model": DefaultResponse, "description": "Success"},
     201: {"model": DefaultResponse, "description": "Created"},
     400: {"model": DefaultResponse, "description": "Bad Request"},
+    404: {"model": DefaultResponse, "description": "Not found"},
     500: {"model": DefaultResponse, "description": "Server error"},
 }
 
@@ -30,8 +31,8 @@ router = APIRouter(
     status_code=status.HTTP_201_CREATED,
     response_model=DefaultResponse,
 )
-async def upload_file(request: Request, _payload: Annotated[ApplicationFileLoadQuery, Query()]):
-    payload = ApplicationFileLoadQuery(
+async def upload_file(request: Request, _payload: Annotated[ApplicationFileLoadBody, Body()]):
+    payload = ApplicationFileLoadBody(
         **_payload.model_dump()
     )
 
@@ -91,9 +92,7 @@ async def get_file(request: Request, _payload: Annotated[ApplicationFileQuery, Q
         )
         if file_data.get("file_data"):
             return success_response(request=request, data=file_data, msg="File retrieved successfully")
-        else:
-            return warning_response(request=request, msg="File not found")
-
+        return warning_response(request=request, msg="File not found", status_code=status.HTTP_404_NOT_FOUND)
     except Exception as _ex:
         logger.error(f"Failed to get file: {_ex}")
         return error_response(request=request, exc=_ex)

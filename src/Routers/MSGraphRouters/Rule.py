@@ -13,6 +13,7 @@ logger = setup_logger(name="msgraph_rules")
 MSGraphResponses = {
     200: {"model": DefaultResponse, "description": "Success"},
     400: {"model": DefaultResponse, "description": "Bad Request"},
+    404: {"model": DefaultResponse, "description": "Not found"},
     500: {"model": DefaultResponse, "description": "Server error"},
 }
 
@@ -45,9 +46,7 @@ async def get_rules(request: Request):
 
         if len(rules_data) > 0:
             return success_response(request=request, data=rules_data, msg="Rules retrieved successfully")
-        else:
-            return warning_response(request=request, data=rules_data, msg="Rules not found")
-
+        return warning_response(request=request, data=rules_data, msg="Rules not found", status_code=status.HTTP_404_NOT_FOUND)
     except Exception as _ex:
         return error_response(request=request, exc=_ex)
 
@@ -75,9 +74,7 @@ async def get_rules(request: Request, application_id: UUID):
 
         if len(rules_data) > 0:
             return success_response(request=request, data=rules_data, msg="Rules retrieved successfully")
-        else:
-            return warning_response(request=request, data=rules_data, msg="Rules not found")
-
+        return warning_response(request=request, data=rules_data, msg="Rules not found", status_code=status.HTTP_404_NOT_FOUND)
     except Exception as _ex:
         logger.error(f"Failed to get rules: {_ex}")
         return error_response(request=request, exc=_ex)

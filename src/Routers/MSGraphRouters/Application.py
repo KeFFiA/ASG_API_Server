@@ -13,6 +13,7 @@ logger = setup_logger(name="msgraph_application")
 MSGraphResponses = {
     200: {"model": DefaultResponse, "description": "Success"},
     400: {"model": DefaultResponse, "description": "Bad Request"},
+    404: {"model": DefaultResponse, "description": "Not found"},
     500: {"model": DefaultResponse, "description": "Server error"},
 }
 
@@ -50,9 +51,7 @@ async def get_fonts(request: Request, _payload: Annotated[ApplicationSizeQuery, 
 
         if len(fonts_data) > 0:
             return success_response(request=request, data=fonts_data, msg="Fonts retrieved successfully")
-        else:
-            return warning_response(request=request, data=fonts_data, msg="Fonts not found")
-
+        return warning_response(request=request, data=fonts_data, msg="Fonts not found", status_code=status.HTTP_404_NOT_FOUND)
     except Exception as _ex:
         logger.error(f"Failed to get fonts: {_ex}")
         return error_response(request=request, exc=_ex)

@@ -7,5 +7,6 @@ from .MSGraphRouters.User import router as user
 from .MSGraphRouters.Rule import router as rule
 from .MSGraphRouters.Application import router as application
 from .MSGraphRouters.File import router as file
+from .MSGraphRouters.AircraftsAirlines import router as aircraftsairlines
 from .Database import router as database
 from .FlightRadar import router as flight_radar

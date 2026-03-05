@@ -1,8 +1,9 @@
-from datetime import datetime
+from datetime import datetime, date
+from typing import Optional
 from uuid import UUID as UUID_Python
 
 from sqlalchemy import DateTime, String, Boolean, ForeignKey, ForeignKeyConstraint, UniqueConstraint, Table, Column, \
-    Integer, LargeBinary
+    Integer, LargeBinary, Date, Float
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -44,6 +45,11 @@ class User(Base):
     application_accesses: Mapped[list["ApplicationAccess"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan"
+    )
+
+    airlines: Mapped[list["Airline"]] = relationship(
+        secondary="userairlineaccesses",
+        back_populates="users"
     )
 
 
@@ -129,6 +135,98 @@ class ApplicationFont(Base):
 
 class ApplicationAsset(Base):
     asset_name: Mapped[str] = mapped_column(String, nullable=False)
-    asset_description: Mapped[str] = mapped_column(String, nullable=True)
+    asset_description: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     mime_type: Mapped[str] = mapped_column(String, nullable=False)
     base64: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+
+    airline: Mapped["Airline"] = relationship(back_populates="asset")
+    aircraft_template: Mapped["AircraftTemplate"] = relationship(
+        back_populates="asset",
+        uselist=False
+    )
+
+
+class UserAirlineAccess(Base):
+    user_id: Mapped[UUID_Python] = mapped_column(
+        ForeignKey("users.user_id", ondelete="CASCADE"),
+        primary_key=True
+    )
+
+    airline_id: Mapped[int] = mapped_column(
+        ForeignKey("airlines.id", ondelete="CASCADE"),
+        primary_key=True
+    )
+
+
+class Airline(Base):
+    airline_name: Mapped[str] = mapped_column(String, nullable=False)
+    icao: Mapped[str] = mapped_column(String, nullable=False)
+
+    asset_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("applicationassets.id", ondelete="SET NULL"),
+        nullable=True,
+        unique=True  # 1-2-1
+    )
+
+    asset: Mapped[Optional["ApplicationAsset"]] = relationship(
+        back_populates="airline",
+        uselist=False
+    )
+
+    users: Mapped[list["User"]] = relationship(
+        secondary="userairlineaccesses",
+        back_populates="airlines"
+    )
+
+    aircrafts: Mapped[list["Aircraft"]] = relationship(
+        back_populates="airline",
+        cascade="all, delete-orphan"
+    )
+
+
+class AircraftTemplate(Base):
+    template_name: Mapped[str] = mapped_column(String, nullable=False)
+
+    asset_id: Mapped[int | None] = mapped_column(
+        ForeignKey("applicationassets.id", ondelete="SET NULL"),
+        nullable=True,
+        unique=True
+    )
+
+    asset: Mapped["ApplicationAsset"] = relationship(
+        back_populates="aircraft_template",
+        uselist=False
+    )
+
+    aircrafts: Mapped[list["Aircraft"]] = relationship(
+        back_populates="template"
+    )
+
+
+class Aircraft(Base):
+    registration: Mapped[str] = mapped_column(String, nullable=False)
+    msn: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    airline_id: Mapped[int] = mapped_column(
+        ForeignKey("airlines.id", ondelete="CASCADE"),
+        nullable=False
+    )
+
+    template_id: Mapped[int] = mapped_column(
+        ForeignKey("aircrafttemplates.id", ondelete="RESTRICT"),
+        nullable=False
+    )
+
+    policy_from: Mapped[date] = mapped_column(Date, nullable=True)
+    policy_to: Mapped[date] = mapped_column(Date, nullable=True)
+
+    hulldeductible_franchise: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    threshold: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+
+    in_dashboard: Mapped[bool] = mapped_column(Boolean, default=False)
+    status: Mapped[str] = mapped_column(String, nullable=False, default="Insured")
+
+    airline: Mapped["Airline"] = relationship(back_populates="aircrafts")
+    template: Mapped["AircraftTemplate"] = relationship(back_populates="aircrafts")
+
+

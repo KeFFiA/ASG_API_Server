@@ -7,7 +7,7 @@ from uuid import UUID
 from fastapi import Query
 from pydantic import BaseModel, EmailStr, HttpUrl, Field
 
-from .Enums.MSGraphAPI import UserTypesEnum
+from ..Enums.MSGraphAPI import UserTypesEnum
 
 
 class InviteUserSchemaQuery(BaseModel):
@@ -36,29 +36,6 @@ class InviteUserSchema(BaseModel):
     reset_redemption: bool = Field(False, title="", description="Reset redemption")
     redirect_url: Optional[HttpUrl] = Field("https://myaccount.microsoft.com/organizations",
                                             description="Redirect URL after accepting invitation. Only HTTPS allowed")
-
-
-class GetUserSchemaQuery(BaseModel):
-    user_email: EmailStr = Query(description="Email of the user")
-
-
-class ApplicationIdQuery(BaseModel):
-    application_id: Optional[UUID] = Query(default=None, description="Application ID")
-
-
-class ApplicationSizeQuery(BaseModel):
-    screen_size: Optional[int] = Query(default=None, description="Screen size")
-
-
-class ApplicationFileLoadQuery(BaseModel):
-    file_name: str = Query(..., description="File name")
-    file_description: Optional[str] = Query(default=None, description="File description")
-    file_data: str = Query(..., description="File data")
-
-
-class ApplicationFileQuery(BaseModel):
-    file_name: Optional[str] = Query(None, description="File name")
-    file_id: Optional[int] = Query(None, description="File ID")
 
 
 class RulesSchema(BaseModel):
@@ -108,6 +85,48 @@ class GetFileResponseSchema(BaseModel):
     file_name: Optional[str]
     file_description: Optional[str]
     file_data: Optional[str]
+
+
+class UserSchemaShort(BaseModel):
+    user_id: UUID
+    user_displayname: str
+    user_mail: EmailStr | str
+
+
+class AirlineSchema(BaseModel):
+    airline_id: int
+    airline_name: str
+    airline_icao: str
+    asset: GetFileResponseSchema
+
+
+class AirlinesSchemaUsers(AirlineSchema):
+    users: List[UserSchemaShort]
+
+
+class AirlinesSchemaByUser(BaseModel):
+    user: UserSchemaShort
+    airlines: List[AirlineSchema]
+
+
+class AircraftTemplateSchema(BaseModel):
+    template_id: int
+    template_name: str
+    asset: GetFileResponseSchema
+
+
+
+class AircraftSchema(BaseModel):
+    registration: str
+    msn: int
+    policy_from: date
+    policy_to: date
+    hulldeductible_franchise: float
+    threshold: float
+    in_dashboard: bool
+    status: str
+    airline: AirlineSchema
+    template: AircraftTemplateSchema
 
 
 _current_module = sys.modules[__name__]
