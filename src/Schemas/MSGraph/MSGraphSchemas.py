@@ -1,6 +1,6 @@
 import inspect
 import sys
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from typing import List, Optional
 from uuid import UUID
 
@@ -49,6 +49,26 @@ class ApplicationAccessResponseSchema(BaseModel):
     rules: List[RulesSchema]
     main_access: bool
     super_admin: bool
+
+
+class UserSchema(BaseModel):
+    user_id: UUID
+    display_name: Optional[str]
+    given_name: Optional[str]
+    surname: Optional[str]
+    user_principal_name: Optional[str]
+    account_enabled: Optional[bool]
+    mail: Optional[str]
+    mobile_phone: Optional[str]
+    city: Optional[str]
+    country: Optional[str]
+    department: Optional[str]
+    job_title: Optional[str]
+    employee_id: Optional[str]
+    employee_hire_date: Optional[date]
+    created_date_time: Optional[datetime]
+    manager_id: Optional[UUID]
+    application_accesses: List[ApplicationAccessResponseSchema]
 
 
 class GetUserAccessResponseSchema(BaseModel):
@@ -127,6 +147,8 @@ class AircraftSchema(BaseModel):
     status: str
     airline: AirlineSchema
     template: AircraftTemplateSchema
+
+
 
 
 _current_module = sys.modules[__name__]
