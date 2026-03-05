@@ -33,7 +33,7 @@ async def query_all_users(session, user_id: Optional[UUID] = None) -> List[dict]
         if "ADMIN" in u.display_name.upper():
             continue
         users_data.append({
-            "user_id": u.user_id,
+            "user_id": str(u.user_id),
             "display_name": u.display_name,
             "given_name": u.given_name,
             "surname": u.surname,
@@ -48,7 +48,7 @@ async def query_all_users(session, user_id: Optional[UUID] = None) -> List[dict]
             "employee_id": u.employee_id,
             "employee_hire_date": u.employee_hire_date.isoformat() if u.employee_hire_date else None,
             "created_date_time": u.created_date_time.isoformat() if u.created_date_time else None,
-            "manager_id": u.manager_id,
+            "manager_id": str(u.manager_id),
             "application_accesses": [
                 {
                     "application_id": a.application_id,
