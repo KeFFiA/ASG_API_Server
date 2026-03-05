@@ -281,63 +281,65 @@ async def query_create_template(session: AsyncSession, template_name: str, file_
 async def query_aircrafts(session: AsyncSession, airline_id: Optional[int], airline_name: Optional[str],
                           template_id: Optional[int], template_name: Optional[str], aircraft_registration: Optional[str],
                           aircraft_msn: Optional[int], aircraft_id: Optional[int]) -> list[AircraftSchema]:
-    stmt = (
-        select(Aircraft)
-        .join(Aircraft.airline)
-        .join(Aircraft.template)
-        .options(
-            selectinload(Aircraft.airline)
-            .selectinload(Airline.asset),
-            selectinload(Aircraft.template)
-            .selectinload(AircraftTemplate.asset),
-        )
-        .order_by(Airline.airline_name)
-    )
-
-    if aircraft_registration:
-        stmt = stmt.where(Aircraft.registration == aircraft_registration)
-    if aircraft_msn:
-        stmt = stmt.where(Aircraft.msn == aircraft_msn)
-    if aircraft_id:
-        stmt = stmt.where(Aircraft.id == aircraft_id)
-    if airline_name:
-        stmt = stmt.where(Airline.airline_name == airline_name)
-    if airline_id:
-        stmt = stmt.where(Airline.id == airline_id)
-    if template_name:
-        stmt = stmt.where(AircraftTemplate.template_name == template_name)
-    if template_id:
-        stmt = stmt.where(AircraftTemplate.id == template_id)
-
-    result = await session.execute(stmt)
-    aircrafts =  result.scalars().all()
-
-    aircrafts_list = []
-
-    for aircraft in aircrafts:
-        aircrafts_list.append(AircraftSchema(
-            registration=aircraft.registration,
-            msn=aircraft.msn,
-            policy_from=aircraft.policy_from,
-            policy_to=aircraft.policy_to,
-            hulldeductible_franchise=aircraft.hulldeductible_franchise,
-            threshold=aircraft.threshold,
-            in_dashboard=aircraft.in_dashboard,
-            status=aircraft.status,
-            airline=AirlineSchema(
-                airline_id=aircraft.airline.id,
-                airline_name=aircraft.airline.airline_name,
-                airline_icao=aircraft.airline.icao,
-                asset=map_asset(asset=aircraft.airline.asset)
-            ),
-            template=AircraftTemplateSchema(
-                template_id=aircraft.template.id,
-                template_name=aircraft.template.template_name,
-                asset=map_asset(asset=aircraft.template.asset)
+    try:
+        stmt = (
+            select(Aircraft)
+            .join(Aircraft.airline)
+            .join(Aircraft.template)
+            .options(
+                selectinload(Aircraft.airline)
+                .selectinload(Airline.asset),
+                selectinload(Aircraft.template)
+                .selectinload(AircraftTemplate.asset),
             )
-        ))
+            .order_by(Airline.airline_name)
+        )
 
-    return aircrafts_list
+        if aircraft_registration:
+            stmt = stmt.where(Aircraft.registration == aircraft_registration)
+        if aircraft_msn:
+            stmt = stmt.where(Aircraft.msn == aircraft_msn)
+        if aircraft_id:
+            stmt = stmt.where(Aircraft.id == aircraft_id)
+        if airline_name:
+            stmt = stmt.where(Airline.airline_name == airline_name)
+        if airline_id:
+            stmt = stmt.where(Airline.id == airline_id)
+        if template_name:
+            stmt = stmt.where(AircraftTemplate.template_name == template_name)
+        if template_id:
+            stmt = stmt.where(AircraftTemplate.id == template_id)
+
+        result = await session.execute(stmt)
+        aircrafts = result.scalars().all()
+
+        aircrafts_list = []
+
+        for aircraft in aircrafts:
+            aircrafts_list.append(AircraftSchema(
+                registration=aircraft.registration,
+                msn=aircraft.msn,
+                policy_from=aircraft.policy_from,
+                policy_to=aircraft.policy_to,
+                hulldeductible_franchise=aircraft.hulldeductible_franchise,
+                threshold=aircraft.threshold,
+                in_dashboard=aircraft.in_dashboard,
+                status=aircraft.status,
+                airline=AirlineSchema(
+                    airline_id=aircraft.airline.id,
+                    airline_name=aircraft.airline.airline_name,
+                    airline_icao=aircraft.airline.icao,
+                    asset=map_asset(asset=aircraft.airline.asset)
+                ),
+                template=AircraftTemplateSchema(
+                    template_id=aircraft.template.id,
+                    template_name=aircraft.template.template_name,
+                    asset=map_asset(asset=aircraft.template.asset)
+                )
+            ).model_dump(mode="json"))
+        return aircrafts_list
+    except Exception as _ex:
+        raise _ex
 
 
 async def query_create_aircraft(session: AsyncSession, *, aircraft_registration: str, aircraft_msn: int, airline_id: int, template_id: int,

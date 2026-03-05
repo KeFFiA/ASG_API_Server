@@ -8,7 +8,7 @@ from Schemas import DefaultResponse, AirlinesQuery, AircraftTemplatesQuery, Airc
 from Schemas.Enums import service
 from Utils import DBProxy, success_response, error_response, warning_response
 from .DBQueries.AircraftsAirlines import query_airline, query_create_airline, query_templates, query_create_template, \
-    query_create_aircraft
+    query_create_aircraft, query_aircrafts
 
 logger = setup_logger(name="msgraph_aircrafts_airlines")
 
@@ -69,8 +69,7 @@ async def get_airlines(request: Request, _payload: Annotated[AirlinesQuery, Quer
         )
         if len(airline_data) > 0:
             return success_response(request=request, data=airline_data, msg="Airline(-s) retrieved successfully")
-        else:
-            return warning_response(request=request, msg="Airline(-s) not found", status_code=status.HTTP_404_NOT_FOUND)
+        return warning_response(request=request, msg="Airline(-s) not found", status_code=status.HTTP_404_NOT_FOUND)
 
     except ValueError:
         return warning_response(request=request, msg="Airline(-s) not found", status_code=status.HTTP_404_NOT_FOUND)
@@ -159,9 +158,8 @@ async def get_aircraft_template(request: Request, _payload: Annotated[AircraftTe
         if len(aircraft_template_data) > 0:
             return success_response(request=request, data=aircraft_template_data,
                                     msg="Aircraft template(-s) retrieved successfully")
-        else:
-            return warning_response(request=request, msg="Aircraft template(-s) not found",
-                                    status_code=status.HTTP_404_NOT_FOUND)
+        return warning_response(request=request, msg="Aircraft template(-s) not found",
+                                status_code=status.HTTP_404_NOT_FOUND)
 
     except ValueError:
         return warning_response(request=request, msg="Aircraft template(-s) not found",
@@ -224,14 +222,19 @@ async def get_aircrafts(request: Request, _payload: Annotated[AircraftsQuery, Qu
            ) == 7:
         return warning_response(
             request=request,
-            msg=("Exactly one of 'template_id', 'template_name', 'aircraft_registration', 'aircraft_msn', 'aircraft_id', \n"
+            msg=(
+                "Exactly one of 'template_id', 'template_name', 'aircraft_registration', 'aircraft_msn', 'aircraft_id', \n"
                 "'airline_id' or 'airline_name' must be provided")
         )
 
     db_proxy: DBProxy = request.app.state.db_proxy
 
     async def db_query(session):
-        return await query_templates(session, template_name=payload.template_name, template_id=payload.template_id)
+        return await query_aircrafts(session, airline_id=payload.airline_id, template_id=payload.template_id,
+                                     template_name=payload.template_name,
+                                     aircraft_registration=payload.aircraft_registration,
+                                     aircraft_id=payload.aircraft_id, aircraft_msn=payload.aircraft_msn,
+                                     airline_name=payload.airline_name)
 
     try:
         if payload.template_id:
@@ -259,9 +262,8 @@ async def get_aircrafts(request: Request, _payload: Annotated[AircraftsQuery, Qu
         if len(aircraft_data) > 0:
             return success_response(request=request, data=aircraft_data,
                                     msg="Aircraft retrieved successfully")
-        else:
-            return warning_response(request=request, msg="Aircraft not found",
-                                    status_code=status.HTTP_404_NOT_FOUND)
+        return warning_response(request=request, msg="Aircraft not found",
+                                status_code=status.HTTP_404_NOT_FOUND)
 
     except ValueError:
         return warning_response(request=request, msg="Aircraft not found",
@@ -283,7 +285,8 @@ async def create_aircraft(request: Request, _payload: Annotated[CreateAircraftQu
     )
 
     if not payload.airline_id and not payload.template_id and not payload.aircraft_msn and not payload.aircraft_registration:
-        return warning_response(request=request, msg="'airline_id', 'template_id', 'aircraft_msn' and 'aircraft_registration' must be provided")
+        return warning_response(request=request,
+                                msg="'airline_id', 'template_id', 'aircraft_msn' and 'aircraft_registration' must be provided")
 
     db_proxy: DBProxy = request.app.state.db_proxy
 
@@ -305,4 +308,3 @@ async def create_aircraft(request: Request, _payload: Annotated[CreateAircraftQu
     except Exception as _ex:
         logger.error(f"Failed to create Aircraft: {_ex}")
         return error_response(request=request, exc=_ex)
-

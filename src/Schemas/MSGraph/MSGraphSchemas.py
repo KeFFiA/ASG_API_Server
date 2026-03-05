@@ -119,8 +119,8 @@ class AircraftTemplateSchema(BaseModel):
 class AircraftSchema(BaseModel):
     registration: str
     msn: int
-    policy_from: date
-    policy_to: date
+    policy_from: Optional[date]
+    policy_to: Optional[date]
     hulldeductible_franchise: float
     threshold: float
     in_dashboard: bool
