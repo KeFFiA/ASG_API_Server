@@ -1,8 +1,8 @@
 from typing import Annotated
 
-from fastapi import APIRouter, status, Request, Query, Body
+from fastapi import status, Request, Query, Body
 
-from Config import setup_logger
+from Config import setup_logger, Router
 from Schemas import DefaultResponse, AirlinesQuery, AircraftTemplatesQuery, AircraftsQuery, CreateAircraftQuery, \
     CreateAirlinesBody, CreateAircraftTemplatesBody
 from Schemas.Enums import service
@@ -20,7 +20,7 @@ MSGraphResponses = {
     500: {"model": DefaultResponse, "description": "Server error"},
 }
 
-router = APIRouter(
+router = Router(
     prefix="/msgraph/aircrafts_airlines",
     tags=[service.APITagsEnum.MSGRAPH],
     responses=MSGraphResponses,

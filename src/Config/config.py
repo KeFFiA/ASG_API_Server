@@ -5,6 +5,7 @@ from pathlib import Path
 from urllib.parse import quote_plus
 
 from dotenv import load_dotenv, find_dotenv
+from fastapi import APIRouter
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -87,9 +88,20 @@ SELF_PORT: int = require_env("SELF_PORT", 8000)
 
 # API
 
+class Router(APIRouter):
+    def add_api_route(self, path: str, endpoint, **kwargs):
+        if path.endswith("/"):
+            alt_path = path[:-1]
+        else:
+            alt_path = path + "/"
+
+        super().add_api_route(path, endpoint, **kwargs)
+        super().add_api_route(alt_path, endpoint, include_in_schema=False, **kwargs)
+
+
 API_TITLE: str = require_env("API_TITLE", "AIXII API Server")
 API_DESCRIPTION: str = require_env("API_DESCRIPTION", "")
-API_VERSION: str = require_env("API_VERSION", "v0.5.2a")
+API_VERSION: str = require_env("API_VERSION", "v0.5.2b")
 API_SWAGGER_URL: str = require_env("API_SWAGGER_URL", "/api/docs")
 API_REDOC_URL: str = require_env("API_REDOC_URL", "/api/redoc")
 API_ROOT_URL: str = require_env("API_ROOT_URL", "/api/v1")

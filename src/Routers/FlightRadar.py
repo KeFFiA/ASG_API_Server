@@ -1,9 +1,9 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Request, status, Query, BackgroundTasks
+from fastapi import Request, status, Query, BackgroundTasks
 
 from API.FlightRadarAPI.FlightSummary import fetch_all_ranges
-from Config import setup_logger
+from Config import setup_logger, Router
 from Schemas import RequestFRFlightSummary, DefaultResponse
 from Schemas.Enums import service
 from Utils import success_response, warning_response, error_response
@@ -16,7 +16,7 @@ FlightRadarResponses = {
     500: {"model": DefaultResponse, "description": "Server error"},
 }
 
-router = APIRouter(
+router = Router(
     prefix="/flightradar",
     tags=[service.APITagsEnum.FLIGHTRADAR],
     responses=FlightRadarResponses,

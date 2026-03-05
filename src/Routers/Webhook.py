@@ -1,14 +1,14 @@
-from fastapi import APIRouter, Request, status
+from fastapi import Request, status
 
 from API.Utils import create_or_update_subscription
-from Config import setup_logger, MS_WEBHOOK_SECRET
+from Config import setup_logger, MS_WEBHOOK_SECRET, Router
 from Schemas import DefaultResponse
 from Schemas.Enums import service
 from Utils import success_response, warning_response
 
 logger = setup_logger(name="webhooks")
 
-router = APIRouter(
+router = Router(
     prefix="/webhooks",
     tags=[service.APITagsEnum.WEBHOOK],
 )

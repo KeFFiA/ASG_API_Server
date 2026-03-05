@@ -1,8 +1,8 @@
 from typing import Annotated
 
-from fastapi import APIRouter, status, Request, Query
+from fastapi import status, Request, Query
 
-from Config import setup_logger
+from Config import setup_logger, Router
 from .DBQueries.Application import query_fonts
 from Schemas import DefaultResponse, ApplicationSizeQuery
 from Schemas.Enums import service
@@ -17,7 +17,7 @@ MSGraphResponses = {
     500: {"model": DefaultResponse, "description": "Server error"},
 }
 
-router = APIRouter(
+router = Router(
     prefix="/msgraph/application",
     tags=[service.APITagsEnum.MSGRAPH],
     responses=MSGraphResponses,

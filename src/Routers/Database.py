@@ -2,7 +2,7 @@ import random
 from datetime import datetime, date
 from pathlib import Path
 
-from fastapi import APIRouter, Request, BackgroundTasks
+from fastapi import Request, BackgroundTasks
 from fastapi.responses import FileResponse
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
@@ -10,13 +10,13 @@ from openpyxl.workbook import Workbook
 from pydantic.v1 import EmailStr
 from sqlalchemy import select, inspect
 
-from Config import RESPONSES_PATH, PA_APP_URL, CUSTOM_EXCEL_LEASE_HEADERS_ORDER
+from Config import Router, RESPONSES_PATH, PA_APP_URL, CUSTOM_EXCEL_LEASE_HEADERS_ORDER
 from Database.Models import Lease_Output
 from Schemas import JsonFileSchema
 from Schemas.Enums import service
 from Utils import remove_file
 
-router = APIRouter(
+router = Router(
     prefix="/database",
     tags=["Database"]
 )

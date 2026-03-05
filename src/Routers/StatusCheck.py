@@ -1,17 +1,17 @@
 import random
 from pathlib import Path
 
-from fastapi import APIRouter, Request, BackgroundTasks
+from fastapi import Request, BackgroundTasks
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 
-from Config import RESPONSES_PATH
+from Config import RESPONSES_PATH, Router
 from Database.Models import PDF_Queue
 from Schemas import ProgressFileSchema, StatusResponseSchema
 from Schemas.Enums import service
 from Utils import remove_file
 
-router = APIRouter(
+router = Router(
     prefix="/status",
     tags=["Status"]
 )

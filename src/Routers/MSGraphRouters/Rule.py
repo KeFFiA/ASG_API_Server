@@ -1,8 +1,8 @@
 from uuid import UUID
 
-from fastapi import APIRouter, status, Request
+from fastapi import status, Request
 
-from Config import setup_logger
+from Config import setup_logger, Router
 from .DBQueries.Rule import query_rules
 from Schemas import DefaultResponse
 from Schemas.Enums import service
@@ -17,7 +17,7 @@ MSGraphResponses = {
     500: {"model": DefaultResponse, "description": "Server error"},
 }
 
-router = APIRouter(
+router = Router(
     prefix="/msgraph/rules",
     tags=[service.APITagsEnum.MSGRAPH],
     responses=MSGraphResponses,

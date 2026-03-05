@@ -1,10 +1,10 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Request, status, Query
+from fastapi import Request, status, Query
 from msgraph.generated.models.o_data_errors.o_data_error import ODataError
 
 from API.MSGraphAPI.Users import invite_guest_user
-from Config import setup_logger
+from Config import setup_logger, Router
 from Schemas import InviteUserSchema, InviteUserSchemaQuery, DefaultResponse
 from Schemas.Enums import service
 from Utils import success_response, warning_response
@@ -17,7 +17,7 @@ MSGraphResponses = {
     500: {"model": DefaultResponse, "description": "Server error"},
 }
 
-router = APIRouter(
+router = Router(
     prefix="/msgraph",
     tags=[service.APITagsEnum.MSGRAPH],
     responses=MSGraphResponses,
