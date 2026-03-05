@@ -24,7 +24,7 @@ router = APIRouter(
 )
 
 @router.get(
-    path="/",
+    path="",
     description="Get all rules",
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse

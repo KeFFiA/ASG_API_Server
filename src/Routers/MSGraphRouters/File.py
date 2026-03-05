@@ -26,7 +26,7 @@ router = APIRouter(
 
 
 @router.post(
-    path="/",
+    path="",
     description="Upload file to Database",
     status_code=status.HTTP_201_CREATED,
     response_model=DefaultResponse,
@@ -59,7 +59,7 @@ async def upload_file(request: Request, _payload: Annotated[ApplicationFileLoadB
 
 
 @router.get(
-    path="/",
+    path="",
     description="Get file from Database",
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse,
