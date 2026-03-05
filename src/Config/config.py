@@ -96,7 +96,11 @@ class Router(APIRouter):
             alt_path = path + "/"
 
         super().add_api_route(path, endpoint, **kwargs)
-        super().add_api_route(alt_path, endpoint, include_in_schema=False, **kwargs)
+
+        alt_kwargs = kwargs.copy()
+        alt_kwargs["include_in_schema"] = False
+
+        super().add_api_route(alt_path, endpoint, **alt_kwargs)
 
 
 API_TITLE: str = require_env("API_TITLE", "AIXII API Server")
