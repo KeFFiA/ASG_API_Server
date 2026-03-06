@@ -7,7 +7,7 @@ from Database import DatabaseClient
 @performance_timer
 async def update_users_job():
     from API.MSGraphAPI.Users import get_users
-    from Database.Models import User, ApplicationAccess, Application
+    from Database.Models import User, Access, Application
 
     users = await get_users()
     client = DatabaseClient()
@@ -77,7 +77,7 @@ async def update_users_job():
                 ]
 
                 stmt_access = (
-                    insert(ApplicationAccess)
+                    insert(Access)
                     .values(access_rows)
                     .on_conflict_do_nothing()
                 )
