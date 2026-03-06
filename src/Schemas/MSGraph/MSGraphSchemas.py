@@ -48,7 +48,6 @@ class ApplicationAccessResponseSchema(BaseModel):
     application_id: UUID
     rules: List[RulesSchema]
     main_access: bool
-    super_admin: bool
 
 
 class UserSchema(BaseModel):
@@ -73,6 +72,7 @@ class UserSchema(BaseModel):
 
 class GetUserAccessResponseSchema(BaseModel):
     user_id: UUID
+    super_admin: bool
     applications: List[ApplicationAccessResponseSchema]
 
     class Config:

@@ -91,22 +91,25 @@ async def query_user_access(session, user_id: UUID,
         result = await session.execute(stmt)
         accesses = result.scalars().all()
 
+        super_admin = False
         applications_list = []
         for access in accesses:
+            if access.user.super_admin is True:
+                super_admin = True
             applications_list.append(
                 ApplicationAccessResponseSchema(
                     application_id=access.application.application_id,
                     rules=[
                         RulesSchema(rule_id=rule.id, rule_name=rule.rule_name, rule_description=rule.rule_description)
                         for rule in access.rules],
-                    main_access=access.main_access,
-                    super_admin=access.user.super_admin
+                    main_access=access.main_access
                 )
             )
 
         return GetUserAccessResponseSchema(
             user_id=user_id,
-            applications=applications_list
+            applications=applications_list,
+            super_admin=super_admin
         ).model_dump(mode="json")
     except Exception as _ex:
         raise _ex
