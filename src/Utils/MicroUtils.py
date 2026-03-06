@@ -1,4 +1,5 @@
 import csv
+from base64 import b64encode
 from datetime import datetime, timezone, timedelta
 import inspect
 import os
@@ -13,7 +14,22 @@ from pydantic import ValidationError
 from sqlalchemy import Integer, Float, String, DateTime
 
 from Config import RESPONSES_PATH, FILES_PATH
-from Schemas import ErrorValidationResponse, ErrorValidObject
+from Database import ApplicationAsset
+from Schemas import ErrorValidationResponse, ErrorValidObject, GetFileResponseSchema
+
+
+def map_asset(asset: ApplicationAsset | None) -> GetFileResponseSchema | None:
+    if not asset:
+        return None
+
+    encoded = b64encode(asset.base64).decode()
+    data_uri = f"data:{asset.mime_type};base64,{encoded}"
+
+    return GetFileResponseSchema(
+        file_name=asset.asset_name,
+        file_description=asset.asset_description,
+        file_data=data_uri
+    )
 
 
 def to_bool(value: str) -> bool:

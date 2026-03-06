@@ -1,4 +1,4 @@
-from base64 import b64decode, b64encode
+from base64 import b64decode
 from datetime import date
 from typing import Optional
 from uuid import UUID
@@ -8,22 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from Database import Airline, User, ApplicationAsset, UserAirlineAccess, AircraftTemplate, Aircraft
-from Schemas import AirlineSchema, AirlinesSchemaByUser, UserSchemaShort, AirlinesSchemaUsers, GetFileResponseSchema, \
-    AircraftTemplateSchema, AircraftSchema
-
-
-def map_asset(asset: ApplicationAsset | None) -> GetFileResponseSchema | None:
-    if not asset:
-        return None
-
-    encoded = b64encode(asset.base64).decode()
-    data_uri = f"data:{asset.mime_type};base64,{encoded}"
-
-    return GetFileResponseSchema(
-        file_name=asset.asset_name,
-        file_description=asset.asset_description,
-        file_data=data_uri
-    )
+from Schemas import AirlineSchema, AirlinesSchemaByUser, UserSchemaShort, AirlinesSchemaUsers, AircraftTemplateSchema, \
+    AircraftSchema
+from Utils import map_asset
 
 
 async def query_create_airline(session: AsyncSession, file_data: Optional[str], airline_name: str,
@@ -279,7 +266,8 @@ async def query_create_template(session: AsyncSession, template_name: str, file_
 
 
 async def query_aircrafts(session: AsyncSession, airline_id: Optional[int], airline_name: Optional[str],
-                          template_id: Optional[int], template_name: Optional[str], aircraft_registration: Optional[str],
+                          template_id: Optional[int], template_name: Optional[str],
+                          aircraft_registration: Optional[str],
                           aircraft_msn: Optional[int], aircraft_id: Optional[int]) -> list[AircraftSchema]:
     try:
         stmt = (
@@ -342,11 +330,11 @@ async def query_aircrafts(session: AsyncSession, airline_id: Optional[int], airl
         raise _ex
 
 
-async def query_create_aircraft(session: AsyncSession, *, aircraft_registration: str, aircraft_msn: int, airline_id: int, template_id: int,
-                          policy_from: date | None = None, policy_to: date | None = None,
-                          hulldeductible_franchise: float | None = None, threshold: float | None = None,
-                          in_dashboard: bool = False, status: str = "Insured") -> bool:
-
+async def query_create_aircraft(session: AsyncSession, *, aircraft_registration: str, aircraft_msn: int,
+                                airline_id: int, template_id: int,
+                                policy_from: date | None = None, policy_to: date | None = None,
+                                hulldeductible_franchise: float | None = None, threshold: float | None = None,
+                                in_dashboard: bool = False, status: str = "Insured") -> bool:
     airline = await session.get(Airline, airline_id)
     if not airline:
         raise ValueError("Airline not found")
@@ -371,4 +359,3 @@ async def query_create_aircraft(session: AsyncSession, *, aircraft_registration:
     session.add(aircraft)
 
     return True
-

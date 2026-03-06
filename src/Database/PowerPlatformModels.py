@@ -52,6 +52,8 @@ class User(Base):
         back_populates="users"
     )
 
+    claims: Mapped[list["Claim"]] = relationship(back_populates="user")
+
 
 class Application(Base):
     application_id: Mapped[UUID_Python] = mapped_column(UUID, unique=True, index=True)
@@ -228,5 +230,41 @@ class Aircraft(Base):
 
     airline: Mapped["Airline"] = relationship(back_populates="aircrafts")
     template: Mapped["AircraftTemplate"] = relationship(back_populates="aircrafts")
+
+    claims: Mapped[list["Claim"]] = relationship(back_populates="aircraft")
+
+
+class Claim(Base):
+    aircraft_id: Mapped[int] = mapped_column(
+        ForeignKey("aircraft.id", ondelete="RESTRICT"),
+        nullable=False
+    )
+
+    user_id: Mapped[UUID_Python] = mapped_column(
+        ForeignKey("users.user_id", ondelete="SET NULL"),
+        nullable=True
+    )
+
+    aircraft: Mapped["Aircraft"] = relationship(back_populates="claims")
+    user: Mapped["User"] = relationship(back_populates="claims")
+
+    date_of_loss: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    location_of_loss: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+
+    status: Mapped[str] = mapped_column(String, nullable=False, default="Opened")
+
+    damage: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+
+    indemnity_reserve_amount: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    paid_to_date_amount: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    paid_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+
+    is_hd: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_hw: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_hsl: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    leader: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    surveyor: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+
 
 

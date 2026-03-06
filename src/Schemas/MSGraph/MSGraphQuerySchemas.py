@@ -56,3 +56,8 @@ class CreateAircraftQuery(BaseModel):
     in_dashboard: bool = Query(default=True, description="Is In Dashboard")
     status: str = Query(default="Insured", description="Status")
 
+
+class ClaimsQuery(BaseModel):
+    claim_id: Optional[int] = Query(default=None, description="Claim ID")
+    user_id: Optional[UUID] = Query(default=None, description="User ID")
+

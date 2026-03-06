@@ -135,8 +135,8 @@ class AircraftTemplateSchema(BaseModel):
     asset: GetFileResponseSchema
 
 
-
 class AircraftSchema(BaseModel):
+    aircraft_id: int
     registration: str
     msn: int
     policy_from: Optional[date]
@@ -147,6 +147,24 @@ class AircraftSchema(BaseModel):
     status: str
     airline: AirlineSchema
     template: AircraftTemplateSchema
+
+
+class GetClaimSchema(BaseModel):
+    claim_id: int
+    users: List[UserSchemaShort]
+    aircraft: AircraftSchema
+    date_of_loss: Optional[date]
+    location_of_loss: Optional[date]
+    status: Optional[str]
+    damage: Optional[str]
+    indemnity_reserve_amount: Optional[float]
+    paid_to_date_amount: Optional[float]
+    paid_date: Optional[date]
+    is_hd: Optional[bool]
+    is_hw: Optional[bool]
+    is_hsl: Optional[bool]
+    leader: Optional[str]
+    surveyor: Optional[str]
 
 
 

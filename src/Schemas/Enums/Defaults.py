@@ -8,6 +8,10 @@ class FlightStatusEnum(str, __enum):
     LANDED = "landed"
 
 
+class UpsertStatusEnum(str, __enum):
+    UPDATED = "Updated"
+    CREATED = "Created"
+
 
 _current_module = sys.modules[__name__]
 
