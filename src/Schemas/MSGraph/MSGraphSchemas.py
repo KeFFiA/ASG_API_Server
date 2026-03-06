@@ -120,13 +120,8 @@ class AirlineSchema(BaseModel):
     asset: GetFileResponseSchema
 
 
-class AirlinesSchemaUsers(AirlineSchema):
+class GetAirlinesSchema(AirlineSchema):
     users: List[UserSchemaShort]
-
-
-class AirlinesSchemaByUser(BaseModel):
-    user: UserSchemaShort
-    airlines: List[AirlineSchema]
 
 
 class AircraftTemplateSchema(BaseModel):

@@ -8,8 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from Database import Airline, User, ApplicationAsset, UserAirlineAccess, AircraftTemplate, Aircraft
-from Schemas import AirlineSchema, AirlinesSchemaByUser, UserSchemaShort, AirlinesSchemaUsers, AircraftTemplateSchema, \
-    AircraftSchema
+from Schemas import AirlineSchema, UserSchemaShort, AircraftTemplateSchema, \
+    AircraftSchema, GetAirlinesSchema
 from Utils import map_asset
 
 
@@ -65,87 +65,64 @@ async def query_create_airline(session: AsyncSession, file_data: Optional[str], 
         raise _ex
 
 
-async def get_by_user_id(
-        session: AsyncSession,
-        user_id: UUID
-) -> AirlinesSchemaByUser:
+async def map_airline_to_schema(airline) -> GetAirlinesSchema:
+    users_list = [
+        UserSchemaShort(
+            user_id=user.user_id,
+            user_mail=user.mail,
+            user_displayname=user.display_name
+        )
+        for user in airline.users
+    ]
+    return GetAirlinesSchema(
+        airline_id=airline.id,
+        airline_name=airline.airline_name,
+        airline_icao=airline.icao,
+        asset=map_asset(asset=airline.asset),
+        users=users_list
+    )
+
+
+async def get_by_user_id(session: AsyncSession, user_id: UUID) -> list[GetAirlinesSchema]:
     stmt = (
         select(User)
         .options(
             selectinload(User.airlines)
-            .selectinload(Airline.asset)
+            .selectinload(Airline.asset),
+            selectinload(User.airlines)
+            .selectinload(Airline.users)
         )
         .where(User.user_id == user_id)
     )
 
     result = await session.execute(stmt)
     user = result.scalar_one_or_none()
-
     if not user:
         raise ValueError("User not found")
 
-    airlines_list = []
-
-    for airline in user.airlines:
-        airlines_list.append(
-            AirlineSchema(
-                airline_id=airline.id,
-                airline_name=airline.airline_name,
-                airline_icao=airline.icao,
-                asset=map_asset(airline.asset)
-            )
-        )
-
-    return AirlinesSchemaByUser(
-        user=UserSchemaShort(
-            user_id=user.user_id,
-            user_mail=user.mail,
-            user_displayname=user.display_name
-        ),
-        airlines=airlines_list
-    ).model_dump(mode="json")
+    return [await map_airline_to_schema(airline) for airline in user.airlines]
 
 
-async def get_by_airline(session: AsyncSession, airline_id: Optional[int] = None,
-                         airline_name: Optional[str] = None) -> AirlinesSchemaUsers:
-    stmt = (
-        select(Airline)
-        .options(
-            selectinload(Airline.asset),
-            selectinload(Airline.users)
-        )
+async def get_by_airline(session: AsyncSession, airline_id: int | None = None,
+                         airline_name: str | None = None) -> list[GetAirlinesSchema]:
+    stmt = select(Airline).options(
+        selectinload(Airline.asset),
+        selectinload(Airline.users)
     )
-
     if airline_id:
         stmt = stmt.where(Airline.id == airline_id)
-
     if airline_name:
         stmt = stmt.where(Airline.airline_name == airline_name)
 
     result = await session.execute(stmt)
     airline = result.scalar_one_or_none()
-
     if not airline:
         raise ValueError("Airline not found")
 
-    users_list = []
-    for user in airline.users:
-        users_list.append(UserSchemaShort(
-            user_id=user.user_id,
-            user_mail=user.mail,
-            user_displayname=user.display_name
-        ))
-
-    return AirlinesSchemaUsers(
-        airline_id=airline.id,
-        airline_name=airline.airline_name,
-        airline_icao=airline.icao,
-        asset=map_asset(asset=airline.asset),
-        users=users_list
-    ).model_dump(mode="json")
+    return [await map_airline_to_schema(airline)]
 
 
-async def get_all_airlines(session: AsyncSession) -> list[AirlinesSchemaUsers]:
+async def get_all_airlines(session: AsyncSession) -> list[GetAirlinesSchema]:
     stmt = (
         select(Airline)
         .options(
@@ -154,48 +131,19 @@ async def get_all_airlines(session: AsyncSession) -> list[AirlinesSchemaUsers]:
         )
         .order_by(Airline.airline_name)
     )
-
     result = await session.execute(stmt)
     airlines = result.scalars().all()
-
-    response = []
-
-    for airline in airlines:
-        users_list = [
-            UserSchemaShort(
-                user_id=user.user_id,
-                user_mail=user.mail,
-                user_displayname=user.display_name
-            )
-            for user in airline.users
-        ]
-
-        response.append(
-            AirlinesSchemaUsers(
-                airline_id=airline.id,
-                airline_name=airline.airline_name,
-                airline_icao=airline.icao,
-                asset=map_asset(asset=airline.asset),
-                users=users_list
-            ).model_dump(mode="json")
-        )
-
-    return response
+    return [await map_airline_to_schema(airline) for airline in airlines]
 
 
-async def query_airline(session: AsyncSession, airline_name: Optional[str], airline_id: Optional[int],
-                        user_id: Optional[UUID]) -> AirlinesSchemaUsers | AirlinesSchemaByUser | list[
-    AirlinesSchemaUsers]:
-    try:
-        if user_id:
-            return await get_by_user_id(session, user_id)
-
-        if airline_id or airline_name:
-            return await get_by_airline(session, airline_id, airline_name)
-
-        return await get_all_airlines(session)
-    except Exception as _ex:
-        raise _ex
+async def query_airline(session: AsyncSession, airline_name: str | None = None,
+                        airline_id: int | None = None,
+                        user_id: UUID | None = None) -> list[GetAirlinesSchema]:
+    if user_id:
+        return await get_by_user_id(session, user_id)
+    if airline_id or airline_name:
+        return await get_by_airline(session, airline_id, airline_name)
+    return await get_all_airlines(session)
 
 
 async def query_templates(session: AsyncSession, template_name: Optional[str], template_id: Optional[int]) -> list[
