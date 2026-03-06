@@ -3,17 +3,17 @@ from typing import Optional
 
 from sqlalchemy import select
 
-from Database import ApplicationAsset
+from Database import Asset
 from Schemas import GetFileResponseSchema
 
 
-async def query_load_file(session, file_name: str, file_description: Optional[str], file_data: str) -> ApplicationAsset:
+async def query_load_file(session, file_name: str, file_description: Optional[str], file_data: str):
     try:
         header, encoded = file_data.split(",", 1)
         mime_type = header.split(";")[0].replace("data:", "")
         decoded_bytes = b64decode(encoded)
 
-        file = ApplicationAsset(
+        file = Asset(
             asset_name=file_name,
             asset_description=file_description,
             mime_type=mime_type,
@@ -29,14 +29,14 @@ async def query_load_file(session, file_name: str, file_description: Optional[st
 
 async def query_file(session, file_name: Optional[str], file_id: Optional[int]) -> GetFileResponseSchema | None:
     try:
-        stmt = select(ApplicationAsset)
+        stmt = select(Asset)
         if file_name:
-            stmt = stmt.where(ApplicationAsset.asset_name == file_name)
+            stmt = stmt.where(Asset.asset_name == file_name)
         if file_id:
-            stmt = stmt.where(ApplicationAsset.id == file_id)
+            stmt = stmt.where(Asset.id == file_id)
 
         result = await session.execute(stmt)
-        file: ApplicationAsset = result.scalars().one_or_none()
+        file: Asset = result.scalars().one_or_none()
 
         if not file:
             return None

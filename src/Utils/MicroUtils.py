@@ -14,11 +14,11 @@ from pydantic import ValidationError
 from sqlalchemy import Integer, Float, String, DateTime
 
 from Config import RESPONSES_PATH, FILES_PATH
-from Database import ApplicationAsset
+from Database import Asset
 from Schemas import ErrorValidationResponse, ErrorValidObject, GetFileResponseSchema
 
 
-def map_asset(asset: ApplicationAsset | None) -> GetFileResponseSchema | None:
+def map_asset(asset: Asset | None) -> GetFileResponseSchema | None:
     if not asset:
         return None
 
@@ -49,13 +49,12 @@ def remove_file(path: str | Path):
 
 async def validation_error_file(request: Request, exc: ValidationError, filename: str, background_tasks: BackgroundTasks) -> FileResponse:
     detail = [
-        ErrorValidObject(field=".".join(map(str, e["loc"])), description=e["msg"])
+        ErrorValidObject(field=".".join(map(str, e["loc"])), msg=e["msg"], correlationId=request.state.correlation_id)
         for e in exc.errors()
     ]
     filepath = Path(RESPONSES_PATH / filename)
     error_response = ErrorValidationResponse(
-        correlationId=request.state.correlation_id,
-        detail=detail
+        details=detail
     )
     filepath.write_text(error_response.model_dump_json(indent=4), encoding="utf-8")
     background_tasks.add_task(remove_file, str(filepath))

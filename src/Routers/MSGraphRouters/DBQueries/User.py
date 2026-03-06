@@ -6,7 +6,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload, joinedload
 
-from Database import User, ApplicationAccess
+from Database import User, Access
 from Schemas import GetUserAccessResponseSchema, ApplicationAccessResponseSchema, RulesSchema, UserSchema
 
 
@@ -15,14 +15,14 @@ async def query_all_users(session, user_id: Optional[UUID] = None) -> List[UserS
         result = await session.execute(
             select(User)
             .options(
-                selectinload(User.application_accesses).selectinload(ApplicationAccess.application)
+                selectinload(User.application_accesses).selectinload(Access.application)
             )
         )
     else:
         result = await session.execute(
             select(User)
             .options(
-                selectinload(User.application_accesses).selectinload(ApplicationAccess.application)
+                selectinload(User.application_accesses).selectinload(Access.application)
             )
             .where(User.user_id == user_id)
         )
@@ -76,16 +76,16 @@ async def query_user_access(session, user_id: UUID,
         raise ValueError("User ID required")
     try:
         stmt = (
-            select(ApplicationAccess)
+            select(Access)
             .options(
-                joinedload(ApplicationAccess.application),
-                selectinload(ApplicationAccess.rules)
+                joinedload(Access.application),
+                selectinload(Access.rules)
             )
-            .where(ApplicationAccess.user_id == user_id)
+            .where(Access.user_id == user_id)
         )
 
         if application_id:
-            stmt = stmt.where(ApplicationAccess.application_id == application_id)
+            stmt = stmt.where(Access.application_id == application_id)
 
         result = await session.execute(stmt)
         accesses = result.scalars().all()

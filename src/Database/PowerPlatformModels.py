@@ -50,7 +50,7 @@ class User(Base):
 
     direct_reports: Mapped[list["User"]] = relationship(back_populates="manager")
 
-    application_accesses: Mapped[list["ApplicationAccess"]] = relationship(
+    application_accesses: Mapped[list["Access"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan"
     )
@@ -68,16 +68,24 @@ class User(Base):
 
 class Application(Base):
     application_id: Mapped[UUID_Python] = mapped_column(UUID, unique=True, index=True)
-    application_name: Mapped[str] = mapped_column(String, nullable=True)
+    application_name: Mapped[str] = mapped_column(String, nullable=False)
     application_description: Mapped[str] = mapped_column(String, nullable=True)
+    status: Mapped[str] = mapped_column(String, nullable=False, default="Work in progress")
 
-    application_accesses: Mapped[list["ApplicationAccess"]] = relationship(
+    application_accesses: Mapped[list["Access"]] = relationship(
         back_populates="application",
         cascade="all, delete-orphan"
     )
 
-    rules: Mapped[list["ApplicationRule"]] = relationship(
+    rules: Mapped[list["Rule"]] = relationship(
         back_populates="application",
+        cascade="all, delete-orphan"
+    )
+
+    asset: Mapped[Optional["Asset"]] = relationship(
+        "Asset",
+        back_populates="application",
+        uselist=False,
         cascade="all, delete-orphan"
     )
 
@@ -90,19 +98,19 @@ application_access_rules = Table(
     Column("application_id", UUID, primary_key=True),
     Column(
         "rule_id",
-        ForeignKey("applicationrules.id", ondelete="CASCADE"),
+        ForeignKey("rules.id", ondelete="CASCADE"),
         primary_key=True
     ),
 
     ForeignKeyConstraint(
         ["user_id", "application_id"],
-        ["applicationaccesses.user_id", "applicationaccesses.application_id"],
+        ["accesses.user_id", "accesses.application_id"],
         ondelete="CASCADE"
     ),
 )
 
 
-class ApplicationAccess(Base):
+class Access(Base):
     __table_args__ = (
         UniqueConstraint("user_id", "application_id", name="user_application_uq"),
     )
@@ -117,13 +125,13 @@ class ApplicationAccess(Base):
     user: Mapped["User"] = relationship(back_populates="application_accesses")
     application: Mapped["Application"] = relationship(back_populates="application_accesses")
 
-    rules: Mapped[list["ApplicationRule"]] = relationship(
+    rules: Mapped[list["Rule"]] = relationship(
         secondary=application_access_rules,
         lazy="selectin"
     )
 
 
-class ApplicationRule(Base):
+class Rule(Base):
     application_id: Mapped[UUID] = mapped_column(
         ForeignKey("applications.application_id", ondelete="CASCADE"),
         index=True
@@ -137,7 +145,7 @@ class ApplicationRule(Base):
     )
 
 
-class ApplicationFont(Base):
+class Font(Base):
     screen_size: Mapped[int] = mapped_column(Integer, nullable=False)
     usage_name: Mapped[str] = mapped_column(String, nullable=False)
     font_name: Mapped[str] = mapped_column(String, nullable=False)
@@ -146,7 +154,7 @@ class ApplicationFont(Base):
     font_weight: Mapped[str] = mapped_column(String, nullable=False)
 
 
-class ApplicationAsset(Base):
+class Asset(Base):
     asset_name: Mapped[str] = mapped_column(String, nullable=False)
     asset_description: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     mime_type: Mapped[str] = mapped_column(String, nullable=False)
@@ -157,6 +165,18 @@ class ApplicationAsset(Base):
         back_populates="asset",
         uselist=False
     )
+
+    application_id: Mapped[UUID_Python] = mapped_column(
+        UUID, ForeignKey("applications.application_id"), nullable=True
+    )
+
+    application: Mapped["Application"] = relationship(
+        "Application",
+        back_populates="asset",
+        uselist=False
+    )
+
+
 
 
 class UserAirlineAccess(Base):
@@ -176,12 +196,12 @@ class Airline(Base):
     icao: Mapped[str] = mapped_column(String, nullable=False)
 
     asset_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("applicationassets.id", ondelete="SET NULL"),
+        ForeignKey("assets.id", ondelete="SET NULL"),
         nullable=True,
         unique=True  # 1-2-1
     )
 
-    asset: Mapped[Optional["ApplicationAsset"]] = relationship(
+    asset: Mapped[Optional["Asset"]] = relationship(
         back_populates="airline",
         uselist=False
     )
@@ -201,12 +221,12 @@ class AircraftTemplate(Base):
     template_name: Mapped[str] = mapped_column(String, nullable=False)
 
     asset_id: Mapped[int | None] = mapped_column(
-        ForeignKey("applicationassets.id", ondelete="SET NULL"),
+        ForeignKey("assets.id", ondelete="SET NULL"),
         nullable=True,
         unique=True
     )
 
-    asset: Mapped["ApplicationAsset"] = relationship(
+    asset: Mapped["Asset"] = relationship(
         back_populates="aircraft_template",
         uselist=False
     )

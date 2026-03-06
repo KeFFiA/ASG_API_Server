@@ -1,19 +1,56 @@
 from typing import List, Optional
+from uuid import UUID
 
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
-from Database import ApplicationFont
-from Schemas import FontsSchema, GetFontsResponseSchema
+from Database import Font, Application
+from Schemas import FontsSchema, GetFontsResponseSchema, ApplicationSchema
+from Utils import map_asset
+
+
+async def query_apps(session, application_id: Optional[UUID]):
+    try:
+        stmt = (
+            select(Application)
+            .options(
+                selectinload(Application.asset)
+            )
+        )
+        if application_id:
+            stmt = stmt.where(Application.application_id == application_id)
+
+        result = await session.execute(stmt)
+        apps: List[Application] = result.scalars().all()
+
+        apps_list = []
+
+        for app in apps:
+            apps_list.append(
+                ApplicationSchema(
+                    application_id=app.application_id,
+                    application_name=app.application_name,
+                    application_description=app.application_description,
+                    application_status=app.status,
+                    asset=map_asset(app.asset)
+                ).model_dump(mode="json")
+            )
+
+        return apps_list
+    except Exception as _ex:
+        raise _ex
+
+
 
 
 async def query_fonts(session, screen_size: Optional[int] = None) -> GetFontsResponseSchema:
     try:
-        stmt = select(ApplicationFont)
+        stmt = select(Font)
         if screen_size:
-            stmt = stmt.where(ApplicationFont.screen_size == screen_size)
+            stmt = stmt.where(Font.screen_size == screen_size)
 
         result = await session.execute(stmt)
-        fonts: List[ApplicationFont] = result.scalars().all()
+        fonts: List[Font] = result.scalars().all()
 
         fonts_list = []
         for font in fonts:

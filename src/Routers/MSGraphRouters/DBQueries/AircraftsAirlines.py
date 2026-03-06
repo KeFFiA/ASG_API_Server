@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from Database import Airline, User, ApplicationAsset, UserAirlineAccess, AircraftTemplate, Aircraft
+from Database import Airline, User, Asset, UserAirlineAccess, AircraftTemplate, Aircraft
 from Schemas import AirlineSchema, UserSchemaShort, AircraftTemplateSchema, \
     AircraftSchema, GetAirlinesSchema
 from Utils import map_asset
@@ -28,7 +28,7 @@ async def query_create_airline(session: AsyncSession, file_data: Optional[str], 
             mime_type = header.split(";")[0].replace("data:", "")
             decoded_bytes = b64decode(encoded)
 
-            asset = ApplicationAsset(
+            asset = Asset(
                 asset_name=f"{airline_name}-LOGO",
                 asset_description=None,
                 mime_type=mime_type,
@@ -193,7 +193,7 @@ async def query_create_template(session: AsyncSession, template_name: str, file_
             mime_type = header.split(";")[0].replace("data:", "")
             decoded_bytes = b64decode(encoded)
 
-            asset = ApplicationAsset(
+            asset = Asset(
                 asset_name=f"{template_name}",
                 asset_description=None,
                 mime_type=mime_type,

@@ -117,7 +117,7 @@ class AirlineSchema(BaseModel):
     airline_id: int
     airline_name: str
     airline_icao: str
-    asset: GetFileResponseSchema
+    asset: Optional[GetFileResponseSchema]
 
 
 class GetAirlinesSchema(AirlineSchema):
@@ -127,7 +127,7 @@ class GetAirlinesSchema(AirlineSchema):
 class AircraftTemplateSchema(BaseModel):
     template_id: int
     template_name: str
-    asset: GetFileResponseSchema
+    asset: Optional[GetFileResponseSchema]
 
 
 class AircraftSchema(BaseModel):
@@ -162,6 +162,12 @@ class GetClaimSchema(BaseModel):
     surveyor: Optional[str]
 
 
+class ApplicationSchema(BaseModel):
+    application_id: UUID
+    application_name: str
+    application_description: Optional[str]
+    application_status: str
+    asset: Optional[GetFileResponseSchema]
 
 
 _current_module = sys.modules[__name__]
