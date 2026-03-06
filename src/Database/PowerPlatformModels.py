@@ -36,6 +36,8 @@ class User(Base):
     employee_id: Mapped[str] = mapped_column(String, nullable=True)
     employee_hire_date: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     created_date_time: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    super_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
 
     manager_id: Mapped[UUID_Python | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"),
@@ -120,7 +122,6 @@ class Access(Base):
                                                         primary_key=True)
 
     main_access: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    super_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     user: Mapped["User"] = relationship(back_populates="application_accesses")
     application: Mapped["Application"] = relationship(back_populates="application_accesses")
