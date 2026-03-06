@@ -13,7 +13,7 @@ from .config import PowerPlatformBase as Base
 _claim_users = Table(
     "_claim_users",
     Base.metadata,
-    Column("claim_id", ForeignKey("claim.id", ondelete="CASCADE"), primary_key=True),
+    Column("claim_id", ForeignKey("claims.id", ondelete="CASCADE"), primary_key=True),
     Column("user_id", ForeignKey("users.user_id", ondelete="CASCADE"), primary_key=True),
 )
 
