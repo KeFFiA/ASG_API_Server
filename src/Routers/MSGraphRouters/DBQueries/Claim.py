@@ -4,7 +4,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from Database import Claim, Aircraft, User
+from Database import Claim, Aircraft, User, Airline, AircraftTemplate
 from Schemas import GetClaimSchema, AircraftSchema, AirlineSchema, AircraftTemplateSchema, \
     UserSchemaShort, CreateClaimSchema
 from Schemas.Enums import UpsertStatusEnum
@@ -17,11 +17,11 @@ async def query_claims(session, claim_id: Optional[int], user_id: Optional[UUID]
             select(Claim)
             .options(
                 selectinload(Claim.aircraft)
-                .selectinload(Aircraft.airline),
-
+                .selectinload(Aircraft.airline)
+                .selectinload(Airline.asset),
                 selectinload(Claim.aircraft)
-                .selectinload(Aircraft.template),
-
+                .selectinload(Aircraft.template)
+                .selectinload(AircraftTemplate.asset),
                 selectinload(Claim.users)
             )
         )
