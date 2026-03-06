@@ -17,15 +17,14 @@ from Utils import performance_timer
 
 
 @performance_timer
-async def get_users(_client: MSGraphClient = MSGraphClient()) -> UserCollectionResponse:
+async def get_users() -> UserCollectionResponse:
     """
     Returns all the users in the system.
 
-    :param _client: MSGraphClient object
     :return: Users collection object
     """
 
-    client = _client.client
+    client = MSGraphClient().client
 
     try:
         users: UserCollectionResponse = await client.users.get()
@@ -38,7 +37,7 @@ async def get_users(_client: MSGraphClient = MSGraphClient()) -> UserCollectionR
 
 
 @performance_timer
-async def get_user(_client: MSGraphClient = MSGraphClient(), **kwargs) -> User:
+async def get_user(**kwargs) -> User:
     """
     Returns one user by ONE filter
 
@@ -50,7 +49,7 @@ async def get_user(_client: MSGraphClient = MSGraphClient(), **kwargs) -> User:
     if len(kwargs) != 1:
         raise InvalidUserFilterError()
 
-    client = _client.client
+    client = MSGraphClient().client
 
     key, value = next(iter(kwargs.items()))
 
@@ -76,23 +75,19 @@ async def get_user(_client: MSGraphClient = MSGraphClient(), **kwargs) -> User:
 
 
 @performance_timer
-async def invite_guest_user(_client: MSGraphClient = MSGraphClient(),
-                            _dbClient: DatabaseClient = DatabaseClient(),
-                            *,
-                            data: InviteUserSchema) -> Invitation:
+async def invite_guest_user(*, data: InviteUserSchema) -> Invitation:
     """
     Returns all the users in the system.
 
     :param data: InviteUserSchema
-    :param _dbClient: Database client object
-    :param _client: MSGraphClient object
 
     :return: Invitation object
     """
     if data.user_type.lower() not in ["guest", "member"]:
         raise ValueError("Invalid user type. Must be 'guest' or 'member'")
 
-    client = _client.client
+    client = MSGraphClient().client
+    _dbClient = DatabaseClient()
 
     invite = Invitation(
         invited_user_display_name=data.user_displayName,
