@@ -41,7 +41,7 @@ async def query_claims(session, claim_id: Optional[int], user_id: Optional[UUID]
         claims_list = []
         for claim in claims:
             users_list = []
-            for user in claim.user:
+            for user in claim.users:
                 users_list.append(
                     UserSchemaShort(
                         user_id=user.user_id,
