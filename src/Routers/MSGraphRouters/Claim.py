@@ -68,7 +68,7 @@ async def get_claims(request: Request, _payload: Annotated[ClaimsQuery, Query()]
         return error_response(request=request, exc=_ex)
 
 
-@router.get(
+@router.post(
     path="",
     description="Create claim",
     status_code=status.HTTP_201_CREATED,
