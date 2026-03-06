@@ -37,7 +37,7 @@ async def update_users_job():
                     job_title=graph_user.job_title,
                     employee_id=graph_user.employee_id,
                     employee_hire_date=graph_user.employee_hire_date,
-                    created_date_time=graph_user.created_date_time
+                    created_date_time=graph_user.created_date_time,
                 )
                 .on_conflict_do_update(
                     index_elements=['user_id'],
@@ -71,7 +71,6 @@ async def update_users_job():
                         "user_id": db_user_id,
                         "application_id": app_id,
                         "main_access": False,
-                        "super_admin": False,
                     }
                     for app_id in application_ids
                 ]
