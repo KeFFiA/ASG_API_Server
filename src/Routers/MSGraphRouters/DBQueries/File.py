@@ -23,7 +23,6 @@ async def query_load_file(session, file_name: str, file_description: Optional[st
         session.add(file)
         await session.commit()
 
-        return file
     except Exception as _ex:
         raise _ex
 
