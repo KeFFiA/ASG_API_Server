@@ -80,7 +80,7 @@ async def map_airline_to_schema(airline) -> GetAirlinesSchema:
         airline_icao=airline.icao,
         asset=map_asset(asset=airline.asset),
         users=users_list
-    )
+    ).model_dump(mode="json")
 
 
 async def get_by_user_id(session: AsyncSession, user_id: UUID) -> list[GetAirlinesSchema]:
