@@ -100,7 +100,7 @@ async def query_user_access(session, user_id: UUID,
                         RulesSchema(rule_id=rule.id, rule_name=rule.rule_name, rule_description=rule.rule_description)
                         for rule in access.rules],
                     main_access=access.main_access,
-                    super_admin=user.super_admin
+                    super_admin=access.user.super_admin
                 )
             )
 
