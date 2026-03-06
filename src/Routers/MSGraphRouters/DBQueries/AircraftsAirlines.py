@@ -305,6 +305,7 @@ async def query_aircrafts(session: AsyncSession, airline_id: Optional[int], airl
 
         for aircraft in aircrafts:
             aircrafts_list.append(AircraftSchema(
+                aircraft_id=aircraft.id,
                 registration=aircraft.registration,
                 msn=aircraft.msn,
                 policy_from=aircraft.policy_from,
