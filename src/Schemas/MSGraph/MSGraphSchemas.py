@@ -154,7 +154,7 @@ class GetClaimSchema(BaseModel):
     users: List[UserSchemaShort]
     aircraft: AircraftSchema
     date_of_loss: Optional[date]
-    location_of_loss: Optional[date]
+    location_of_loss: Optional[str]
     status: Optional[str]
     damage: Optional[str]
     indemnity_reserve_amount: Optional[float]

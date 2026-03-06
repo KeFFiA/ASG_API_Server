@@ -28,7 +28,7 @@ class CreateClaimSchema(BaseModel):
     user_id: UUID = Field(..., description="User ID")
     aircraft_id: int = Field(..., description="Aircraft ID")
     date_of_loss: Optional[date] = Field(default=None, description="Date of loss")
-    location_of_loss: Optional[date] = Field(default=None, description="Location of loss")
+    location_of_loss: Optional[str] = Field(default=None, description="Location of loss")
     status: str = Field(..., description="Status")
     damage: Optional[str] = Field(default=None, description="Damage")
     indemnity_reserve_amount: Optional[float] = Field(default=None, description="Indemnity reserve amount")
