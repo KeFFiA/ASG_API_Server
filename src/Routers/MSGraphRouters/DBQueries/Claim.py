@@ -45,7 +45,7 @@ async def query_claims(session, claim_id: Optional[int], user_id: Optional[UUID]
                 users_list.append(
                     UserSchemaShort(
                         user_id=user.user_id,
-                        user_displayname=user.displayname,
+                        user_displayname=user.display_name,
                         user_mail=user.mail,
                     )
                 )
