@@ -55,28 +55,28 @@ async def update_subscription_job(db_proxy: DBProxy,
 
 
 jobs = [
-    # {
-    #     "id": "update_flightradar_flights",
-    #     "name": "UpdateFlightradarFlights",
-    #     "func": live_flights_adaptive,
-    #     "trigger": "interval",
-    #     "minutes": 10,
-    #     "next_run_time": next_ten_minutes(datetime.now(timezone.utc)),
-    #     "max_instances": 1,
-    #     "coalesce": True,
-    #     "misfire_grace_time": 60,
-    # },
-    # {
-    #     "id": "update_microsoft_users",
-    #     "name": "UpdateMicrosoftUsers",
-    #     "func": update_users_job,
-    #     "trigger": "interval",
-    #     "minutes": 10,
-    #     "next_run_time": next_ten_minutes(datetime.now(timezone.utc)),
-    #     "max_instances": 1,
-    #     "coalesce": True,
-    #     "misfire_grace_time": 60,
-    # }
+    {
+        "id": "update_flightradar_flights",
+        "name": "UpdateFlightradarFlights",
+        "func": live_flights_adaptive,
+        "trigger": "interval",
+        "minutes": 10,
+        "next_run_time": next_ten_minutes(datetime.now(timezone.utc)),
+        "max_instances": 1,
+        "coalesce": True,
+        "misfire_grace_time": 60,
+    },
+    {
+        "id": "update_microsoft_users",
+        "name": "UpdateMicrosoftUsers",
+        "func": update_users_job,
+        "trigger": "interval",
+        "minutes": 10,
+        "next_run_time": next_ten_minutes(datetime.now(timezone.utc)),
+        "max_instances": 1,
+        "coalesce": True,
+        "misfire_grace_time": 60,
+    }
 ]
 
 # TODOo: fix
