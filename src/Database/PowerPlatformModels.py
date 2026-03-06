@@ -1,5 +1,5 @@
 from datetime import datetime, date
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID as UUID_Python
 
 from sqlalchemy import DateTime, String, Boolean, ForeignKey, ForeignKeyConstraint, UniqueConstraint, Table, Column, \
@@ -8,6 +8,14 @@ from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .config import PowerPlatformBase as Base
+
+
+_claim_users = Table(
+    "_claim_users",
+    Base.metadata,
+    Column("claim_id", ForeignKey("claim.id", ondelete="CASCADE"), primary_key=True),
+    Column("user_id", ForeignKey("users.user_id", ondelete="CASCADE"), primary_key=True),
+)
 
 
 class User(Base):
@@ -52,7 +60,10 @@ class User(Base):
         back_populates="users"
     )
 
-    claims: Mapped[list["Claim"]] = relationship(back_populates="user")
+    claims: Mapped[List["Claim"]] = relationship(
+        secondary=_claim_users,
+        back_populates="users"
+    )
 
 
 class Application(Base):
@@ -240,13 +251,12 @@ class Claim(Base):
         nullable=False
     )
 
-    user_id: Mapped[UUID_Python] = mapped_column(
-        ForeignKey("users.user_id", ondelete="SET NULL"),
-        nullable=True
-    )
-
     aircraft: Mapped["Aircraft"] = relationship(back_populates="claims")
-    user: Mapped["User"] = relationship(back_populates="claims")
+
+    users: Mapped[List["User"]] = relationship(
+        secondary=_claim_users,
+        back_populates="claims"
+    )
 
     date_of_loss: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     location_of_loss: Mapped[Optional[str]] = mapped_column(String, nullable=True)

@@ -4,7 +4,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from Database import Claim, Aircraft
+from Database import Claim, Aircraft, User
 from Schemas import GetClaimSchema, AircraftSchema, AirlineSchema, AircraftTemplateSchema, \
     UserSchemaShort, CreateClaimSchema
 from Schemas.Enums import UpsertStatusEnum
@@ -22,13 +22,15 @@ async def query_claims(session, claim_id: Optional[int], user_id: Optional[UUID]
                 selectinload(Claim.aircraft)
                 .selectinload(Aircraft.template),
 
-                selectinload(Claim.user)
+                selectinload(Claim.users)
             )
         )
         if claim_id:
             stmt = stmt.where(Claim.id == claim_id)
         if user_id:
-            stmt = stmt.where(Claim.user_id == user_id)
+            stmt = stmt.where(
+                Claim.users.any(User.user_id == user_id)
+            )
 
         result = await session.execute(stmt)
         claims = result.scalars().all()
@@ -94,34 +96,44 @@ async def query_claims(session, claim_id: Optional[int], user_id: Optional[UUID]
 
 
 async def query_create_claim(session, _payload: CreateClaimSchema):
-    payload = CreateClaimSchema(
-        **_payload.model_dump()
-    )
+    payload = CreateClaimSchema(**_payload.model_dump())
+
     try:
         claim = None
 
         if payload.claim_id:
             result = await session.execute(
-                select(Claim).where(Claim.id == payload.claim_id)
+                select(Claim)
+                .options(selectinload(Claim.users))
+                .where(Claim.id == payload.claim_id)
             )
             claim = result.scalar_one_or_none()
 
+        user = None
+        if payload.user_id:
+            result = await session.execute(
+                select(User).where(User.user_id == payload.user_id)
+            )
+            user = result.scalar_one()
+
         if claim:
             for field, value in payload.model_dump(exclude_unset=True).items():
-                if field != "claim_id":
+                if field not in {"claim_id", "user_id"}:
                     setattr(claim, field, value)
+            if user and user not in claim.users:
+                claim.users.append(user)
             response = UpsertStatusEnum.UPDATED.value
 
         else:
-            claim = Claim(**payload.model_dump(exclude={"claim_id"}))
+            claim_data = payload.model_dump(exclude={"claim_id", "user_id"})
+            claim = Claim(**claim_data)
+            if user:
+                claim.users.append(user)
             session.add(claim)
             response = UpsertStatusEnum.CREATED.value
 
         await session.commit()
         return response
+
     except Exception as _ex:
         raise _ex
-
-
-
-
