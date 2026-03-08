@@ -346,10 +346,15 @@ async def query_aircraft_additional(session: AsyncSession, aircraft_id: int):
 
     valuation_list = []
     for value in values:
+        try:
+            _market_value = value.get("Indicative_Market_Value_USm") / 1,000,000
+        except:
+            _market_value = None
+
         valuation_list.append(
             AdditionalAircraftInfoValuationSchema(
                 date=value.get("created_at").strftime("%d-%m-%Y"),
-                market_value=value.get("Indicative_Market_Value_USm")
+                market_value=_market_value
             )
         )
 

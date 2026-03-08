@@ -172,7 +172,7 @@ class ApplicationSchema(BaseModel):
 
 class AdditionalAircraftInfoValuationSchema(BaseModel):
     date: str
-    market_value: float
+    market_value: Optional[float]
 
 
 class AdditionalAircraftInfoSchema(BaseModel):
