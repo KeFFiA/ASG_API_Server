@@ -30,7 +30,7 @@ router = Router(
     response_model=DefaultResponse
 )
 async def get_rules(request: Request):
-    db_proxy: DBProxy = request.app.state.db_proxy
+    db_proxy: DBProxy = request.state.db_proxy
 
     async def db_query(session):
         return await query_rules(session)
@@ -58,7 +58,7 @@ async def get_rules(request: Request):
     response_model=DefaultResponse
 )
 async def get_rules(request: Request, application_id: UUID):
-    db_proxy: DBProxy = request.app.state.db_proxy
+    db_proxy: DBProxy = request.state.db_proxy
 
     async def db_query(session):
         return await query_rules(session)

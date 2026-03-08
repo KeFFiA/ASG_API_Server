@@ -35,7 +35,7 @@ async def get_apps(request: Request, _payload: Annotated[ApplicationIdQuery, Que
         **_payload.model_dump()
     )
 
-    db_proxy: DBProxy = request.app.state.db_proxy
+    db_proxy: DBProxy = request.state.db_proxy
 
     async def db_query(session):
         return await query_apps(session, payload.application_id)
@@ -73,7 +73,7 @@ async def get_fonts(request: Request, _payload: Annotated[ApplicationSizeQuery, 
         **_payload.model_dump()
     )
 
-    db_proxy: DBProxy = request.app.state.db_proxy
+    db_proxy: DBProxy = request.state.db_proxy
 
     async def db_query(session):
         return await query_fonts(session, payload.screen_size)

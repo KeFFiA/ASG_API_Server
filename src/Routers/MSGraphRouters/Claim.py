@@ -39,7 +39,7 @@ async def get_claims(request: Request, _payload: Annotated[ClaimsQuery, Query()]
     if payload.claim_id and payload.user_id:
         return warning_response(request=request, msg="Only one of 'claim_id' or 'user_id' or nothing can be specified")
 
-    db_proxy: DBProxy = request.app.state.db_proxy
+    db_proxy: DBProxy = request.state.db_proxy
 
     async def db_query(session):
         return await query_claims(session, claim_id=payload.claim_id, user_id=payload.user_id)
@@ -75,7 +75,7 @@ async def get_claims(request: Request, _payload: Annotated[ClaimsQuery, Query()]
     response_model=DefaultResponse,
 )
 async def create_claim(request: Request, _payload: Annotated[CreateClaimSchema, Body()]):
-    db_proxy: DBProxy = request.app.state.db_proxy
+    db_proxy: DBProxy = request.state.db_proxy
 
     try:
         async def db_query(session):

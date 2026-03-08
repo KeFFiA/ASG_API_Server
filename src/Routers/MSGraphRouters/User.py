@@ -32,7 +32,7 @@ router = Router(
     response_model=DefaultResponse
 )
 async def users(request: Request):
-    db_proxy: DBProxy = request.app.state.db_proxy
+    db_proxy: DBProxy = request.state.db_proxy
 
     async def db_query(session):
         return await query_all_users(session)
@@ -61,7 +61,7 @@ async def users(request: Request):
     response_model=DefaultResponse
 )
 async def users(request: Request, user_id: UUID):
-    db_proxy: DBProxy = request.app.state.db_proxy
+    db_proxy: DBProxy = request.state.db_proxy
 
     async def db_query(session):
         return await query_all_users(session, user_id)
@@ -92,7 +92,7 @@ async def users_access(request: Request, user_id: UUID, _payload: Annotated[Appl
     payload = ApplicationIdQuery(
         **_payload.model_dump()
     )
-    db_proxy: DBProxy = request.app.state.db_proxy
+    db_proxy: DBProxy = request.state.db_proxy
 
     async def db_query(session):
         return await query_user_access(session, user_id, payload.application_id)

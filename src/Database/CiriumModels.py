@@ -22,10 +22,10 @@ class CiriumAircrafts(Base):
     revision: Mapped["AircraftRevision"] = relationship(back_populates="aircrafts")
 
     Type: Mapped[str] = mapped_column(String, nullable=True, name="Type")
-    Serial_Number: Mapped[str] = mapped_column(String, nullable=True, name="Serial Number")
+    Serial_Number: Mapped[str] = mapped_column(String, nullable=True, name="Serial Number", index=True)
     Manufacturer: Mapped[str] = mapped_column(String, nullable=True, name="Manufacturer")
     Master_Series: Mapped[str] = mapped_column(String, nullable=True, name="Master Series")
-    Registration: Mapped[str] = mapped_column(String, nullable=True, name="Registration")
+    Registration: Mapped[str] = mapped_column(String, nullable=True, name="Registration", index=True)
     Status: Mapped[str] = mapped_column(String, nullable=True, name="Status")
     Age: Mapped[float] = mapped_column(Float, nullable=True, name="Age")
 

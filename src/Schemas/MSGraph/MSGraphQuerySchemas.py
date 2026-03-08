@@ -44,6 +44,10 @@ class AircraftsQuery(BaseModel):
     airline_id: Optional[int] = Query(default=None, description="Airline ID")
 
 
+class AircraftsAdditionalQuery(BaseModel):
+    aircraft_id: int = Query(..., description="Aircraft ID")
+
+
 class CreateAircraftQuery(BaseModel):
     template_id: int = Query(..., description="Template ID")
     airline_id: int = Query(..., description="Airline ID")

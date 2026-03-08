@@ -170,6 +170,25 @@ class ApplicationSchema(BaseModel):
     asset: Optional[GetFileResponseSchema]
 
 
+class AdditionalAircraftInfoValuationSchema(BaseModel):
+    date: str
+    market_value: float
+
+
+class AdditionalAircraftInfoSchema(BaseModel):
+    aircraft: str
+    msn: str
+    age: Optional[float]
+    num_of_engines: Optional[int]
+    engines_type: Optional[str]
+    apu_type: Optional[str]
+    mtow: Optional[int]
+    num_of_seats: Optional[int]
+    lease_rate: Optional[float]
+    market_values: Optional[List[AdditionalAircraftInfoValuationSchema]]
+
+
+
 _current_module = sys.modules[__name__]
 
 __all__ = [

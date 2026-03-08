@@ -17,8 +17,8 @@ from Config import setup_logger, DBSettings, ENABLE_PERFORMANCE_LOGGER
 from Database import DatabaseClient
 from Schemas import ErrorValidationResponse, ErrorValidObject
 from Schemas.Enums.service import FilesExtensionEnum
-from Utils.ResponsesFunc import error_response
 from Utils.FilesFinder import Finder
+from Utils.ResponsesFunc import error_response
 
 logger = setup_logger(
     'fastapi_app',
@@ -70,6 +70,27 @@ class DBProxy:
         for session in self._open_sessions:
             await session.close()
         self._open_sessions.clear()
+
+    # @asynccontextmanager
+    # async def get_db(self, db_name: str):
+    #     if db_name not in session_cache:
+    #         url = self.db_settings.get_db_url(db_name)
+    #         engine = create_async_engine(
+    #             url,
+    #             pool_pre_ping=True,
+    #             pool_recycle=300,
+    #             pool_size=10,
+    #             max_overflow=20,
+    #         )
+    #         engine_cache[db_name] = engine
+    #         session_cache[db_name] = async_sessionmaker(
+    #             bind=engine,
+    #             class_=AsyncSession,
+    #             expire_on_commit=False
+    #         )
+    #
+    #     async with session_cache[db_name]() as session:
+    #         yield session
 
     # -----------------------------
     # Redis utils
@@ -242,32 +263,25 @@ def register_middlewares(app):
         finally:
             logger.info("Startup completed. Welcome :O")
 
-    # Middleware for requests  db/cache
-    @app.middleware("http")
-    async def db_cache_requests(request: Request, call_next):
-        request.state.redis = app.state.redis
-        request.state.db = app.state.db_proxy
-        request.state.db._open_sessions.clear()
-        response = await call_next(request)
-        await request.state.db.close_all()
-        return response
 
-    # Middleware for requests logging and db/cache
+    # Middleware for requests + logging and db/cache
     @app.middleware("http")
     async def log_and_db_requests(request: Request, call_next):
         start_time = asyncio.get_event_loop().time()
         request.state.redis = app.state.redis
-        request.state.db = DBProxy(app.state.redis)
+        request.state.db_proxy = DBProxy(app.state.redis)
 
-        response = await call_next(request)
-        await request.state.db.close_all()
+        try:
+            response = await call_next(request)
 
-        duration = asyncio.get_event_loop().time() - start_time
-        logger.info(
-            f"{request.method} {request.url.path} completed_in={duration:.2f}s "
-            f"status_code={response.status_code}"
-        )
-        return response
+            duration = asyncio.get_event_loop().time() - start_time
+            logger.info(
+                f"{request.method} {request.url.path} completed_in={duration:.2f}s "
+                f"status_code={response.status_code}"
+            )
+            return response
+        finally:
+            await request.state.db_proxy.close_all()
 
     # Middleware for add correlation id to requests
     @app.middleware("http")

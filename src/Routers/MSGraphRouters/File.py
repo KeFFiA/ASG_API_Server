@@ -36,7 +36,7 @@ async def upload_file(request: Request, _payload: Annotated[ApplicationFileLoadB
         **_payload.model_dump()
     )
 
-    db_proxy: DBProxy = request.app.state.db_proxy
+    db_proxy: DBProxy = request.state.db_proxy
 
     async def db_query(session):
         return await query_load_file(session, file_name=payload.file_name, file_description=payload.file_description,
@@ -74,7 +74,7 @@ async def get_file(request: Request, _payload: Annotated[ApplicationFileQuery, Q
     if payload.file_name and payload.file_id:
         return warning_response(request=request, msg="Either 'file_name' or 'file_id' must be provided")
 
-    db_proxy: DBProxy = request.app.state.db_proxy
+    db_proxy: DBProxy = request.state.db_proxy
 
     async def db_query(session):
         return await query_file(session, file_name=payload.file_name, file_id=payload.file_id)

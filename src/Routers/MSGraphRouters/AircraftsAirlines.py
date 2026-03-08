@@ -4,11 +4,11 @@ from fastapi import status, Request, Query, Body
 
 from Config import setup_logger, Router
 from Schemas import DefaultResponse, AirlinesQuery, AircraftTemplatesQuery, AircraftsQuery, CreateAircraftQuery, \
-    CreateAirlinesBody, CreateAircraftTemplatesBody
+    CreateAirlinesBody, CreateAircraftTemplatesBody, AircraftsAdditionalQuery
 from Schemas.Enums import service
 from Utils import DBProxy, success_response, error_response, warning_response
 from .DBQueries.AircraftsAirlines import query_airline, query_create_airline, query_templates, query_create_template, \
-    query_create_aircraft, query_aircrafts
+    query_create_aircraft, query_aircrafts, query_aircraft_additional
 
 logger = setup_logger(name="msgraph_aircrafts_airlines")
 
@@ -46,7 +46,7 @@ async def get_airlines(request: Request, _payload: Annotated[AirlinesQuery, Quer
             msg="Exactly one of 'airline_name', 'airline_id' or 'user_id' must be provided"
         )
 
-    db_proxy: DBProxy = request.app.state.db_proxy
+    db_proxy: DBProxy = request.state.db_proxy
 
     async def db_query(session):
         return await query_airline(session, airline_name=payload.airline_name, airline_id=payload.airline_id,
@@ -95,7 +95,7 @@ async def create_airlines(request: Request, _payload: Annotated[CreateAirlinesBo
             msg="Both 'airline_name' and 'airline_icao' must be provided"
         )
 
-    db_proxy: DBProxy = request.app.state.db_proxy
+    db_proxy: DBProxy = request.state.db_proxy
 
     async def db_query(session):
         return await query_create_airline(session, airline_name=payload.airline_name, airline_icao=payload.airline_icao,
@@ -137,7 +137,7 @@ async def get_aircraft_template(request: Request, _payload: Annotated[AircraftTe
             msg="Exactly one of 'template_id' or 'template_name' must be provided"
         )
 
-    db_proxy: DBProxy = request.app.state.db_proxy
+    db_proxy: DBProxy = request.state.db_proxy
 
     async def db_query(session):
         return await query_templates(session, template_name=payload.template_name, template_id=payload.template_id)
@@ -183,7 +183,7 @@ async def create_aircraft_template(request: Request, _payload: Annotated[CreateA
     if not payload.template_name:
         return warning_response(request=request, msg="'template_name' must be provided")
 
-    db_proxy: DBProxy = request.app.state.db_proxy
+    db_proxy: DBProxy = request.state.db_proxy
 
     async def db_query(session):
         return await query_create_template(session, template_name=payload.template_name, file_data=payload.file_data)
@@ -227,7 +227,7 @@ async def get_aircrafts(request: Request, _payload: Annotated[AircraftsQuery, Qu
                 "'airline_id' or 'airline_name' must be provided")
         )
 
-    db_proxy: DBProxy = request.app.state.db_proxy
+    db_proxy: DBProxy = request.state.db_proxy
 
     async def db_query(session):
         return await query_aircrafts(session, airline_id=payload.airline_id, template_id=payload.template_id,
@@ -288,7 +288,7 @@ async def create_aircraft(request: Request, _payload: Annotated[CreateAircraftQu
         return warning_response(request=request,
                                 msg="'airline_id', 'template_id', 'aircraft_msn' and 'aircraft_registration' must be provided")
 
-    db_proxy: DBProxy = request.app.state.db_proxy
+    db_proxy: DBProxy = request.state.db_proxy
 
     async def db_query(session):
         return await query_create_aircraft(session, **payload.model_dump())
@@ -307,4 +307,42 @@ async def create_aircraft(request: Request, _payload: Annotated[CreateAircraftQu
 
     except Exception as _ex:
         logger.error(f"Failed to create Aircraft: {_ex}")
+        return error_response(request=request, exc=_ex)
+
+
+@router.get(
+    path="/aircrafts/additional",
+    description="Get Aircrafts additional information",
+    status_code=status.HTTP_200_OK,
+    response_model=DefaultResponse,
+)
+async def get_aircrafts_additional(request: Request, _payload: Annotated[AircraftsAdditionalQuery, Query()]):
+    payload = AircraftsAdditionalQuery(
+        **_payload.model_dump()
+    )
+
+    db_proxy: DBProxy = request.state.db_proxy
+
+    async def db_query(session):
+        return await query_aircraft_additional(session, aircraft_id=payload.aircraft_id)
+
+    try:
+        cache_key = f"aircrafts_additional:{payload.aircraft_id}"
+        aircraft_data = await db_proxy.get_or_cache(
+            key=cache_key,
+            db_name="aixii_cirium",
+            query_func=db_query,
+            ttl=60
+        )
+        if len(aircraft_data) > 0:
+            return success_response(request=request, data=aircraft_data,
+                                    msg="Aircraft additional info retrieved successfully")
+        return warning_response(request=request, msg="Aircraft not found",
+                                status_code=status.HTTP_404_NOT_FOUND)
+
+    except ValueError:
+        return warning_response(request=request, msg="Aircraft not found",
+                                status_code=status.HTTP_404_NOT_FOUND)
+    except Exception as _ex:
+        logger.error(f"Failed to get Aircraft additional info: {_ex}")
         return error_response(request=request, exc=_ex)

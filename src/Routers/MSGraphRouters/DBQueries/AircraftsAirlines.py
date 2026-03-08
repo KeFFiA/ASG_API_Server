@@ -3,13 +3,14 @@ from datetime import date
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, func, cast, Date
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from Database import Airline, User, Asset, UserAirlineAccess, AircraftTemplate, Aircraft
+from Database import Airline, User, Asset, UserAirlineAccess, AircraftTemplate, Aircraft, CiriumAircrafts, \
+    AircraftRevision, DatabaseClient
 from Schemas import AirlineSchema, UserSchemaShort, AircraftTemplateSchema, \
-    AircraftSchema, GetAirlinesSchema
+    AircraftSchema, GetAirlinesSchema, AdditionalAircraftInfoSchema, AdditionalAircraftInfoValuationSchema
 from Utils import map_asset
 
 
@@ -277,6 +278,93 @@ async def query_aircrafts(session: AsyncSession, airline_id: Optional[int], airl
         return aircrafts_list
     except Exception as _ex:
         raise _ex
+
+
+async def query_aircraft_additional(session: AsyncSession, aircraft_id: int):
+    db_client: DatabaseClient = DatabaseClient()
+    async with db_client.session("powerplatform") as pp_session:
+        sub_aircraft_stmt = (
+            select(
+                Aircraft.registration,
+                Aircraft.msn
+            ).where(
+                Aircraft.id == aircraft_id
+            )
+        )
+
+        sub_aircraft_result = await pp_session.execute(sub_aircraft_stmt)
+        reg_num, msn = sub_aircraft_result.one_or_none()
+
+    if reg_num is None:
+        raise ValueError("Aircraft not found")
+
+    msn = str(msn)
+
+    last_revision_subq = select(
+        func.max(AircraftRevision.id)
+    ).scalar_subquery()
+
+    stmt_aircraft = (
+        select(
+            CiriumAircrafts.Manufacturer,
+            CiriumAircrafts.Series,
+            CiriumAircrafts.Serial_Number,
+            CiriumAircrafts.Age,
+            CiriumAircrafts.Number_Of_Engines,
+            CiriumAircrafts.Engine_Type,
+            CiriumAircrafts.APU_Type,
+            CiriumAircrafts.Number_of_Seats,
+            CiriumAircrafts.Certified_MTOW_lbs,
+            CiriumAircrafts.Indicative_Market_Lease_Rate_USm
+        )
+        .where(
+            CiriumAircrafts.Registration == reg_num,
+            CiriumAircrafts.Serial_Number == msn,
+            CiriumAircrafts.revision_id == last_revision_subq
+        )
+    )
+
+    stmt_value = (
+        select(
+            cast(CiriumAircrafts.created_at, Date),
+            CiriumAircrafts.Indicative_Market_Value_USm,
+        )
+        .where(
+            CiriumAircrafts.Registration == reg_num,
+            CiriumAircrafts.Serial_Number == msn
+        )
+        .order_by(CiriumAircrafts.revision_id.desc())
+    )
+
+    result_aircraft = await session.execute(stmt_aircraft)
+    aircraft = result_aircraft.mappings().first()
+
+    result_value = await session.execute(stmt_value)
+    values = result_value.mappings().all()
+
+    aircraft_type = f"{aircraft.get("Manufacturer")} {aircraft.get("Series")}"
+
+    valuation_list = []
+    for value in values:
+        valuation_list.append(
+            AdditionalAircraftInfoValuationSchema(
+                date=value.get("created_at").strftime("%d-%m-%Y"),
+                market_value=value.get("Indicative_Market_Value_USm")
+            )
+        )
+
+    return AdditionalAircraftInfoSchema(
+        aircraft=aircraft_type,
+        msn=aircraft.get("Serial_Number"),
+        age=aircraft.get("Age"),
+        num_of_engines=aircraft.get("Number_Of_Engines"),
+        engines_type=aircraft.get("Engine_Type"),
+        apu_type=aircraft.get("APU_Type"),
+        mtow=aircraft.get("Certified_MTOW_lbs"),
+        num_of_seats=aircraft.get("Number_of_Seats"),
+        lease_rate=aircraft.get("Indicative_Market_Lease_Rate_USm"),
+        market_values=valuation_list
+    ).model_dump(mode="json")
 
 
 async def query_create_aircraft(session: AsyncSession, *, aircraft_registration: str, aircraft_msn: int,
