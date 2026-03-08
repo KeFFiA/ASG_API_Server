@@ -276,8 +276,8 @@ def register_middlewares(app):
 
             duration = asyncio.get_event_loop().time() - start_time
             logger.info(
-                f"{request.method} {request.url.path} completed_in={duration:.2f}s "
-                f"status_code={response.status_code}\n"
+                f"{request.method} {request.url.path} completed_in={duration:.2f}s | "
+                f"status_code={response.status_code} | "
                 f"correlation_id={request.state.correlation_id}"
             )
             return response
