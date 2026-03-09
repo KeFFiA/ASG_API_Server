@@ -147,7 +147,7 @@ async def query_sum_policy(session, _payload: SumPolicySchema):
             select(
                 Aircraft.threshold,
                 Aircraft.hulldeductible_franchise
-            ).where(Aircraft.id == int(_payload.aircraft_id))
+            ).where(Aircraft.id == _payload.aircraft_id)
         )
 
         result = await session.execute(stmt)
