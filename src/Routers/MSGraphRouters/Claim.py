@@ -120,7 +120,7 @@ async def delete_claim(request: Request, _payload: Annotated[ClaimsDeleteQuery, 
             ttl=1
         )
         if result:
-            return success_response(request=request, msg=f"Claim {_payload.claim_id} deleted successfully")
+            return success_response(request=request, msg=f"Claim '#{_payload.claim_id}' deleted successfully")
 
     except Exception as _ex:
         logger.error(f"Failed to delete claim: {_ex}")
