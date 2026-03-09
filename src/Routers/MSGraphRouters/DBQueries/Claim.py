@@ -1,17 +1,19 @@
+from operator import truediv
 from typing import Optional, List
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, delete
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from Database import Claim, Aircraft, User, Airline, AircraftTemplate
 from Schemas import GetClaimSchema, AircraftSchema, AirlineSchema, AircraftTemplateSchema, \
-    UserSchemaShort, CreateClaimSchema, SumPolicySchema, SumPolicyResponseSchema
+    UserSchemaShort, CreateClaimBodySchema, SumPolicyBodySchema, SumPolicyResponseSchema, ClaimsDeleteQuery
 from Schemas.Enums import UpsertStatusEnum
 from Utils import map_asset
 
 
-async def query_claims(session, claim_id: Optional[int], user_id: Optional[UUID]) -> List[GetClaimSchema]:
+async def query_claims(session: AsyncSession, claim_id: Optional[int], user_id: Optional[UUID]) -> List[GetClaimSchema]:
     try:
         stmt = (
             select(Claim)
@@ -95,8 +97,8 @@ async def query_claims(session, claim_id: Optional[int], user_id: Optional[UUID]
         raise _ex
 
 
-async def query_create_claim(session, _payload: CreateClaimSchema):
-    payload = CreateClaimSchema(**_payload.model_dump())
+async def query_create_claim(session: AsyncSession, _payload: CreateClaimBodySchema):
+    payload = CreateClaimBodySchema(**_payload.model_dump())
 
     try:
         claim = None
@@ -139,8 +141,20 @@ async def query_create_claim(session, _payload: CreateClaimSchema):
         raise _ex
 
 
-async def query_sum_policy(session, _payload: SumPolicySchema):
-    payload = SumPolicySchema(**_payload.model_dump())
+async def delete_claim_query(session: AsyncSession, _payload: ClaimsDeleteQuery):
+    payload = ClaimsDeleteQuery(**_payload.model_dump())
+
+    try:
+        stmt = delete(Claim).where(Claim.id == payload.claim_id)
+        await session.execute(stmt)
+        await session.commit()
+        return True
+    except Exception as _ex:
+        raise _ex
+
+
+async def query_sum_policy(session: AsyncSession, _payload: SumPolicyBodySchema):
+    payload = SumPolicyBodySchema(**_payload.model_dump())
 
     try:
         stmt = (

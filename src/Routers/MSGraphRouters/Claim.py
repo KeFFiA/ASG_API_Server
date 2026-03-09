@@ -3,10 +3,10 @@ from typing import Annotated
 from fastapi import status, Request, Query, Body
 
 from Config import setup_logger, Router
-from Schemas import DefaultResponse, ClaimsQuery, CreateClaimSchema, SumPolicySchema
+from Schemas import DefaultResponse, ClaimsQuery, CreateClaimBodySchema, SumPolicyBodySchema, ClaimsDeleteQuery
 from Schemas.Enums import service
 from Utils import DBProxy, success_response, error_response, warning_response
-from .DBQueries.Claim import query_claims, query_create_claim, query_sum_policy
+from .DBQueries.Claim import query_claims, query_create_claim, query_sum_policy, delete_claim_query
 
 logger = setup_logger(name="msgraph_claims")
 
@@ -74,7 +74,7 @@ async def get_claims(request: Request, _payload: Annotated[ClaimsQuery, Query()]
     status_code=status.HTTP_201_CREATED,
     response_model=DefaultResponse,
 )
-async def create_claim(request: Request, _payload: Annotated[CreateClaimSchema, Body()]):
+async def create_claim(request: Request, _payload: Annotated[CreateClaimBodySchema, Body()]):
     db_proxy: DBProxy = request.state.db_proxy
 
     try:
@@ -99,13 +99,41 @@ async def create_claim(request: Request, _payload: Annotated[CreateClaimSchema, 
         return error_response(request=request, exc=_ex)
 
 
+@router.delete(
+    path="",
+    description="Delete claim",
+    status_code=status.HTTP_200_OK,
+    response_model=DefaultResponse,
+)
+async def delete_claim(request: Request, _payload: Annotated[ClaimsDeleteQuery, Query()]):
+    db_proxy: DBProxy = request.state.db_proxy
+    try:
+        async def db_query(session):
+            return await delete_claim_query(session, _payload)
+
+        cache_key = "claim:delete"
+
+        result = await db_proxy.update_and_cache(
+            key=cache_key,
+            db_name="powerplatform",
+            update_func=db_query,
+            ttl=1
+        )
+        if result:
+            return success_response(request=request, msg=f"Claim {_payload.claim_id} deleted successfully")
+
+    except Exception as _ex:
+        logger.error(f"Failed to delete claim: {_ex}")
+        return error_response(request=request, exc=_ex)
+
+
 @router.post(
     path="/sumpolicy",
     description="Sum policy",
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse,
 )
-async def sum_policy(request: Request, _payload: Annotated[SumPolicySchema, Body()]):
+async def sum_policy(request: Request, _payload: Annotated[SumPolicyBodySchema, Body()]):
     db_proxy: DBProxy = request.state.db_proxy
 
     try:

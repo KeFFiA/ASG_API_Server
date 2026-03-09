@@ -23,7 +23,7 @@ class CreateAircraftTemplatesBody(BaseModel):
     template_name: str = Field(..., description="Template name")
 
 
-class CreateClaimSchema(BaseModel):
+class CreateClaimBodySchema(BaseModel):
     claim_id: Optional[int] = Field(default=None, description="Claim ID")
     user_id: UUID = Field(..., description="User ID")
     aircraft_id: int = Field(..., description="Aircraft ID")
@@ -41,7 +41,7 @@ class CreateClaimSchema(BaseModel):
     surveyor: Optional[str] = Field(default=None, description="Surveyor")
 
 
-class SumPolicySchema(BaseModel):
+class SumPolicyBodySchema(BaseModel):
     aircraft_id: int = Field(..., description="Aircraft ID")
     is_hd: bool = Field(default=False, description="Is Hull Deductible")
     is_hw: bool = Field(default=False, description="Is Hull War")
