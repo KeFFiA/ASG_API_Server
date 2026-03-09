@@ -55,7 +55,7 @@ async def get_claims(request: Request, _payload: Annotated[ClaimsQuery, Query()]
             key=cache_key,
             db_name="powerplatform",
             query_func=db_query,
-            ttl=0
+            ttl=60
         )
         if len(airline_data) > 0:
             return success_response(request=request, data=airline_data, msg="Claim(-s) retrieved successfully")
@@ -90,7 +90,7 @@ async def create_claim(request: Request, _payload: Annotated[CreateClaimBodySche
             key=cache_key,
             db_name="powerplatform",
             update_func=db_query,
-            ttl=0
+            ttl=1
         )
         return success_response(request=request, msg=f"Claim {result} successfully")
 
