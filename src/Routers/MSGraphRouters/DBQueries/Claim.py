@@ -1,3 +1,4 @@
+from datetime import date, datetime
 from operator import truediv
 from typing import Optional, List
 from uuid import UUID
@@ -117,6 +118,15 @@ async def query_create_claim(session: AsyncSession, _payload: CreateClaimBodySch
                 select(User).where(User.user_id == payload.user_id)
             )
             user = result.scalar_one()
+
+        if payload.date_of_loss:
+            if not isinstance(payload.date_of_loss, date):
+                payload.date_of_loss = datetime.fromisoformat(str(payload.date_of_loss)).date()
+
+        if payload.paid_date:
+            if not isinstance(payload.paid_date, date):
+                payload.paid_date = datetime.fromisoformat(str(payload.paid_date)).date()
+
 
         if claim:
             for field, value in payload.model_dump(exclude_unset=True).items():
