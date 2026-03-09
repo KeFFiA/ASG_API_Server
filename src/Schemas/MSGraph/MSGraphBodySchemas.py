@@ -42,7 +42,7 @@ class CreateClaimSchema(BaseModel):
 
 
 class SumPolicySchema(BaseModel):
-    aircraft_id: int = Field(..., description="Aircraft ID")
+    aircraft_id: str = Field(..., description="Aircraft ID")
     is_hd: bool = Field(default=False, description="Is Hull Deductible")
     is_hw: bool = Field(default=False, description="Is Hull War")
     is_hsl: bool = Field(default=False, description="Is HSL")
