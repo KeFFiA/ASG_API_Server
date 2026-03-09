@@ -90,7 +90,7 @@ async def create_claim(request: Request, _payload: Annotated[CreateClaimBodySche
             key=cache_key,
             db_name="powerplatform",
             update_func=db_query,
-            ttl=60
+            ttl=0
         )
         return success_response(request=request, msg=f"Claim {result} successfully")
 
