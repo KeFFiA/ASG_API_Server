@@ -3,10 +3,10 @@ from typing import Annotated
 from fastapi import status, Request, Query, Body
 
 from Config import setup_logger, Router
-from Schemas import DefaultResponse, ClaimsQuery, CreateClaimSchema
+from Schemas import DefaultResponse, ClaimsQuery, CreateClaimSchema, SumPolicySchema
 from Schemas.Enums import service
 from Utils import DBProxy, success_response, error_response, warning_response
-from .DBQueries.Claim import query_claims, query_create_claim
+from .DBQueries.Claim import query_claims, query_create_claim, query_sum_policy
 
 logger = setup_logger(name="msgraph_claims")
 
@@ -98,6 +98,33 @@ async def create_claim(request: Request, _payload: Annotated[CreateClaimSchema, 
         logger.error(f"Failed to create/update Claim: {_ex}")
         return error_response(request=request, exc=_ex)
 
+
+@router.post(
+    path="/sumpolicy",
+    description="Sum policy",
+    status_code=status.HTTP_200_OK,
+    response_model=DefaultResponse,
+)
+async def sum_policy(request: Request, _payload: Annotated[SumPolicySchema, Body()]):
+    db_proxy: DBProxy = request.state.db_proxy
+
+    try:
+        async def db_query(session):
+            return await query_sum_policy(session, _payload)
+
+        cache_key = f"sumpolicy:{_payload.aircraft_id}"
+
+        result = await db_proxy.get_or_cache(
+            key=cache_key,
+            db_name="powerplatform",
+            query_func=db_query,
+            ttl=10
+        )
+        return success_response(request=request, data=result, msg=f"Sum policy retrieved successfully")
+
+    except Exception as _ex:
+        logger.error(f"Failed to sum policy: {_ex}")
+        return error_response(request=request, exc=_ex)
 
 
 

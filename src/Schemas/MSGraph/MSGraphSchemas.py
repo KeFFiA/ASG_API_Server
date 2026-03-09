@@ -188,6 +188,13 @@ class AdditionalAircraftInfoSchema(BaseModel):
     market_values: Optional[List[AdditionalAircraftInfoValuationSchema]]
 
 
+class SumPolicyResponseSchema(BaseModel):
+    hd_reserve: Optional[float]
+    hw_reserve: Optional[float]
+    hsl_reserve: Optional[float]
+    hd_paid: Optional[float]
+    hw_paid: Optional[float]
+    hsl_paid: Optional[float]
 
 _current_module = sys.modules[__name__]
 

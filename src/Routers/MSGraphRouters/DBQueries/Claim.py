@@ -6,7 +6,7 @@ from sqlalchemy.orm import selectinload
 
 from Database import Claim, Aircraft, User, Airline, AircraftTemplate
 from Schemas import GetClaimSchema, AircraftSchema, AirlineSchema, AircraftTemplateSchema, \
-    UserSchemaShort, CreateClaimSchema
+    UserSchemaShort, CreateClaimSchema, SumPolicySchema, SumPolicyResponseSchema
 from Schemas.Enums import UpsertStatusEnum
 from Utils import map_asset
 
@@ -134,6 +134,95 @@ async def query_create_claim(session, _payload: CreateClaimSchema):
 
         await session.commit()
         return response
+
+    except Exception as _ex:
+        raise _ex
+
+
+async def query_sum_policy(session, _payload: SumPolicySchema):
+    payload = SumPolicySchema(**_payload.model_dump())
+
+    try:
+        stmt = (
+            select(
+                Aircraft.threshold,
+                Aircraft.hulldeductible_franchise
+            ).where(Aircraft.id == _payload.aircraft_id)
+        )
+
+        result = await session.execute(stmt)
+        threshold, franchise = result.one_or_none()
+
+        is_hd = payload.is_hd
+        is_hw = payload.is_hw
+        is_hsl = payload.is_hsl
+
+        reserve_total = payload.indemnity_reserve * payload.currency_rate
+        paid_total = payload.paid_to_date_amount * payload.currency_rate
+
+        # === HD Reserve ===
+        if (is_hd and not is_hw and not is_hsl) and (reserve_total >= franchise):
+            if reserve_total > threshold:
+                hd_reserve = threshold - franchise
+            else:
+                hd_reserve = reserve_total - franchise
+        else:
+            hd_reserve = None
+        # ===================
+
+        # === HW Reserve ====
+        if is_hd and is_hw and not is_hsl:
+            hw_reserve = reserve_total
+        elif is_hd and is_hw and is_hsl:
+            hw_reserve = round((reserve_total / 2), 2)
+        else:
+            hw_reserve = None
+        # ===================
+
+        # === HSL Reserve ===
+        if not is_hd and not is_hw and not is_hsl:
+            hsl_reserve = reserve_total
+        elif is_hd and is_hw and is_hsl:
+            hsl_reserve = round((reserve_total / 2), 2)
+        elif (is_hd and not is_hw and not is_hsl) and (reserve_total > (hd_reserve + franchise)):
+            hsl_reserve = reserve_total - threshold
+        else:
+            hsl_reserve = None
+        # ===================
+
+        # === HD Paid ===
+        if is_hd and not is_hw and not is_hsl:
+            hd_paid = paid_total
+        else:
+            hd_paid = None
+        # ===================
+
+        # === HW Paid ===
+        if is_hd and is_hw and not is_hsl:
+            hw_paid = paid_total
+        elif is_hd and is_hw and is_hsl:
+            hw_paid = round((paid_total / 2), 2)
+        else:
+            hw_paid = None
+        # ===================
+
+        # === HSL Paid ===
+        if (not is_hd and not is_hw and not is_hsl) or ((is_hd and not is_hw and not is_hsl) and (paid_total > threshold)):
+            hsl_paid = paid_total
+        elif is_hd and is_hw and is_hsl:
+            hsl_paid = round((paid_total / 2), 2)
+        else:
+            hsl_paid = None
+        # ===================
+
+        return SumPolicyResponseSchema(
+            hd_reserve=hd_reserve,
+            hw_reserve=hw_reserve,
+            hsl_reserve=hsl_reserve,
+            hd_paid=hd_paid,
+            hw_paid=hw_paid,
+            hsl_paid=hsl_paid
+        ).model_dump(mode="json")
 
     except Exception as _ex:
         raise _ex
