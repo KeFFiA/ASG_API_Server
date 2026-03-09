@@ -61,8 +61,8 @@ async def get_claims(request: Request, _payload: Annotated[ClaimsQuery, Query()]
             return success_response(request=request, data=airline_data, msg="Claim(-s) retrieved successfully")
         return warning_response(request=request, msg="Claim(-s) not found", status_code=status.HTTP_404_NOT_FOUND)
 
-    except ValueError:
-        return warning_response(request=request, msg="Claim(-s) not found", status_code=status.HTTP_404_NOT_FOUND)
+    # except ValueError:
+    #     return warning_response(request=request, msg="Claim(-s) not found", status_code=status.HTTP_404_NOT_FOUND)
     except Exception as _ex:
         logger.error(f"Failed to get Claim(-s): {_ex}")
         return error_response(request=request, exc=_ex)
