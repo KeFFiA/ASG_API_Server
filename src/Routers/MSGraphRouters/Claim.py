@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import status, Request, Query, Body
 
 from Config import setup_logger, Router
-from Schemas import DefaultResponse, ClaimsQuery, CreateClaimBodySchema, SumPolicyBodySchema, ClaimsDeleteQuery
+from Schemas import ClaimsQuery, CreateClaimBodySchema, SumPolicyBodySchema, ClaimsDeleteQuery, DefaultResponse
 from Schemas.Enums import service
 from Utils import DBProxy, success_response, error_response, warning_response
 from .DBQueries.Claim import query_claims, query_create_claim, query_sum_policy, delete_claim_query
@@ -57,6 +57,7 @@ async def get_claims(request: Request, _payload: Annotated[ClaimsQuery, Query()]
             query_func=db_query,
             ttl=60
         )
+
         if len(airline_data) > 0:
             return success_response(request=request, data=airline_data, msg="Claim(-s) retrieved successfully")
         return warning_response(request=request, msg="Claim(-s) not found", status_code=status.HTTP_404_NOT_FOUND)
@@ -82,9 +83,9 @@ async def create_claim(request: Request, _payload: Annotated[CreateClaimBodySche
             return await query_create_claim(session, _payload)
 
         if _payload.user_id:
-            cache_key = f"_claims:{_payload.user_id}"
+            cache_key = f"create_claims:{_payload.user_id}"
         else:
-            cache_key = f"_claims:{_payload.claim_id}"
+            cache_key = f"create_claims:{_payload.claim_id}"
 
         result = await db_proxy.update_and_cache(
             key=cache_key,
