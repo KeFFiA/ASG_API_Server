@@ -2,12 +2,13 @@ from base64 import b64decode, b64encode
 from typing import Optional
 
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from Database import Asset
 from Schemas import GetFileResponseSchema
 
 
-async def query_load_file(session, file_name: str, file_description: Optional[str], file_data: str):
+async def query_load_file(session: AsyncSession, file_name: str, file_description: Optional[str], file_data: str):
     try:
         header, encoded = file_data.split(",", 1)
         mime_type = header.split(";")[0].replace("data:", "")
@@ -27,7 +28,7 @@ async def query_load_file(session, file_name: str, file_description: Optional[st
         raise _ex
 
 
-async def query_file(session, file_name: Optional[str], file_id: Optional[int]) -> GetFileResponseSchema | None:
+async def query_file(session: AsyncSession, file_name: Optional[str], file_id: Optional[int]) -> GetFileResponseSchema | None:
     try:
         stmt = select(Asset)
         if file_name:

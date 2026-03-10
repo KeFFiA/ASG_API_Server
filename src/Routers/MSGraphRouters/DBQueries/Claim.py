@@ -1,5 +1,4 @@
 from datetime import date, datetime
-from operator import truediv
 from typing import Optional, List
 from uuid import UUID
 

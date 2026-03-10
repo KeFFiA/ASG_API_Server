@@ -2,6 +2,7 @@ from typing import List, Optional
 from uuid import UUID
 
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from Database import Font, Application
@@ -9,7 +10,7 @@ from Schemas import FontsSchema, GetFontsResponseSchema, ApplicationSchema
 from Utils import map_asset
 
 
-async def query_apps(session, application_id: Optional[UUID]):
+async def query_apps(session: AsyncSession, application_id: Optional[UUID]):
     try:
         stmt = (
             select(Application)
@@ -21,7 +22,7 @@ async def query_apps(session, application_id: Optional[UUID]):
             stmt = stmt.where(Application.application_id == application_id)
 
         result = await session.execute(stmt)
-        apps: List[Application] = result.scalars().all()
+        apps = result.scalars().all()
 
         apps_list = []
 
@@ -43,14 +44,14 @@ async def query_apps(session, application_id: Optional[UUID]):
 
 
 
-async def query_fonts(session, screen_size: Optional[int] = None) -> GetFontsResponseSchema:
+async def query_fonts(session: AsyncSession, screen_size: Optional[int] = None) -> GetFontsResponseSchema:
     try:
         stmt = select(Font)
         if screen_size:
             stmt = stmt.where(Font.screen_size == screen_size)
 
         result = await session.execute(stmt)
-        fonts: List[Font] = result.scalars().all()
+        fonts = result.scalars().all()
 
         fonts_list = []
         for font in fonts:

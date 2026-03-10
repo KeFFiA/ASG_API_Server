@@ -108,6 +108,7 @@ class CiriumAircrafts(Base):
     Lease_Start: Mapped[Date] = mapped_column(Date, nullable=True, name="Lease Start")
     Lease_End: Mapped[Date] = mapped_column(Date, nullable=True, name="Lease End")
     Lease_Duration_months: Mapped[float] = mapped_column(Float, nullable=True, name="Lease Duration (months)")
+    Is_Lease_End_Estimated: Mapped[int] = mapped_column(Integer, nullable=True, name="Is Lease End Estimated")
 
     # Base airport
     Base_Airport_Region: Mapped[str] = mapped_column(String, nullable=True, name="Base Airport Region")
@@ -499,6 +500,7 @@ class ASGAircrafts(Base):
     Lease_Start: Mapped[Date] = mapped_column(Date, nullable=True, name="Lease Start")
     Lease_End: Mapped[Date] = mapped_column(Date, nullable=True, name="Lease End")
     Lease_Duration_months: Mapped[float] = mapped_column(Float, nullable=True, name="Lease Duration (months)")
+    Is_Lease_End_Estimated: Mapped[int] = mapped_column(Integer, nullable=True, name="Is Lease End Estimated")
 
     # Base airport
     Base_Airport_Region: Mapped[str] = mapped_column(String, nullable=True, name="Base Airport Region")

@@ -30,7 +30,7 @@ async def query_create_airline(session: AsyncSession, file_data: Optional[str], 
             decoded_bytes = b64decode(encoded)
 
             asset = Asset(
-                asset_name=f"{airline_name}-LOGO",
+                asset_name=f"{airline_name}",
                 asset_description=None,
                 mime_type=mime_type,
                 base64=decoded_bytes
@@ -307,11 +307,11 @@ async def query_aircraft_additional(session: AsyncSession, aircraft_id: int):
     stmt_aircraft = (
         select(
             CiriumAircrafts.Manufacturer,
-            CiriumAircrafts.Series,
+            CiriumAircrafts.Aircraft_Sub_Series,
             CiriumAircrafts.Serial_Number,
             CiriumAircrafts.Age,
             CiriumAircrafts.Number_Of_Engines,
-            CiriumAircrafts.Engine_Type,
+            CiriumAircrafts.Engine_Series,
             CiriumAircrafts.APU_Type,
             CiriumAircrafts.Number_of_Seats,
             CiriumAircrafts.Certified_MTOW_lbs,
@@ -333,7 +333,7 @@ async def query_aircraft_additional(session: AsyncSession, aircraft_id: int):
             CiriumAircrafts.Registration == reg_num,
             CiriumAircrafts.Serial_Number == msn
         )
-        .order_by(CiriumAircrafts.revision_id.desc())
+        .order_by(CiriumAircrafts.revision_id.asc())
     )
 
     result_aircraft = await session.execute(stmt_aircraft)
@@ -342,7 +342,7 @@ async def query_aircraft_additional(session: AsyncSession, aircraft_id: int):
     result_value = await session.execute(stmt_value)
     values = result_value.mappings().all()
 
-    aircraft_type = f"{aircraft.get("Manufacturer")} {aircraft.get("Series")}"
+    aircraft_type = f"{aircraft.get("Manufacturer")} {aircraft.get("Aircraft_Sub_Series")}"
 
     valuation_list = []
     for value in values:
@@ -359,14 +359,14 @@ async def query_aircraft_additional(session: AsyncSession, aircraft_id: int):
 
     return AdditionalAircraftInfoSchema(
         aircraft=aircraft_type,
-        msn=aircraft.get("Serial_Number"),
-        age=aircraft.get("Age"),
-        num_of_engines=aircraft.get("Number_Of_Engines"),
-        engines_type=aircraft.get("Engine_Type"),
-        apu_type=aircraft.get("APU_Type"),
-        mtow=aircraft.get("Certified_MTOW_lbs"),
-        num_of_seats=aircraft.get("Number_of_Seats"),
-        lease_rate=aircraft.get("Indicative_Market_Lease_Rate_USm"),
+        msn=aircraft.get("Serial_Number", "Unknown"),
+        age=aircraft.get("Age", "Unknown"),
+        num_of_engines=aircraft.get("Number_Of_Engines", "Unknown"),
+        engines_type=aircraft.get("Engine_Series", "Unknown"),
+        apu_type=aircraft.get("APU_Type", "Unknown"),
+        mtow=aircraft.get("Certified_MTOW_lbs", "Unknown"),
+        num_of_seats=aircraft.get("Number_of_Seats", "Unknown"),
+        lease_rate=aircraft.get("Indicative_Market_Lease_Rate_USm", "Unknown"),
         market_values=valuation_list
     ).model_dump(mode="json")
 

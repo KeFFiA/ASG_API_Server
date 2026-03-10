@@ -4,13 +4,14 @@ from typing import List, Optional
 from uuid import UUID
 
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, joinedload
 
 from Database import User, Access
 from Schemas import GetUserAccessResponseSchema, ApplicationAccessResponseSchema, RulesSchema, UserSchema
 
 
-async def query_all_users(session, user_id: Optional[UUID] = None) -> List[UserSchema]:
+async def query_all_users(session: AsyncSession, user_id: Optional[UUID] = None) -> List[UserSchema]:
     if user_id is None:
         result = await session.execute(
             select(User)
@@ -26,7 +27,7 @@ async def query_all_users(session, user_id: Optional[UUID] = None) -> List[UserS
             )
             .where(User.user_id == user_id)
         )
-    users: List[User] = result.scalars().all()
+    users = result.scalars().all()
 
     users_data = []
     for u in users:
@@ -61,8 +62,7 @@ async def query_all_users(session, user_id: Optional[UUID] = None) -> List[UserS
                                 rule_description=rule.rule_description
                             ) for rule in a.rules
                         ],
-                        main_access=a.main_access,
-                        super_admin=a.super_admin
+                        main_access=a.main_access
                     ) for a in u.application_accesses
                 ]
             ).model_dump(mode="json")
@@ -70,7 +70,7 @@ async def query_all_users(session, user_id: Optional[UUID] = None) -> List[UserS
     return users_data
 
 
-async def query_user_access(session, user_id: UUID,
+async def query_user_access(session: AsyncSession, user_id: UUID,
                             application_id: Optional[UUID] = None) -> GetUserAccessResponseSchema:
     if not user_id:
         raise ValueError("User ID required")

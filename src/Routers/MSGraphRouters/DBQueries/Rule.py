@@ -2,12 +2,13 @@ from typing import Optional
 from uuid import UUID
 
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from Database import Rule
 from Schemas import GetRulesResponseSchema, RulesSchema, GetRuleResponseSchema
 
 
-async def query_rules(session, application_id: Optional[UUID] = None) -> GetRulesResponseSchema:
+async def query_rules(session: AsyncSession, application_id: Optional[UUID] = None) -> GetRulesResponseSchema:
     try:
         stmt = select(Rule)
         if application_id:
