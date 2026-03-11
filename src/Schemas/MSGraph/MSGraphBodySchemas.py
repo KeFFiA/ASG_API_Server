@@ -50,13 +50,13 @@ class CreateClaimBodySchema(BaseModel):
 
 
 class SumPolicyBodySchema(BaseModel):
-    aircraft_id: int = Field(..., description="Aircraft ID")
+    aircraft_id: Optional[int] = Field(None, description="Aircraft ID")
     is_hd: bool = Field(default=False, description="Is Hull Deductible")
     is_hw: bool = Field(default=False, description="Is Hull War")
     is_hsl: bool = Field(default=False, description="Is HSL")
     indemnity_reserve: Optional[float] = Field(default=None, description="Indemnity reserve amount")
     paid_to_date_amount: Optional[float] = Field(default=None, description="Paid to date amount")
-    currency_rate: float = Field(..., description="Currency rate")
+    currency_rate: Optional[float] = Field(None, description="Currency rate")
 
 
 
