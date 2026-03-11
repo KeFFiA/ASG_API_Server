@@ -297,5 +297,17 @@ class Claim(Base):
     leader: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     surveyor: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
+    currency: Mapped[Optional[str]] = mapped_column(String, nullable=True, default="USD")
+    currency_rate: Mapped[Optional[float]] = mapped_column(Float, nullable=True, default=1)
+
+    hd_reserve: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    hw_reserve: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    hsl_reserve: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    hd_paid: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    hw_paid: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    hsl_paid: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+
+
+
 
 

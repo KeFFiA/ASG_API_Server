@@ -89,6 +89,14 @@ async def query_claims(session: AsyncSession, claim_id: Optional[int], user_id: 
                     is_hsl=claim.is_hsl,
                     leader=claim.leader,
                     surveyor=claim.surveyor,
+                    currency=claim.currency,
+                    currency_rate=claim.currency_rate,
+                    hd_reserve=claim.hd_reserve,
+                    hw_reserve=claim.hw_reserve,
+                    hsl_reserve=claim.hsl_reserve,
+                    hd_paid=claim.hd_paid,
+                    hw_paid=claim.hw_paid,
+                    hsl_paid=claim.hsl_paid
                 ).model_dump(mode="json")
             )
         return claims_list

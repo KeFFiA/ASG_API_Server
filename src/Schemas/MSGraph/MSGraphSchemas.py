@@ -160,6 +160,14 @@ class GetClaimSchema(BaseModel):
     is_hsl: Optional[bool]
     leader: Optional[str]
     surveyor: Optional[str]
+    currency: Optional[str]
+    currency_rate: Optional[float]
+    hd_reserve: Optional[float]
+    hw_reserve: Optional[float]
+    hsl_reserve: Optional[float]
+    hd_paid: Optional[float]
+    hw_paid: Optional[float]
+    hsl_paid: Optional[float]
 
 
 class ApplicationSchema(BaseModel):

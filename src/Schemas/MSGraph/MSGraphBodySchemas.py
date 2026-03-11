@@ -39,6 +39,14 @@ class CreateClaimBodySchema(BaseModel):
     is_hsl: Optional[bool] = Field(default=False, description="Is HSL")
     leader: Optional[str] = Field(default=None, description="Leader")
     surveyor: Optional[str] = Field(default=None, description="Surveyor")
+    currency: Optional[str] = Field(default=None, description="Currency")
+    currency_rate: Optional[float] = Field(default=None, description="Currency rate")
+    hd_reserve: Optional[float] = Field(default=None, description="HD reserve")
+    hw_reserve: Optional[float] = Field(default=None, description="HW reserve")
+    hsl_reserve: Optional[float] = Field(default=None, description="HSL reserve")
+    hd_paid: Optional[float] = Field(default=None, description="HD paid")
+    hw_paid: Optional[float] = Field(default=None, description="HW paid")
+    hsl_paid: Optional[float] = Field(default=None, description="HSL paid")
 
 
 class SumPolicyBodySchema(BaseModel):
