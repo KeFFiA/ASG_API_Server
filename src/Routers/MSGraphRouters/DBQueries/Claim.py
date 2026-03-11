@@ -169,81 +169,67 @@ async def query_sum_policy(session: AsyncSession, _payload: SumPolicyBodySchema)
 
     try:
         stmt = (
-            select(
-                Aircraft.threshold,
-                Aircraft.hulldeductible_franchise
-            ).where(Aircraft.id == _payload.aircraft_id)
+            select(Aircraft.threshold, Aircraft.hulldeductible_franchise)
+            .where(Aircraft.id == _payload.aircraft_id)
         )
-
         result = await session.execute(stmt)
         threshold, franchise = result.one_or_none()
 
-        is_hd = payload.is_hd
-        is_hw = payload.is_hw
-        is_hsl = payload.is_hsl
+        # Флаги
+        is_hd, is_hw, is_hsl = payload.is_hd, payload.is_hw, payload.is_hsl
 
-        try:
-            reserve_total = payload.indemnity_reserve * payload.currency_rate
-            paid_total = payload.paid_to_date_amount * payload.currency_rate
-        except:
-            reserve_total = payload.indemnity_reserve
-            paid_total = payload.paid_to_date_amount
+        # Безопасные значения
+        def safe_mul(a, b):
+            return a * b if a is not None and b is not None else a
 
-        # === HD Reserve ===
-        if (is_hd and not is_hw and not is_hsl) and (reserve_total >= franchise):
-            if reserve_total > threshold:
-                hd_reserve = threshold - franchise
+        reserve_total = safe_mul(payload.indemnity_reserve, payload.currency_rate)
+        paid_total = safe_mul(payload.paid_to_date_amount, payload.currency_rate)
+
+        # Безопасное деление
+        def half(value):
+            return round(value / 2, 2) if value is not None else None
+
+        # HD Reserve
+        if is_hd and not is_hw and not is_hsl and reserve_total is not None and franchise is not None:
+            if reserve_total >= franchise:
+                hd_reserve = (threshold - franchise) if threshold is not None and reserve_total > threshold else reserve_total - franchise
             else:
-                hd_reserve = reserve_total - franchise
+                hd_reserve = None
         else:
             hd_reserve = None
-        # ===================
 
-        # === HW Reserve ====
-        if is_hd and is_hw and not is_hsl:
-            hw_reserve = reserve_total
-        elif is_hd and is_hw and is_hsl:
-            hw_reserve = round((reserve_total / 2), 2)
+        # HW Reserve
+        if is_hd and is_hw:
+            hw_reserve = reserve_total if not is_hsl else half(reserve_total)
         else:
             hw_reserve = None
-        # ===================
 
-        # === HSL Reserve ===
+        # HSL Reserve
         if not is_hd and not is_hw and not is_hsl:
             hsl_reserve = reserve_total
         elif is_hd and is_hw and is_hsl:
-            hsl_reserve = round((reserve_total / 2), 2)
-        elif (is_hd and not is_hw and not is_hsl) and (reserve_total > (hd_reserve + franchise)):
-            hsl_reserve = reserve_total - threshold
+            hsl_reserve = half(reserve_total)
+        elif is_hd and not is_hw and not is_hsl and reserve_total is not None and hd_reserve is not None and franchise is not None and reserve_total > (hd_reserve + franchise):
+            hsl_reserve = reserve_total - threshold if threshold is not None else None
         else:
             hsl_reserve = None
-        # ===================
 
-        # === HD Paid ===
-        if is_hd and not is_hw and not is_hsl:
-            hd_paid = paid_total
-        else:
-            hd_paid = None
-        # ===================
+        # HD Paid
+        hd_paid = paid_total if is_hd and not is_hw and not is_hsl else None
 
-        # === HW Paid ===
-        if is_hd and is_hw and not is_hsl:
-            hw_paid = paid_total
-        elif is_hd and is_hw and is_hsl:
-            hw_paid = round((paid_total / 2), 2)
+        # HW Paid
+        if is_hd and is_hw:
+            hw_paid = paid_total if not is_hsl else half(paid_total)
         else:
             hw_paid = None
-        # ===================
 
-        # === HSL Paid ===
-        if (not is_hd and not is_hw and not is_hsl) or (
-                (is_hd and not is_hw and not is_hsl) and (paid_total > threshold)):
+        # HSL Paid
+        if (not is_hd and not is_hw and not is_hsl) or (is_hd and not is_hw and not is_hsl and paid_total is not None and threshold is not None and paid_total > threshold):
             hsl_paid = paid_total
         elif is_hd and is_hw and is_hsl:
-            hsl_paid = round((paid_total / 2), 2)
+            hsl_paid = half(paid_total)
         else:
             hsl_paid = None
-        # ===================
 
         return SumPolicyResponseSchema(
             hd_reserve=hd_reserve,
