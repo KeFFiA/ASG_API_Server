@@ -167,6 +167,16 @@ async def delete_claim_query(session: AsyncSession, _payload: ClaimsDeleteQuery)
 async def query_sum_policy(session: AsyncSession, _payload: SumPolicyBodySchema):
     payload = SumPolicyBodySchema(**_payload.model_dump())
 
+    if payload.aircraft_id is None:
+        return SumPolicyResponseSchema(
+            hd_reserve=None,
+            hw_reserve=None,
+            hsl_reserve=None,
+            hd_paid=None,
+            hw_paid=None,
+            hsl_paid=None
+        ).model_dump(mode="json")
+
     try:
         stmt = (
             select(Aircraft.threshold, Aircraft.hulldeductible_franchise)
