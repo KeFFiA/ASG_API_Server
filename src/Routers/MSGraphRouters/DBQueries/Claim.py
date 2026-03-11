@@ -68,13 +68,11 @@ async def query_claims(session: AsyncSession, claim_id: Optional[int], user_id: 
                         airline=AirlineSchema(
                             airline_id=claim.aircraft.airline.id,
                             airline_name=claim.aircraft.airline.airline_name,
-                            airline_icao=claim.aircraft.airline.icao,
-                            asset=map_asset(claim.aircraft.airline.asset),
+                            airline_icao=claim.aircraft.airline.icao
                         ),
                         template=AircraftTemplateSchema(
                             template_id=claim.aircraft.template.id,
-                            template_name=claim.aircraft.template.template_name,
-                            asset=map_asset(claim.aircraft.template.asset),
+                            template_name=claim.aircraft.template.template_name
                         )
                     ),
                     date_of_loss=claim.date_of_loss,

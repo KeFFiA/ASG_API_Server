@@ -117,7 +117,7 @@ class AirlineSchema(BaseModel):
     airline_id: int
     airline_name: str
     airline_icao: str
-    asset: Optional[GetFileResponseSchema]
+    asset: Optional[GetFileResponseSchema] = None
 
 
 class GetAirlinesSchema(AirlineSchema):
@@ -127,7 +127,7 @@ class GetAirlinesSchema(AirlineSchema):
 class AircraftTemplateSchema(BaseModel):
     template_id: int
     template_name: str
-    asset: Optional[GetFileResponseSchema]
+    asset: Optional[GetFileResponseSchema] = None
 
 
 class AircraftSchema(BaseModel):
@@ -141,7 +141,7 @@ class AircraftSchema(BaseModel):
     in_dashboard: bool
     status: str
     airline: AirlineSchema
-    template: AircraftTemplateSchema
+    template: Optional[AircraftTemplateSchema]
 
 
 class GetClaimSchema(BaseModel):
