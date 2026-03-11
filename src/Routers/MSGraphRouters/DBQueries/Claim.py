@@ -93,7 +93,7 @@ async def query_claims(session: AsyncSession, claim_id: Optional[int], user_id: 
             )
             return claims_list
 
-        except Exception as _ex:
+    except Exception as _ex:
         raise _ex
 
 
