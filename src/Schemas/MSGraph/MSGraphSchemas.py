@@ -117,7 +117,7 @@ class AirlineSchema(BaseModel):
     airline_id: int
     airline_name: str
     airline_icao: str
-    asset: Optional[GetFileResponseSchema] = None
+    asset: Optional[GetFileResponseSchema]
 
 
 class GetAirlinesSchema(AirlineSchema):
@@ -127,7 +127,7 @@ class GetAirlinesSchema(AirlineSchema):
 class AircraftTemplateSchema(BaseModel):
     template_id: int
     template_name: str
-    asset: Optional[GetFileResponseSchema] = None
+    asset: Optional[GetFileResponseSchema]
 
 
 class AircraftSchema(BaseModel):
@@ -138,7 +138,7 @@ class AircraftSchema(BaseModel):
     policy_to: Optional[date]
     hulldeductible_franchise: float
     threshold: float
-    in_dashboard: Optional[bool] = None
+    in_dashboard: bool
     status: str
     airline: AirlineSchema
     template: Optional[AircraftTemplateSchema] = None

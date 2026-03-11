@@ -55,7 +55,7 @@ async def get_claims(request: Request, _payload: Annotated[ClaimsQuery, Query()]
             key=cache_key,
             db_name="powerplatform",
             query_func=db_query,
-            ttl=60
+            ttl=30
         )
 
         if len(airline_data) > 0:
