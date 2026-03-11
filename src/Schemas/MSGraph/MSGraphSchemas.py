@@ -138,10 +138,10 @@ class AircraftSchema(BaseModel):
     policy_to: Optional[date]
     hulldeductible_franchise: float
     threshold: float
-    in_dashboard: bool
+    in_dashboard: Optional[bool] = None
     status: str
     airline: AirlineSchema
-    template: Optional[AircraftTemplateSchema]
+    template: Optional[AircraftTemplateSchema] = None
 
 
 class GetClaimSchema(BaseModel):

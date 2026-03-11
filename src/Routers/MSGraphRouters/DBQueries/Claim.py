@@ -7,10 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from Database import Claim, Aircraft, User, Airline, AircraftTemplate
-from Schemas import GetClaimSchema, AircraftSchema, AirlineSchema, AircraftTemplateSchema, \
-    UserSchemaShort, CreateClaimBodySchema, SumPolicyBodySchema, SumPolicyResponseSchema, ClaimsDeleteQuery
+from Schemas import GetClaimSchema, AircraftSchema, AirlineSchema, UserSchemaShort, CreateClaimBodySchema, \
+    SumPolicyBodySchema, SumPolicyResponseSchema, ClaimsDeleteQuery
 from Schemas.Enums import UpsertStatusEnum
-from Utils import map_asset
 
 
 async def query_claims(session: AsyncSession, claim_id: Optional[int], user_id: Optional[UUID]) -> List[GetClaimSchema]:
@@ -63,16 +62,11 @@ async def query_claims(session: AsyncSession, claim_id: Optional[int], user_id: 
                         policy_to=claim.aircraft.policy_to,
                         hulldeductible_franchise=claim.aircraft.hulldeductible_franchise,
                         threshold=claim.aircraft.threshold,
-                        in_dashboard=claim.aircraft.in_dashboard,
                         status=claim.aircraft.status,
                         airline=AirlineSchema(
                             airline_id=claim.aircraft.airline.id,
                             airline_name=claim.aircraft.airline.airline_name,
                             airline_icao=claim.aircraft.airline.icao
-                        ),
-                        template=AircraftTemplateSchema(
-                            template_id=claim.aircraft.template.id,
-                            template_name=claim.aircraft.template.template_name
                         )
                     ),
                     date_of_loss=claim.date_of_loss,
@@ -97,9 +91,9 @@ async def query_claims(session: AsyncSession, claim_id: Optional[int], user_id: 
                     hsl_paid=claim.hsl_paid
                 ).model_dump(mode="json")
             )
-        return claims_list
+            return claims_list
 
-    except Exception as _ex:
+        except Exception as _ex:
         raise _ex
 
 
@@ -131,7 +125,6 @@ async def query_create_claim(session: AsyncSession, _payload: CreateClaimBodySch
         if payload.paid_date:
             if not isinstance(payload.paid_date, date):
                 payload.paid_date = datetime.fromisoformat(str(payload.paid_date)).date()
-
 
         if claim:
             for field, value in payload.model_dump(exclude_unset=True).items():
@@ -236,7 +229,8 @@ async def query_sum_policy(session: AsyncSession, _payload: SumPolicyBodySchema)
         # ===================
 
         # === HSL Paid ===
-        if (not is_hd and not is_hw and not is_hsl) or ((is_hd and not is_hw and not is_hsl) and (paid_total > threshold)):
+        if (not is_hd and not is_hw and not is_hsl) or (
+                (is_hd and not is_hw and not is_hsl) and (paid_total > threshold)):
             hsl_paid = paid_total
         elif is_hd and is_hw and is_hsl:
             hsl_paid = round((paid_total / 2), 2)
