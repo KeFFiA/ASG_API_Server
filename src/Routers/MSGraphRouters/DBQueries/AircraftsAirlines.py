@@ -342,7 +342,16 @@ async def query_aircraft_additional(session: AsyncSession, aircraft_id: int):
     result_value = await session.execute(stmt_value)
     values = result_value.mappings().all()
 
-    aircraft_type = f"{aircraft.get("Manufacturer")} {aircraft.get("Aircraft_Sub_Series")}"
+    try:
+        manufacturer = aircraft.get("Manufacturer", "Unknown")
+    except:
+        manufacturer = "Unknown"
+    try:
+        aircraft_series = aircraft.get("Aircraft_Sub_Series", "Unknown")
+    except:
+        aircraft_series = "Unknown"
+
+    aircraft_type = f"{manufacturer} {aircraft_series}"
 
     valuation_list = []
     for value in values:

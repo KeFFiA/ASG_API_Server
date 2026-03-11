@@ -182,8 +182,12 @@ async def query_sum_policy(session: AsyncSession, _payload: SumPolicyBodySchema)
         is_hw = payload.is_hw
         is_hsl = payload.is_hsl
 
-        reserve_total = payload.indemnity_reserve * payload.currency_rate
-        paid_total = payload.paid_to_date_amount * payload.currency_rate
+        try:
+            reserve_total = payload.indemnity_reserve * payload.currency_rate
+            paid_total = payload.paid_to_date_amount * payload.currency_rate
+        except:
+            reserve_total = payload.indemnity_reserve
+            paid_total = payload.paid_to_date_amount
 
         # === HD Reserve ===
         if (is_hd and not is_hw and not is_hsl) and (reserve_total >= franchise):
