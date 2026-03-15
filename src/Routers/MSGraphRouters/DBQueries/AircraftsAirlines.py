@@ -3,7 +3,7 @@ from datetime import date
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import select, func, cast, Date
+from sqlalchemy import select, func, cast, Date, literal
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -158,9 +158,11 @@ async def query_templates(session: AsyncSession, template_name: Optional[str], t
         .order_by(AircraftTemplate.template_name)
     )
 
-    if template_name:
-        stmt = stmt.where(AircraftTemplate.template_name == template_name)
-    if template_id:
+    if template_name is not None:
+        template_name_clean = template_name.strip().lower()
+        stmt = stmt.where(func.lower(AircraftTemplate.template_name) == literal(template_name_clean))
+
+    if template_id is not None:
         stmt = stmt.where(AircraftTemplate.id == template_id)
 
     result = await session.execute(stmt)
