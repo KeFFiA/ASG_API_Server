@@ -237,6 +237,17 @@ class AircraftTemplate(Base):
     )
 
 
+class AircraftPolicy(Base):
+    aircraft_id: Mapped[int] = mapped_column(ForeignKey("aircraft.id", ondelete="CASCADE"), nullable=False)
+
+    policy_from: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    policy_to: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+
+    aircraft: Mapped["Aircraft"] = relationship(back_populates="policy")
+
+    claims: Mapped[list["Claim"]] = relationship(back_populates="policy", cascade="all, delete-orphan")
+
+
 class Aircraft(Base):
     registration: Mapped[str] = mapped_column(String, nullable=False)
     msn: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -251,11 +262,25 @@ class Aircraft(Base):
         nullable=False
     )
 
-    policy_from: Mapped[date] = mapped_column(Date, nullable=True)
-    policy_to: Mapped[date] = mapped_column(Date, nullable=True)
+    policy: Mapped[list["AircraftPolicy"]] = relationship(back_populates="aircraft", cascade="all, delete-orphan")
 
-    hulldeductible_franchise: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
-    threshold: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    engines_manufacture: Mapped[str] = mapped_column(String, nullable=True)
+    engines_model: Mapped[str] = mapped_column(String, nullable=True)
+    number_of_engines: Mapped[int] = mapped_column(Integer, nullable=True, default=2)
+    engine1_msn: Mapped[int] = mapped_column(Integer, nullable=True)
+    engine2_msn: Mapped[int] = mapped_column(Integer, nullable=True)
+    engine3_msn: Mapped[int] = mapped_column(Integer, nullable=True)
+    engine4_msn: Mapped[int] = mapped_column(Integer, nullable=True)
+
+    agreed_value: Mapped[float] = mapped_column(Float, nullable=True, default=0.0)
+    agreed_value_down_absolute: Mapped[float] = mapped_column(Float, nullable=True, default=0.0)
+    agreed_value_down_percent: Mapped[float] = mapped_column(Float, nullable=True, default=0.0)
+    combined_single_limit: Mapped[float] = mapped_column(Float, nullable=True, default=0.0)
+    all_risks_deductible: Mapped[float] = mapped_column(Float, nullable=True, default=0.0)
+    hull_and_spares_excess: Mapped[float] = mapped_column(Float, nullable=True, default=0.0)
+
+    lessee: Mapped[str] = mapped_column(String, nullable=True)
+    lessor: Mapped[str] = mapped_column(String, nullable=True)
 
     in_dashboard: Mapped[bool] = mapped_column(Boolean, default=False)
     status: Mapped[str] = mapped_column(String, nullable=False, default="Insured")
@@ -276,6 +301,10 @@ class Claim(Base):
 
     users: Mapped[List["User"]] = relationship(
         secondary=_claim_users,
+        back_populates="claims"
+    )
+
+    policy: Mapped["AircraftPolicy"] = relationship(
         back_populates="claims"
     )
 

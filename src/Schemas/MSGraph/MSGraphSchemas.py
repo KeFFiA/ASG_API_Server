@@ -130,18 +130,40 @@ class AircraftTemplateSchema(BaseModel):
     asset: Optional[GetFileResponseSchema]
 
 
+class AircraftPolicySchema(BaseModel):
+    policy_id: int
+    policy_from: Optional[date]
+    policy_to: Optional[date]
+
+
 class AircraftSchema(BaseModel):
     aircraft_id: int
     registration: str
     msn: int
-    policy_from: Optional[date]
-    policy_to: Optional[date]
-    hulldeductible_franchise: float
-    threshold: float
+
     in_dashboard: bool
     status: str
     airline: AirlineSchema
     template: Optional[AircraftTemplateSchema] = None
+
+    policy: Optional[List[AircraftPolicySchema]] = None
+
+    engines_manufacture: Optional[str]
+    engines_model: Optional[str]
+    number_of_engines: Optional[int]
+    engine1_msn: Optional[int]
+    engine2_msn: Optional[int]
+    engine3_msn: Optional[int]
+    engine4_msn: Optional[int]
+    agreed_value: Optional[float]
+    agreed_value_down_absolute: Optional[float]
+    agreed_value_down_percent: Optional[float]
+    combined_single_limit: Optional[float]
+    all_risks_deductible: Optional[float]
+    hull_and_spares_excess: Optional[float]
+
+    lessee: Optional[str]
+    lessor: Optional[str]
 
 
 class GetClaimSchema(BaseModel):

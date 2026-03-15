@@ -291,7 +291,7 @@ async def create_aircraft(request: Request, _payload: Annotated[CreateAircraftQu
     db_proxy: DBProxy = request.state.db_proxy
 
     async def db_query(session):
-        return await query_create_aircraft(session, **payload.model_dump())
+        return await query_create_aircraft(session, _payload)
 
     try:
         cache_key = f"aircraft:{payload.aircraft_registration}"

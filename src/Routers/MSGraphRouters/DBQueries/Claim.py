@@ -19,11 +19,9 @@ async def query_claims(session: AsyncSession, claim_id: Optional[int], user_id: 
             select(Claim)
             .options(
                 selectinload(Claim.aircraft)
-                .selectinload(Aircraft.airline)
-                .selectinload(Airline.asset),
+                .selectinload(Aircraft.airline),
                 selectinload(Claim.aircraft)
-                .selectinload(Aircraft.template)
-                .selectinload(AircraftTemplate.asset),
+                .selectinload(Aircraft.template),
                 selectinload(Claim.users)
             )
         )
@@ -59,8 +57,7 @@ async def query_claims(session: AsyncSession, claim_id: Optional[int], user_id: 
                         aircraft_id=claim.aircraft.id,
                         registration=claim.aircraft.registration,
                         msn=claim.aircraft.msn,
-                        policy_from=claim.aircraft.policy_from,
-                        policy_to=claim.aircraft.policy_to,
+                        policy=claim.aircraft.policy,
                         hulldeductible_franchise=claim.aircraft.hulldeductible_franchise,
                         threshold=claim.aircraft.threshold,
                         in_dashboard=claim.aircraft.in_dashboard,

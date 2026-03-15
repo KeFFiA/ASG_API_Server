@@ -8,9 +8,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from Database import Airline, User, Asset, UserAirlineAccess, AircraftTemplate, Aircraft, CiriumAircrafts, \
-    AircraftRevision, DatabaseClient
+    AircraftRevision, DatabaseClient, AircraftPolicy
 from Schemas import AirlineSchema, UserSchemaShort, AircraftTemplateSchema, \
-    AircraftSchema, GetAirlinesSchema, AdditionalAircraftInfoSchema, AdditionalAircraftInfoValuationSchema
+    AircraftSchema, GetAirlinesSchema, AdditionalAircraftInfoSchema, AdditionalAircraftInfoValuationSchema, \
+    AircraftPolicySchema, CreateAircraftQuery
 from Utils import map_asset
 
 
@@ -223,11 +224,13 @@ async def query_aircrafts(session: AsyncSession, airline_id: Optional[int], airl
             select(Aircraft)
             .join(Aircraft.airline)
             .join(Aircraft.template)
+            .join(Aircraft.policy)
             .options(
                 selectinload(Aircraft.airline)
                 .selectinload(Airline.asset),
                 selectinload(Aircraft.template)
                 .selectinload(AircraftTemplate.asset),
+                selectinload(Aircraft.policy)
             )
             .order_by(Airline.airline_name)
         )
@@ -253,26 +256,48 @@ async def query_aircrafts(session: AsyncSession, airline_id: Optional[int], airl
         aircrafts_list = []
 
         for aircraft in aircrafts:
+            policy_list = []
+            for ac_policy in aircraft.policy:
+                policy_list.append(
+                    AircraftPolicySchema(
+                        policy_id=ac_policy.id,
+                        policy_from=ac_policy.policy_from,
+                        policy_to=ac_policy.policy_to
+                    )
+                )
+
             aircrafts_list.append(AircraftSchema(
                 aircraft_id=aircraft.id,
                 registration=aircraft.registration,
                 msn=aircraft.msn,
-                policy_from=aircraft.policy_from,
-                policy_to=aircraft.policy_to,
-                hulldeductible_franchise=aircraft.hulldeductible_franchise,
-                threshold=aircraft.threshold,
+                policy=policy_list,
+                agreed_value=aircraft.agreed_value,
+                agreed_value_down_percent=aircraft.agreed_value_down_percent,
+                agreed_value_down_absolute=aircraft.agreed_value_down_absolute,
+                combined_single_limit=aircraft.combined_single_limit,
+                hull_and_spares_excess=aircraft.hull_and_spares_excess,
+                all_risks_deductible=aircraft.all_risks_deductible,
+                lessee=aircraft.lessee,
+                lessor=aircraft.lessor,
+                engines_manufacture=aircraft.engines_manufacture,
+                engines_model=aircraft.engines_model,
+                number_of_engines=aircraft.number_of_engines,
+                engine1_msn=aircraft.engine1_msn,
+                engine2_msn=aircraft.engine2_msn,
+                engine3_msn=aircraft.engine3_msn,
+                engine4_msn=aircraft.engine4_msn,
                 in_dashboard=aircraft.in_dashboard,
                 status=aircraft.status,
                 airline=AirlineSchema(
                     airline_id=aircraft.airline.id,
                     airline_name=aircraft.airline.airline_name,
                     airline_icao=aircraft.airline.icao,
-                    asset=map_asset(asset=aircraft.airline.asset)
+                    asset=None
                 ),
                 template=AircraftTemplateSchema(
                     template_id=aircraft.template.id,
                     template_name=aircraft.template.template_name,
-                    asset=map_asset(asset=aircraft.template.asset)
+                    asset=None
                 )
             ).model_dump(mode="json"))
         return aircrafts_list
@@ -380,32 +405,105 @@ async def query_aircraft_additional(session: AsyncSession, aircraft_id: int):
     ).model_dump(mode="json")
 
 
-async def query_create_aircraft(session: AsyncSession, *, aircraft_registration: str, aircraft_msn: int,
-                                airline_id: int, template_id: int,
-                                policy_from: date | None = None, policy_to: date | None = None,
-                                hulldeductible_franchise: float | None = None, threshold: float | None = None,
-                                in_dashboard: bool = False, status: str = "Insured") -> bool:
-    airline = await session.get(Airline, airline_id)
+async def query_create_aircraft(session: AsyncSession, *, _payload: CreateAircraftQuery) -> bool:
+    payload = CreateAircraftQuery(
+        **_payload.model_dump()
+    )
+
+    airline = await session.get(Airline, payload.airline_id)
     if not airline:
         raise ValueError("Airline not found")
 
-    template = await session.get(AircraftTemplate, template_id)
+    template = await session.get(AircraftTemplate, payload.template_id)
     if not template:
         raise ValueError("Aircraft template not found")
 
-    aircraft = Aircraft(
-        registration=aircraft_registration,
-        msn=aircraft_msn,
-        airline_id=airline_id,
-        template_id=template_id,
-        policy_from=policy_from,
-        policy_to=policy_to,
-        hulldeductible_franchise=hulldeductible_franchise,
-        threshold=threshold,
-        in_dashboard=in_dashboard,
-        status=status,
-    )
+    aircraft = await session.get(Aircraft, payload.aircraft_id)
 
-    session.add(aircraft)
+    if aircraft is None:
+
+        aircraft = Aircraft(
+            id=payload.aircraft_id,
+            registration=payload.aircraft_registration,
+            msn=payload.aircraft_msn,
+            airline_id=payload.airline_id,
+            template_id=payload.template_id,
+            in_dashboard=payload.in_dashboard,
+            status=payload.status,
+            engines_manufacture=payload.engines_manufacture,
+            engines_model=payload.engines_model,
+            number_of_engines=payload.number_of_engines,
+            engine1_msn=payload.engine1_msn,
+            engine2_msn=payload.engine2_msn,
+            engine3_msn=payload.engine3_msn,
+            engine4_msn=payload.engine4_msn,
+            agreed_value=payload.agreed_value,
+            agreed_value_down_absolute=payload.agreed_value_down_absolute,
+            agreed_value_down_percent=payload.agreed_value_down_percent,
+            combined_single_limit=payload.combined_single_limit,
+            all_risks_deductible=payload.all_risks_deductible,
+            hull_and_spares_excess=payload.hull_and_spares_excess,
+            lessee=payload.lessee,
+            lessor=payload.lessor,
+        )
+
+        if payload.policy_from or payload.policy_to:
+            aircraft.policy.append(
+                AircraftPolicy(
+                    policy_from=payload.policy_from,
+                    policy_to=payload.policy_to
+                )
+            )
+
+        session.add(aircraft)
+
+        return True
+
+    # -------------------------
+    # UPDATE AIRCRAFT
+    # -------------------------
+    aircraft.registration = payload.aircraft_registration
+    aircraft.msn = payload.aircraft_msn
+    aircraft.airline_id = payload.airline_id
+    aircraft.template_id = payload.template_id
+    aircraft.in_dashboard = payload.in_dashboard
+    aircraft.status = payload.status
+    aircraft.engines_manufacture = payload.engines_manufacture
+    aircraft.engines_model = payload.engines_model
+    aircraft.number_of_engines = payload.number_of_engines
+    aircraft.engine1_msn = payload.engine1_msn
+    aircraft.engine2_msn = payload.engine2_msn
+    aircraft.engine3_msn = payload.engine3_msn
+    aircraft.engine4_msn = payload.engine4_msn
+    aircraft.agreed_value = payload.agreed_value
+    aircraft.agreed_value_down_absolute = payload.agreed_value_down_absolute
+    aircraft.agreed_value_down_percent = payload.agreed_value_down_percent
+    aircraft.combined_single_limit = payload.combined_single_limit
+    aircraft.all_risks_deductible = payload.all_risks_deductible
+    aircraft.hull_and_spares_excess = payload.hull_and_spares_excess
+    aircraft.lessee = payload.lessee
+    aircraft.lessor = payload.lessor
+
+    # -------------------------
+    # POLICY CHECK
+    # -------------------------
+    if payload.policy_from or payload.policy_to:
+
+        stmt = select(AircraftPolicy).where(
+            AircraftPolicy.aircraft_id == aircraft.id,
+            AircraftPolicy.policy_from == payload.policy_from,
+            AircraftPolicy.policy_to == payload.policy_to
+        )
+
+        result = await session.execute(stmt)
+        policy = result.scalar_one_or_none()
+
+        if policy is None:
+            aircraft.policy.append(
+                AircraftPolicy(
+                    policy_from=payload.policy_from,
+                    policy_to=payload.policy_to
+                )
+            )
 
     return True
