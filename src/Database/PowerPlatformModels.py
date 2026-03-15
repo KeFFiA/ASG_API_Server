@@ -297,6 +297,11 @@ class Claim(Base):
         nullable=False
     )
 
+    policy_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("aircraftpolicies.id", ondelete="SET NULL"),
+        nullable=True
+    )
+
     aircraft: Mapped["Aircraft"] = relationship(back_populates="claims")
 
     users: Mapped[List["User"]] = relationship(
