@@ -224,12 +224,9 @@ async def query_aircrafts(session: AsyncSession, airline_id: Optional[int], airl
             select(Aircraft)
             .join(Aircraft.airline)
             .join(Aircraft.template)
-            .join(Aircraft.policy)
             .options(
-                selectinload(Aircraft.airline)
-                .selectinload(Airline.asset),
-                selectinload(Aircraft.template)
-                .selectinload(AircraftTemplate.asset),
+                selectinload(Aircraft.airline).selectinload(Airline.asset),
+                selectinload(Aircraft.template).selectinload(AircraftTemplate.asset),
                 selectinload(Aircraft.policy)
             )
             .order_by(Airline.airline_name)
@@ -251,7 +248,7 @@ async def query_aircrafts(session: AsyncSession, airline_id: Optional[int], airl
             stmt = stmt.where(AircraftTemplate.id == template_id)
 
         result = await session.execute(stmt)
-        aircrafts = result.scalars().all()
+        aircrafts = result.scalars().unique().all()
 
         aircrafts_list = []
 
