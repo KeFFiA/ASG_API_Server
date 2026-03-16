@@ -136,6 +136,12 @@ class AircraftPolicySchema(BaseModel):
     policy_to: Optional[date | str]
 
 
+class EnginesSchema(BaseModel):
+    id: int
+    engine_manufacture: str
+    engine_model: str
+
+
 class AircraftSchema(BaseModel):
     aircraft_id: int
     registration: str
@@ -148,8 +154,8 @@ class AircraftSchema(BaseModel):
 
     policy: Optional[List[AircraftPolicySchema]] = None
 
-    engines_manufacture: Optional[str]
-    engines_model: Optional[str]
+    engine: Optional[EnginesSchema] = None
+
     number_of_engines: Optional[int]
     engine1_msn: Optional[str]
     engine2_msn: Optional[str]
@@ -164,12 +170,6 @@ class AircraftSchema(BaseModel):
 
     lessee: Optional[str]
     lessor: Optional[str]
-
-
-class EnginesSchema(BaseModel):
-    id: int
-    engine_manufacture: str
-    engine_model: str
 
 
 class GetClaimSchema(BaseModel):

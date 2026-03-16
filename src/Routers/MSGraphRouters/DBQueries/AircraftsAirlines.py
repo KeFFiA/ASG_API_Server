@@ -267,9 +267,9 @@ async def query_aircrafts(session: AsyncSession, airline_id: Optional[int], airl
                 )
 
             try:
-                engine_manufacture, engine_model = aircraft.engine.engine_manufacture, aircraft.engine.engine_model
+                engine_manufacture, engine_model, engine_id = aircraft.engine.engine_manufacture, aircraft.engine.engine_model, aircraft.engine.id
             except:
-                engine_manufacture, engine_model = None, None
+                engine_manufacture, engine_model, engine_id = None, None, None
 
             aircrafts_list.append(AircraftSchema(
                 aircraft_id=aircraft.id,
@@ -284,8 +284,7 @@ async def query_aircrafts(session: AsyncSession, airline_id: Optional[int], airl
                 all_risks_deductible=aircraft.all_risks_deductible,
                 lessee=aircraft.lessee,
                 lessor=aircraft.lessor,
-                engines_manufacture=engine_manufacture,
-                engines_model=engine_model,
+                engine=EnginesSchema(id=engine_id, engine_manufacture=engine_manufacture, engine_model=engine_model),
                 number_of_engines=aircraft.number_of_engines,
                 engine1_msn=aircraft.engine1_msn,
                 engine2_msn=aircraft.engine2_msn,
