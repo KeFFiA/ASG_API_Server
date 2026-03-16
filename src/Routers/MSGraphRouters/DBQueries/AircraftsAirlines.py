@@ -404,7 +404,7 @@ async def query_aircraft_additional(session: AsyncSession, aircraft_id: int):
     ).model_dump(mode="json")
 
 
-async def query_create_aircraft(session: AsyncSession, *, _payload: CreateAircraftQuery) -> bool:
+async def query_create_aircraft(session: AsyncSession, _payload: CreateAircraftQuery) -> bool:
     payload = CreateAircraftQuery(
         **_payload.model_dump()
     )
