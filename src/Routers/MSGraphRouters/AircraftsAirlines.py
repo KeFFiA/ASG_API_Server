@@ -316,7 +316,7 @@ async def create_aircraft(request: Request, _payload: Annotated[CreateAircraftQu
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse,
 )
-async def get_aircrafts(request: Request, _payload: Annotated[GetEnginesQuery, Query()]):
+async def get_engines(request: Request, _payload: Annotated[GetEnginesQuery, Query()]):
     payload = GetEnginesQuery(
         **_payload.model_dump()
     )
