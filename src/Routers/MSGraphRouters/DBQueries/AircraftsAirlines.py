@@ -1,5 +1,5 @@
 from base64 import b64decode
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
 from uuid import UUID
 
@@ -416,6 +416,14 @@ async def query_create_aircraft(session: AsyncSession, _payload: CreateAircraftQ
     template = await session.get(AircraftTemplate, payload.template_id)
     if not template:
         raise ValueError("Aircraft template not found")
+
+    if payload.policy_from:
+        if not isinstance(payload.policy_from, date):
+            payload.policy_from = datetime.fromisoformat(str(payload.policy_from)).date()
+
+    if payload.policy_to:
+        if not isinstance(payload.policy_to, date):
+            payload.policy_to = datetime.fromisoformat(str(payload.policy_to)).date()
 
     aircraft = await session.get(Aircraft, payload.aircraft_id)
 
