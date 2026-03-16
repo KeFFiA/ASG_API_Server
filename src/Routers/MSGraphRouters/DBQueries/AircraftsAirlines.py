@@ -226,11 +226,11 @@ async def query_aircrafts(session: AsyncSession, airline_id: Optional[int], airl
             select(Aircraft)
             .join(Aircraft.airline)
             .join(Aircraft.template)
-            .join(Aircraft.engine)
             .options(
                 selectinload(Aircraft.airline).selectinload(Airline.asset),
                 selectinload(Aircraft.template).selectinload(AircraftTemplate.asset),
-                selectinload(Aircraft.policy)
+                selectinload(Aircraft.policy),
+                selectinload(Aircraft.engine)
             )
             .order_by(Airline.airline_name)
         )
@@ -266,6 +266,11 @@ async def query_aircrafts(session: AsyncSession, airline_id: Optional[int], airl
                     )
                 )
 
+            try:
+                engine_manufacture, engine_model = aircraft.engine.engine_manufacture, aircraft.engine.engine_model
+            except:
+                engine_manufacture, engine_model = None, None
+
             aircrafts_list.append(AircraftSchema(
                 aircraft_id=aircraft.id,
                 registration=aircraft.registration,
@@ -279,8 +284,8 @@ async def query_aircrafts(session: AsyncSession, airline_id: Optional[int], airl
                 all_risks_deductible=aircraft.all_risks_deductible,
                 lessee=aircraft.lessee,
                 lessor=aircraft.lessor,
-                engines_manufacture=aircraft.engine.engine_manufacture,
-                engines_model=aircraft.engine.engine_model,
+                engines_manufacture=engine_manufacture,
+                engines_model=engine_model,
                 number_of_engines=aircraft.number_of_engines,
                 engine1_msn=aircraft.engine1_msn,
                 engine2_msn=aircraft.engine2_msn,
