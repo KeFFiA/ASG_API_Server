@@ -137,9 +137,9 @@ class AircraftPolicySchema(BaseModel):
 
 
 class EnginesSchema(BaseModel):
-    id: int
-    engine_manufacture: str
-    engine_model: str
+    id: Optional[int]
+    engine_manufacture: Optional[str]
+    engine_model: Optional[str]
 
 
 class AircraftSchema(BaseModel):
