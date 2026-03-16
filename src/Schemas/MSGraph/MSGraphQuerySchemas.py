@@ -59,8 +59,7 @@ class CreateAircraftQuery(BaseModel):
     policy_from: Optional[date | str] = Query(default=None, description="Policy from")
     policy_to: Optional[date | str] = Query(default=None, description="Policy to")
 
-    engines_manufacture: Optional[str] = Query(default=None, description="Engines manufacture")
-    engines_model: Optional[str] = Query(default=None, description="Engines model")
+    engine_id: Optional[int] = Query(default=None, description="Engine iD")
     number_of_engines: Optional[int] = Query(default=None, description="Number of engines")
     engine1_msn: Optional[str] = Query(default=None, description="Engine1 MSN")
     engine2_msn: Optional[str] = Query(default=None, description="Engine2 MSN")
@@ -76,6 +75,12 @@ class CreateAircraftQuery(BaseModel):
     lessee: Optional[str] = Query(default=None, description="Lessee")
     lessor: Optional[str] = Query(default=None, description="Lessor")
 
+
+
+class GetEnginesQuery(BaseModel):
+    id: Optional[int] = Query(default=None, description="Engine ID")
+    engine_type: Optional[str] = Query(default=None, description="Engine type")
+    engine_manufacture: Optional[str] = Query(default=None, description="Engine manufacture")
 
 
 

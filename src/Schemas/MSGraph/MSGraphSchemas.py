@@ -166,6 +166,12 @@ class AircraftSchema(BaseModel):
     lessor: Optional[str]
 
 
+class EnginesSchema(BaseModel):
+    id: int
+    engine_manufacture: str
+    engine_model: str
+
+
 class GetClaimSchema(BaseModel):
     claim_id: int
     users: List[UserSchemaShort]

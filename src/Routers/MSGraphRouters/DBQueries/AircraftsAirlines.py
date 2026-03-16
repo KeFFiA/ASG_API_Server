@@ -3,15 +3,15 @@ from datetime import date, datetime
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import select, func, cast, Date, literal
+from sqlalchemy import select, func, cast, Date, literal, Select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from Database import Airline, User, Asset, UserAirlineAccess, AircraftTemplate, Aircraft, CiriumAircrafts, \
-    AircraftRevision, DatabaseClient, AircraftPolicy
+    AircraftRevision, DatabaseClient, AircraftPolicy, Engine
 from Schemas import AirlineSchema, UserSchemaShort, AircraftTemplateSchema, \
     AircraftSchema, GetAirlinesSchema, AdditionalAircraftInfoSchema, AdditionalAircraftInfoValuationSchema, \
-    AircraftPolicySchema, CreateAircraftQuery
+    AircraftPolicySchema, CreateAircraftQuery, GetEnginesQuery, EnginesSchema
 from Utils import map_asset
 
 
@@ -226,6 +226,7 @@ async def query_aircrafts(session: AsyncSession, airline_id: Optional[int], airl
             select(Aircraft)
             .join(Aircraft.airline)
             .join(Aircraft.template)
+            .join(Aircraft.engine)
             .options(
                 selectinload(Aircraft.airline).selectinload(Airline.asset),
                 selectinload(Aircraft.template).selectinload(AircraftTemplate.asset),
@@ -278,8 +279,8 @@ async def query_aircrafts(session: AsyncSession, airline_id: Optional[int], airl
                 all_risks_deductible=aircraft.all_risks_deductible,
                 lessee=aircraft.lessee,
                 lessor=aircraft.lessor,
-                engines_manufacture=aircraft.engines_manufacture,
-                engines_model=aircraft.engines_model,
+                engines_manufacture=aircraft.engine.engine_manufacture,
+                engines_model=aircraft.engine.engine_model,
                 number_of_engines=aircraft.number_of_engines,
                 engine1_msn=aircraft.engine1_msn,
                 engine2_msn=aircraft.engine2_msn,
@@ -404,6 +405,42 @@ async def query_aircraft_additional(session: AsyncSession, aircraft_id: int):
     ).model_dump(mode="json")
 
 
+async def query_get_engines(session: AsyncSession, _payload: GetEnginesQuery):
+    payload = GetEnginesQuery(
+        **_payload.model_dump()
+    )
+
+    stmt = (
+        Select(
+            Engine
+        ).order_by(
+            Engine.engine_model
+        ).distinct()
+    )
+
+    if payload.engine_manufacture:
+        stmt = stmt.where(Engine.engine_manufacture == payload.engine_manufacture)
+    if payload.engine_type:
+        stmt = stmt.where(Engine.engine_model == payload.engine_type)
+    if payload.id:
+        stmt = stmt.where(Engine.id == payload.id)
+
+    result = await session.execute(stmt)
+    engines = result.scalars().all()
+
+    engines_list = []
+    for engine in engines:
+        engines_list.append(
+            EnginesSchema(
+                id=engine.id,
+                engine_model=engine.engine_model,
+                engine_manufacture=engine.engine_manufacture,
+            ).model_dump(mode="json")
+        )
+
+    return engines_list
+
+
 async def query_create_aircraft(session: AsyncSession, _payload: CreateAircraftQuery) -> bool:
     payload = CreateAircraftQuery(
         **_payload.model_dump()
@@ -417,6 +454,12 @@ async def query_create_aircraft(session: AsyncSession, _payload: CreateAircraftQ
     if not template:
         raise ValueError("Aircraft template not found")
 
+    engine = None
+    if payload.engine_id:
+        engine = await session.get(Engine, payload.engine_id)
+        if not engine:
+            raise ValueError("Engine not found")
+
     if payload.policy_from:
         if not isinstance(payload.policy_from, date):
             payload.policy_from = datetime.fromisoformat(str(payload.policy_from)).date()
@@ -428,7 +471,6 @@ async def query_create_aircraft(session: AsyncSession, _payload: CreateAircraftQ
     aircraft = await session.get(Aircraft, payload.aircraft_id)
 
     if aircraft is None:
-
         aircraft = Aircraft(
             id=payload.aircraft_id,
             registration=payload.aircraft_registration,
@@ -437,8 +479,7 @@ async def query_create_aircraft(session: AsyncSession, _payload: CreateAircraftQ
             template_id=payload.template_id,
             in_dashboard=payload.in_dashboard,
             status=payload.status,
-            engines_manufacture=payload.engines_manufacture,
-            engines_model=payload.engines_model,
+            engine_id=payload.engine_id,
             number_of_engines=payload.number_of_engines,
             engine1_msn=payload.engine1_msn,
             engine2_msn=payload.engine2_msn,
@@ -475,8 +516,7 @@ async def query_create_aircraft(session: AsyncSession, _payload: CreateAircraftQ
     aircraft.template_id = payload.template_id
     aircraft.in_dashboard = payload.in_dashboard
     aircraft.status = payload.status
-    aircraft.engines_manufacture = payload.engines_manufacture
-    aircraft.engines_model = payload.engines_model
+    aircraft.engine_id = payload.engine_id
     aircraft.number_of_engines = payload.number_of_engines
     aircraft.engine1_msn = payload.engine1_msn
     aircraft.engine2_msn = payload.engine2_msn

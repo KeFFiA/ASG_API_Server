@@ -264,8 +264,9 @@ class Aircraft(Base):
 
     policy: Mapped[list["AircraftPolicy"]] = relationship(back_populates="aircraft", cascade="all, delete-orphan")
 
-    engines_manufacture: Mapped[str] = mapped_column(String, nullable=True)
-    engines_model: Mapped[str] = mapped_column(String, nullable=True)
+    engine_id: Mapped[int] = mapped_column(ForeignKey("engines.id", ondelete="SET NULL"), nullable=True)
+
+    engine: Mapped["Engine"] = relationship(back_populates="aircrafts")
     number_of_engines: Mapped[int] = mapped_column(Integer, nullable=True, default=2)
     engine1_msn: Mapped[str] = mapped_column(String, nullable=True)
     engine2_msn: Mapped[str] = mapped_column(String, nullable=True)
@@ -289,6 +290,16 @@ class Aircraft(Base):
     template: Mapped["AircraftTemplate"] = relationship(back_populates="aircrafts")
 
     claims: Mapped[list["Claim"]] = relationship(back_populates="aircraft")
+
+
+class Engine(Base):
+    engine_model: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    engine_manufacture: Mapped[str] = mapped_column(String, nullable=False)
+
+    aircrafts: Mapped[list["Aircraft"]] = relationship(
+        back_populates="engine"
+    )
+
 
 
 class Claim(Base):

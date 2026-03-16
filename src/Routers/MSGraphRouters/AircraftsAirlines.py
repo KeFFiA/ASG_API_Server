@@ -4,11 +4,11 @@ from fastapi import status, Request, Query, Body
 
 from Config import setup_logger, Router
 from Schemas import DefaultResponse, AirlinesQuery, AircraftTemplatesQuery, AircraftsQuery, CreateAircraftQuery, \
-    CreateAirlinesBody, CreateAircraftTemplatesBody, AircraftsAdditionalQuery
+    CreateAirlinesBody, CreateAircraftTemplatesBody, AircraftsAdditionalQuery, GetEnginesQuery
 from Schemas.Enums import service
 from Utils import DBProxy, success_response, error_response, warning_response
 from .DBQueries.AircraftsAirlines import query_airline, query_create_airline, query_templates, query_create_template, \
-    query_create_aircraft, query_aircrafts, query_aircraft_additional
+    query_create_aircraft, query_aircrafts, query_aircraft_additional, query_get_engines
 
 logger = setup_logger(name="msgraph_aircrafts_airlines")
 
@@ -307,6 +307,55 @@ async def create_aircraft(request: Request, _payload: Annotated[CreateAircraftQu
 
     except Exception as _ex:
         logger.error(f"Failed to create Aircraft: {_ex}")
+        return error_response(request=request, exc=_ex)
+
+
+@router.get(
+    path="/aircrafts/engines",
+    description="Get Aircraft Engines",
+    status_code=status.HTTP_200_OK,
+    response_model=DefaultResponse,
+)
+async def get_aircrafts(request: Request, _payload: Annotated[GetEnginesQuery, Query()]):
+    payload = GetEnginesQuery(
+        **_payload.model_dump()
+    )
+
+    if payload.id and payload.engine_type and payload.engine_manufacture:
+        return warning_response(request=request,
+                                msg="Only one of 'id', 'engine_type', 'engine_manufacture' must be provided")
+
+    db_proxy: DBProxy = request.state.db_proxy
+
+    async def db_query(session):
+        return await query_get_engines(session, _payload)
+
+    try:
+        if payload.id:
+            cache_key = f"engine:{payload.id}"
+        elif payload.engine_manufacture:
+            cache_key = f"engine:{payload.engine_manufacture}"
+        elif payload.engine_type:
+            cache_key = f"engine:{payload.engine_type}"
+        else:
+            cache_key = "engine:all"
+        engine_data = await db_proxy.get_or_cache(
+            key=cache_key,
+            db_name="powerplatform",
+            query_func=db_query,
+            ttl=60
+        )
+        if len(engine_data) > 0:
+            return success_response(request=request, data=engine_data,
+                                    msg="Engine retrieved successfully")
+        return warning_response(request=request, msg="Engine not found",
+                                status_code=status.HTTP_404_NOT_FOUND)
+
+    except ValueError:
+        return warning_response(request=request, msg="Engine not found",
+                                status_code=status.HTTP_404_NOT_FOUND)
+    except Exception as _ex:
+        logger.error(f"Failed to get Engine: {_ex}")
         return error_response(request=request, exc=_ex)
 
 
