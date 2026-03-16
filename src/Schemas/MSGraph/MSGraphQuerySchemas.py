@@ -56,8 +56,8 @@ class CreateAircraftQuery(BaseModel):
     aircraft_msn: int = Query(..., description="Aircraft MSN")
     in_dashboard: bool = Query(default=True, description="Is In Dashboard")
     status: str = Query(default="Insured", description="Status")
-    policy_from: Optional[date] = Query(default=None, description="Policy from")
-    policy_to: Optional[date] = Query(default=None, description="Policy to")
+    policy_from: Optional[date | str] = Query(default=None, description="Policy from")
+    policy_to: Optional[date | str] = Query(default=None, description="Policy to")
 
     engines_manufacture: Optional[str] = Query(default=None, description="Engines manufacture")
     engines_model: Optional[str] = Query(default=None, description="Engines model")

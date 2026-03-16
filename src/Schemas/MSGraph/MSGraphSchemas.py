@@ -132,8 +132,8 @@ class AircraftTemplateSchema(BaseModel):
 
 class AircraftPolicySchema(BaseModel):
     policy_id: int
-    policy_from: Optional[date]
-    policy_to: Optional[date]
+    policy_from: Optional[date | str]
+    policy_to: Optional[date | str]
 
 
 class AircraftSchema(BaseModel):
