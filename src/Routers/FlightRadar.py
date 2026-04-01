@@ -1,9 +1,12 @@
+from pathlib import Path
+import random
 from typing import Annotated
 
 from fastapi import Request, status, Query, BackgroundTasks
+from fastapi.responses import FileResponse
 
 from API.FlightRadarAPI.FlightSummary import fetch_all_ranges
-from Config import setup_logger, Router
+from Config import setup_logger, Router, RESPONSES_PATH
 from Schemas import RequestFRFlightSummary, DefaultResponse
 from Schemas.Enums import service
 from Utils import success_response, warning_response, error_response
@@ -23,7 +26,7 @@ router = Router(
 )
 
 
-@router.post("/flightsummary")
+@router.get("/flightsummary")
 async def process_data(request: Request,
                        background_tasks: BackgroundTasks,
                        _payload: Annotated[RequestFRFlightSummary, Query()]):
@@ -39,6 +42,8 @@ async def process_data(request: Request,
     try:
         start_date_str, end_date_str = payload.start_date.strftime("%Y-%m-%d"), payload.end_date.strftime("%Y-%m-%d")
         regs, airlines = payload.regs, payload.airlines
+        if airlines:
+            regs = None
 
         background_tasks.add_task(
             fetch_all_ranges,
@@ -50,7 +55,18 @@ async def process_data(request: Request,
             correlation_id=request.state.correlation_id,
         )
 
-        return success_response(request=request, msg="Process started successfully", status_code=status.HTTP_202_ACCEPTED)
+        filename = f"{random.randint(10000, 99999)}.json"
+        filepath = Path(RESPONSES_PATH / filename)
+        filepath.write_text('{"ok": True}', encoding="utf-8")
+
+        return FileResponse(
+            filepath,
+            media_type="application/json",
+            filename=filename,
+            background=background_tasks,
+        )
+
+        # return success_response(request=request, msg="Process started successfully", status_code=status.HTTP_202_ACCEPTED)
     except Exception as _ex:
         return error_response(request=request, exc=_ex)
 
