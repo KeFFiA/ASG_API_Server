@@ -33,6 +33,7 @@ async def process_data(request: Request,
     payload = RequestFRFlightSummary(
         **_payload.model_dump()
     )
+    print(payload.model_dump(mode='json'))
     if not payload.regs and not payload.airlines:
         return warning_response(request=request, msg="At least one of 'regs' or 'airlines' must be provided")
 
@@ -41,8 +42,8 @@ async def process_data(request: Request,
 
     try:
         start_date_str, end_date_str = payload.start_date.strftime("%Y-%m-%d"), payload.end_date.strftime("%Y-%m-%d")
-        regs, airlines = payload.regs, payload.airlines
-        if airlines:
+        regs, airlines = payload.regs.split(", "), payload.airlines.split(", ")
+        if len(airlines) > 0:
             regs = None
 
         background_tasks.add_task(
