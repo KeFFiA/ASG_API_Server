@@ -43,8 +43,12 @@ async def process_data(request: Request,
     try:
         start_date_str, end_date_str = payload.start_date.strftime("%Y-%m-%d"), payload.end_date.strftime("%Y-%m-%d")
         regs, airlines = payload.regs.split(", "), payload.airlines.split(", ")
-        if len(airlines) > 0:
+        if len(airlines) > 0 and  airlines[0] != "":
             regs = None
+        else:
+            airlines = None
+
+        print(regs, airlines)
 
         background_tasks.add_task(
             fetch_all_ranges,
