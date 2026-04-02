@@ -29,7 +29,9 @@ async def fetch_date_range(
     logger.debug("[Flight Summary] Starting query Fetch Date Range")
 
     async with client.session("flightradar") as session:
-        logger.debug(f"[Flight Summary] Range Processing: {range_from} - {range_to} | ICAO={icao} | REGS={regs}")
+        logger.debug(f"[Flight Summary] Range Processing: {range_from} - {range_to} |"
+                     f" ICAO={', '.join(icao) if icao else None} |"
+                     f" REGS={', '.join(regs) if regs else None}")
         next_from = range_from
 
         processing_flights: List[dict] = []
