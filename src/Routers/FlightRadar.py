@@ -33,7 +33,6 @@ async def process_data(request: Request,
     payload = RequestFRFlightSummary(
         **_payload.model_dump()
     )
-    print(payload.model_dump(mode='json'))
     if not payload.regs and not payload.airlines:
         return warning_response(request=request, msg="At least one of 'regs' or 'airlines' must be provided")
 
@@ -47,8 +46,6 @@ async def process_data(request: Request,
             regs = None
         else:
             airlines = None
-
-        print(regs, airlines)
 
         background_tasks.add_task(
             fetch_all_ranges,

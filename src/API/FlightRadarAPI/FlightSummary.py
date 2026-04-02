@@ -235,8 +235,8 @@ async def fetch_all_ranges(
                         record: PBIRequestFRSummaryData = result.scalar_one_or_none()
 
                         if record:
-                            record.current_regs = ", ".join(reg_batch) or None
-                            record.current_airlines = ", ".join(icao) or None
+                            record.current_regs = ", ".join(reg_batch) if reg_batch else None
+                            record.current_airlines = ", ".join(icao) if icao else None
                             record.current_date_from = range_start.strftime("%Y-%m-%d")
                             record.current_date_to = range_end.strftime("%Y-%m-%d")
                             if len(registration_batches) > 1:
