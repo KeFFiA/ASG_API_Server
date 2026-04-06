@@ -32,3 +32,7 @@ app.add_middleware(
 for obj in vars(Routers).values():
     if isinstance(obj, APIRouter):
         app.include_router(obj)
+
+# FlightRadar router
+from Routers.FlightRadar.flightradar import router as flightradar_router
+app.include_router(flightradar_router)
