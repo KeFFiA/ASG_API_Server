@@ -360,6 +360,7 @@ class AgreedValue(Base):
     manual_value: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     cirium_value: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     llm_value: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    aircraft_agreed_value: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
 
 
