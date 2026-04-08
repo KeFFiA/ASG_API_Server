@@ -500,8 +500,9 @@ async def query_create_aircraft(session: AsyncSession, _payload: CreateAircraftQ
         )
 
         if payload.policy_from or payload.policy_to:
-            aircraft.policy.append(
+            session.add(
                 AircraftPolicy(
+                    aircraft_id=aircraft.id,
                     policy_from=payload.policy_from,
                     policy_to=payload.policy_to
                 )
