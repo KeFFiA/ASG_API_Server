@@ -490,6 +490,7 @@ async def query_create_aircraft(session: AsyncSession, _payload: CreateAircraftQ
             engine3_msn=payload.engine3_msn,
             engine4_msn=payload.engine4_msn,
             agreed_value=payload.agreed_value,
+            av_source=payload.av_source,
             agreed_value_down_absolute=payload.agreed_value_down_absolute,
             agreed_value_down_percent=payload.agreed_value_down_percent,
             combined_single_limit=payload.combined_single_limit,
@@ -528,6 +529,7 @@ async def query_create_aircraft(session: AsyncSession, _payload: CreateAircraftQ
     aircraft.engine3_msn = payload.engine3_msn
     aircraft.engine4_msn = payload.engine4_msn
     aircraft.agreed_value = payload.agreed_value
+    aircraft.av_source = payload.av_source
     aircraft.agreed_value_down_absolute = payload.agreed_value_down_absolute
     aircraft.agreed_value_down_percent = payload.agreed_value_down_percent
     aircraft.combined_single_limit = payload.combined_single_limit

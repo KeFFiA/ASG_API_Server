@@ -274,6 +274,7 @@ class Aircraft(Base):
     engine4_msn: Mapped[str] = mapped_column(String, nullable=True)
 
     agreed_value: Mapped[float] = mapped_column(Float, nullable=True, default=0.0)
+    av_source: Mapped[str] = mapped_column(String, nullable=True, default="From Lease Agreement")
     agreed_value_down_absolute: Mapped[float] = mapped_column(Float, nullable=True, default=0.0)
     agreed_value_down_percent: Mapped[float] = mapped_column(Float, nullable=True, default=0.0)
     combined_single_limit: Mapped[float] = mapped_column(Float, nullable=True, default=0.0)
@@ -352,6 +353,13 @@ class Claim(Base):
     hw_paid: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     hsl_paid: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
+
+
+class AgreedValue(Base):
+    aircraft_id: Mapped[int] = mapped_column(Integer, nullable=False, unique=True)
+    manual_value: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    cirium_value: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    llm_value: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
 
 

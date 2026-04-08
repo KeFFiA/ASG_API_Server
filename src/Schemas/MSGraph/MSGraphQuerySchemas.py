@@ -66,6 +66,7 @@ class CreateAircraftQuery(BaseModel):
     engine3_msn: Optional[str] = Query(default=None, description="Engine3 MSN")
     engine4_msn: Optional[str] = Query(default=None, description="Engine4 MSN")
     agreed_value: Optional[float] = Query(default=None, description="Agreed value")
+    av_source: Optional[str] = Query(default="From Lease Agreement", description="Agreed Value Source")
     agreed_value_down_absolute: Optional[float] = Query(default=None, description="Agreed value down absolute")
     agreed_value_down_percent: Optional[float] = Query(default=None, description="Agreed value down percent")
     combined_single_limit: Optional[float] = Query(default=None, description="Combined single limit")
