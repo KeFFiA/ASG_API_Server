@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from Database import Airline, User, Asset, UserAirlineAccess, AircraftTemplate, Aircraft, CiriumAircrafts, \
-    AircraftRevision, DatabaseClient, AircraftPolicy, Engine
+    AircraftRevision, DatabaseClient, AircraftPolicy, Engine, AgreedValue, Lease_Output
 from Schemas import AirlineSchema, UserSchemaShort, AircraftTemplateSchema, \
     AircraftSchema, GetAirlinesSchema, AdditionalAircraftInfoSchema, AdditionalAircraftInfoValuationSchema, \
     AircraftPolicySchema, CreateAircraftQuery, GetEnginesQuery, EnginesSchema
@@ -512,11 +512,96 @@ async def query_create_aircraft(session: AsyncSession, _payload: CreateAircraftQ
 
         session.add(aircraft)
 
+        client = DatabaseClient()
+
+        async with client.session("cirium") as session_cirium:
+            stmt = (
+                select(CiriumAircrafts.Indicative_Market_Value_USm)
+                .where(CiriumAircrafts.Registration == payload.aircraft_registration)
+                .order_by(CiriumAircrafts.revision_id.desc())
+                .limit(1)
+            )
+
+            cirium_result = await session_cirium.execute(stmt)
+            cirium_value = cirium_result.scalar_one_or_none()
+
+        async with client.session("main") as session_main:
+            stmt = (
+                select(Lease_Output.aircraft_agreed_value)
+                .where(Lease_Output.aircraft_registration == payload.aircraft_registration)
+                .limit(1)
+            )
+
+            llm_result = await session_main.execute(stmt)
+            llm_value = llm_result.scalar_one_or_none()
+
+        aircraft_agreed_value = None
+
+        if payload.av_source == "From Cirium":
+            aircraft_agreed_value = cirium_value
+        if payload.av_source == "From Manual Input":
+            aircraft_agreed_value = payload.agreed_value
+        if payload.av_source == "From Lease Agreement":
+            aircraft_agreed_value = llm_value
+
+        agreed_value = AgreedValue(
+            aircraft_id=aircraft.id,
+            manual_value=payload.agreed_value,
+            cirium_value=cirium_value,
+            llm_value=llm_value,
+            aircraft_agreed_value=aircraft_agreed_value
+        )
+
+        session.add(agreed_value)
+
         return True
 
     # -------------------------
     # UPDATE AIRCRAFT
     # -------------------------
+
+    client = DatabaseClient()
+
+    async with client.session("cirium") as session_cirium:
+        stmt = (
+            select(CiriumAircrafts.Indicative_Market_Value_USm)
+            .where(CiriumAircrafts.Registration == payload.aircraft_registration)
+            .order_by(CiriumAircrafts.revision_id.desc())
+            .limit(1)
+        )
+
+        cirium_result = await session_cirium.execute(stmt)
+        cirium_value = cirium_result.scalar_one_or_none()
+
+    async with client.session("main") as session_main:
+        stmt = (
+            select(Lease_Output.aircraft_agreed_value)
+            .where(Lease_Output.aircraft_registration == payload.aircraft_registration)
+            .limit(1)
+        )
+
+        llm_result = await session_main.execute(stmt)
+        llm_value = llm_result.scalar_one_or_none()
+
+    aircraft_agreed_value = None
+
+    if payload.av_source == "From Cirium":
+        aircraft_agreed_value = cirium_value
+    if payload.av_source == "From Manual Input":
+        aircraft_agreed_value = payload.agreed_value
+    if payload.av_source == "From Lease Agreement":
+        aircraft_agreed_value = llm_value
+
+    agreed_value = AgreedValue(
+        aircraft_id=payload.aircraft_id,
+        manual_value=payload.agreed_value,
+        cirium_value=cirium_value,
+        llm_value=llm_value,
+        aircraft_agreed_value=aircraft_agreed_value
+    )
+
+    session.add(agreed_value)
+
     aircraft.registration = payload.aircraft_registration
     aircraft.msn = payload.aircraft_msn
     aircraft.airline_id = payload.airline_id
