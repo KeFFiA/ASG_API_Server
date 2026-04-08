@@ -162,6 +162,7 @@ class AircraftSchema(BaseModel):
     engine3_msn: Optional[str]
     engine4_msn: Optional[str]
     agreed_value: Optional[float]
+    av_source: Optional[str]
     agreed_value_down_absolute: Optional[float]
     agreed_value_down_percent: Optional[float]
     combined_single_limit: Optional[float]

@@ -277,6 +277,7 @@ async def query_aircrafts(session: AsyncSession, airline_id: Optional[int], airl
                 msn=aircraft.msn,
                 policy=policy_list,
                 agreed_value=aircraft.agreed_value,
+                av_source=aircraft.av_source,
                 agreed_value_down_percent=aircraft.agreed_value_down_percent,
                 agreed_value_down_absolute=aircraft.agreed_value_down_absolute,
                 combined_single_limit=aircraft.combined_single_limit,
