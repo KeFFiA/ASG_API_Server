@@ -4,6 +4,7 @@ from typing import Optional
 from uuid import UUID
 
 from sqlalchemy import select, func, cast, Date, literal, Select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -592,15 +593,25 @@ async def query_create_aircraft(session: AsyncSession, _payload: CreateAircraftQ
     if payload.av_source == "From Lease Agreement":
         aircraft_agreed_value = llm_value
 
-    agreed_value = AgreedValue(
-        aircraft_id=payload.aircraft_id,
+    stmt = insert(AgreedValue).values(
+        aircraft_id=aircraft.id,
         manual_value=payload.agreed_value,
         cirium_value=cirium_value,
         llm_value=llm_value,
         aircraft_agreed_value=aircraft_agreed_value
     )
 
-    session.add(agreed_value)
+    stmt = stmt.on_conflict_do_update(
+        index_elements=["aircraft_id"],
+        set_={
+            "manual_value": payload.agreed_value,
+            "cirium_value": cirium_value,
+            "llm_value": llm_value,
+            "aircraft_agreed_value": aircraft_agreed_value
+        }
+    )
+
+    await session.execute(stmt)
 
     aircraft.registration = payload.aircraft_registration
     aircraft.msn = payload.aircraft_msn
