@@ -16,8 +16,9 @@ logger = setup_logger("flightradar")
 
 
 async def fetch_date_range(
-        icao: Optional[str],
+        icao: Optional[List[str]],
         regs: Optional[List[str]],
+        callsigns: Optional[List[str]],
         range_from: datetime,
         range_to: datetime,
         http: aiohttp.ClientSession,
@@ -31,6 +32,7 @@ async def fetch_date_range(
     async with client.session("flightradar") as session:
         logger.debug(f"[Flight Summary] Range Processing: {range_from} - {range_to} |"
                      f" ICAO={', '.join(icao) if icao else None} |"
+                     f" CALLSIGNS={', '.join(callsigns) if callsigns else None} |"
                      f" REGS={', '.join(regs) if regs else None}")
         next_from = range_from
 
@@ -45,6 +47,8 @@ async def fetch_date_range(
                 params["painted_as"] = ",".join(icao)
             if regs:
                 params["registrations"] = ",".join(regs)
+            if callsigns:
+                params["callsigns"] = ",".join(callsigns)
 
             await asyncio.sleep(FLIGHT_RADAR_SECONDS_BETWEEN_REQUESTS)
 
@@ -160,19 +164,32 @@ async def fetch_date_range(
         return processing_flights
 
 
+def split_batches(data: Optional[List[str]], batch_size: int) -> List[Optional[List[str]]]:
+    if not data:
+        return [None]
+    return [data[i:i + batch_size] for i in range(0, len(data), batch_size)]
+
+
+def get_batch(batches, index) -> Optional[List[str]]:
+    if not batches:
+        return None
+    return batches[index] if index < len(batches) else None
+
+
 @performance_timer
 async def fetch_all_ranges(
         start_date: str,
         end_date: str,
         user: Optional[str] = None,
         correlation_id: Optional[UUID] = None,
-        icao: Optional[str] = None,
+        icao: Optional[List[str]] = None,
         registrations: Optional[List[str]] = None,
+        callsigns: Optional[List[str]] = None,
         storage_mode: str = "db",
         csv_path: Optional[str] = FLIGHT_RADAR_PATH / f"flights_{datetime.strftime(datetime.now(), '%Y%m%d_%H%M')}.csv"
 ):
     client: DatabaseClient = DatabaseClient()
-    if registrations is None and icao is None:
+    if registrations is None and icao is None and callsigns is None:
         async with client.session("main") as session:
             stmt = (
                 select(
@@ -198,10 +215,15 @@ async def fetch_all_ranges(
         date_ranges.append((current, range_end))
         current = range_end + timedelta(seconds=1)
 
-    registration_batches = (
-        [registrations[i:i + FLIGHT_RADAR_MAX_REG_PER_BATCH] for i in
-         range(0, len(registrations), FLIGHT_RADAR_MAX_REG_PER_BATCH)]
-        if registrations else [None]
+    registration_batches = split_batches(registrations, FLIGHT_RADAR_MAX_REG_PER_BATCH)
+    icao_batches = split_batches(icao, FLIGHT_RADAR_MAX_REG_PER_BATCH)
+    callsigns_batches = split_batches(callsigns, FLIGHT_RADAR_MAX_REG_PER_BATCH)
+
+    max_len = max(
+        len(registration_batches),
+        len(icao_batches),
+        len(callsigns_batches),
+        1
     )
 
     async with aiohttp.ClientSession() as http:
@@ -218,13 +240,19 @@ async def fetch_all_ranges(
                 service_session.add(init_record)
                 await service_session.commit()
 
-        for batch_index, reg_batch in enumerate(registration_batches):
-            if reg_batch:
-                logger.debug(
-                    f"\n[Flight Summary] Processing a batch of registrations {batch_index + 1} out of {len(registration_batches)}")
+        total_iterations = max_len * len(date_ranges)
+        current_iteration = 0
+
+        for batch_index in range(max_len):
+            reg_batch = get_batch(registration_batches, batch_index)
+            icao_batch = get_batch(icao_batches, batch_index)
+            callsign_batch = get_batch(callsigns_batches, batch_index)
+            logger.debug(
+                f"\n[Flight Summary] Processing a batch {current_iteration + 1} out of {total_iterations}")
 
             for i, (range_start, range_end) in enumerate(date_ranges):
                 logger.debug(f"[Flight Summary] Range {i + 1} out of {len(date_ranges)}")
+                current_iteration += 1
 
                 if correlation_id:
                     async with client.session("service") as service_session:
@@ -236,31 +264,26 @@ async def fetch_all_ranges(
 
                         if record:
                             record.current_regs = ", ".join(reg_batch) if reg_batch else None
-                            record.current_airlines = ", ".join(icao) if icao else None
+                            record.current_airlines = ", ".join(icao_batch) if icao_batch else None
+                            # TODO: Add callsigns
                             record.current_date_from = range_start.strftime("%Y-%m-%d")
                             record.current_date_to = range_end.strftime("%Y-%m-%d")
-                            if len(registration_batches) > 1:
-                                if i + 1 == len(date_ranges) and batch_index + 1 == len(registration_batches):
-                                    record.estimate_time = 0
-                                else:
-                                    record.estimate_time = (len(date_ranges) - i) * 5.5 * len(registration_batches)
-                            else:
-                                if i + 1 == len(date_ranges):
-                                    record.estimate_time = 0
-                                else:
-                                    record.estimate_time = (len(date_ranges) - i) * 5.5
+
+                            remaining = total_iterations - current_iteration
+                            record.estimate_time = remaining * 5.5
 
                             service_session.add(record)
                             await service_session.commit()
 
                 flights.append(await fetch_date_range(
-                    icao=icao,
+                    icao=icao_batch,
                     regs=reg_batch,
                     range_from=range_start,
                     range_to=range_end,
                     http=http,
                     storage_mode=storage_mode,
-                    csv_path=csv_path
+                    csv_path=csv_path,
+                    callsigns=callsign_batch
                 ))
 
                 if correlation_id:
@@ -282,36 +305,137 @@ async def fetch_all_ranges(
         return flights
 
 
-
 if __name__ == "__main__":
-    # ICAO = "GLO, CEB, AVA"
-    # ICAO = "UAE"
-    # ICAO = "RSX"
-    # ICAO = "VSV, ABY, RBG, CXI, RAM, VJC, CAI"
-    # ICAO = "SAA, PGT"
-    # ICAO = None
-    # ICAO = ["ADY", "MAC", "BTI", "ABB", "MSC"]
-    # ICAO = ["MNE", "APK", "ATC", "AZW", "LNK"]
-    # ICAO = ["SYG", "AYG", "AVA", "LRC", "GLG"]
-    # ICAO = ["TAI", "AVR", "GUG", "NVD", "AEB"]
-    # ICAO = ["MLH", "AHY", "BBT", "BBL", "CND"]
-    ICAO = ["EZY", "EJU", "EZS", "ETH", "EWG", "EWL", "EXV", "FZW", "KNE"]
+    import re
 
-    START_DATE = "2022-06-01"
+    def str_to_list(text: str | List[str] | None) -> List[str]:
+        if isinstance(text, str):
+            values = re.split(r"[,\n]+", text)
+            values = [v.strip() for v in values if v.strip()]
+            return list(set(values))
+        return text
+
+
+    ICAO = None
+    # ICAO = ["VAJ", "VCJ", "AOJ"]
+
+
+    # START_DATE = "2022-06-01"
+    START_DATE = "2024-04-13"
     # START_DATE = "2025-07-09"
-    END_DATE = "2026-02-27"
+    END_DATE = "2025-12-31"
 
     storage_mode = "both"  # "db", "csv", or "both"
 
-    REGISTRATIONS = None
+    # REGISTRATIONS = None
+    # REGISTRATIONS = ["ASTERIX", "OBELIX", "TRUBADIX"]
+
+    CAllSIGNS = None
+#     CAllSIGNS = """
+#     9H1MA
+# AOJ1A
+# AOJ22S
+# AOJ45C
+# AOJ53L
+# AOJ53Z
+# AOJ54F
+# AOJ596
+# AOJ72T
+# AOJ73M
+# AOJ77U
+# AOJ84K
+# N146MM
+# OEFPJ
+# OEFVG
+# OELVS
+# T7DUA
+# T7SAHIN
+# VAJ075N
+# VAJ711
+# VAJ75N
+# VCJ046X
+# VCJ050M
+# VCJ1MA
+# VCJ303
+# VCJ39A
+# VCJ46X
+# VCJ50M
+# VCJ778
+# VCJ79X
+# VCJ96E
+# VCJ97N
+#     """
+
+    REGISTRATIONS = """
+    9H-1MA
+9H-APX
+9H-BOD
+9H-GKM
+9H-NATHO
+9H-ONE
+9H-OPL
+9H-PMN
+9H1MA
+9HGKM
+9HNATHO
+9HONE
+OE-DNF
+OE-FBL
+OE-FEG
+OE-FPJ
+OE-FSS
+OE-GAP
+OE-GCL
+OE-GCZ
+OE-GJB
+OE-GJW
+OE-GLI
+OE-GLY
+OE-GYS
+OE-GZF
+OE-HIL
+OE-HIM
+OE-HLB
+OE-HOH
+OE-HOP
+OE-HOZ
+OE-HRS
+OE-HRT
+OE-HUG
+OE-HWJ
+OE-HXX
+OE-IAA
+OE-IBK
+OE-IMB
+OE-IMI
+OE-IRK
+OE-ISN
+OE-ITA
+OE-ITE
+OE-LCA
+OE-LCY
+OE-LCZ
+OE-LHU
+OE-LIM
+OE-LIO
+OE-LOT
+OE-LVS
+OEHRT
+OELVS
+OK-VOS
+T7-DUA
+T7-SAHIN
+    """
 
 
-    csv_path = FLIGHT_RADAR_PATH / f"flights_02_28_2026_1.csv"
+    csv_path = FLIGHT_RADAR_PATH / f"flights_12_04_2026_1.csv"
 
     asyncio.run(fetch_all_ranges(
         start_date=START_DATE,
         end_date=END_DATE,
-        icao=ICAO if ICAO else None,
-        registrations=REGISTRATIONS if REGISTRATIONS else None,
-        storage_mode=storage_mode
+        icao=str_to_list(ICAO),
+        registrations=str_to_list(REGISTRATIONS),
+        callsigns=str_to_list(CAllSIGNS),
+        storage_mode=storage_mode,
+        csv_path=csv_path.as_posix()
     ))

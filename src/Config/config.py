@@ -9,9 +9,8 @@ from fastapi import APIRouter
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-DEV_MODE: bool = os.getenv("DEV_MODE", "false").lower() in ("1", "true", "yes", "on", True)
-# DEV_MODE: bool = True
-
+# DEV_MODE: bool = os.getenv("DEV_MODE", "false").lower() in ("1", "true", "yes", "on", True)
+DEV_MODE: bool = True
 
 # PATH
 
@@ -207,7 +206,8 @@ CUSTOM_EXCEL_LEASE_HEADERS_ORDER = [
 
 FLIGHT_RADAR_URL: str = require_env("FLIGHT_RADAR_URL", "https://fr24api.flightradar24.com/api")
 FLIGHT_RADAR_API_KEY: str = require_env("FLIGHT_RADAR_API_KEY")
-FLIGHT_RADAR_SECONDS_BETWEEN_REQUESTS: float = require_env("FLIGHT_RADAR_SECONDS_BETWEEN_REQUESTS", 60 / 90)
+# FLIGHT_RADAR_SECONDS_BETWEEN_REQUESTS: float = require_env("FLIGHT_RADAR_SECONDS_BETWEEN_REQUESTS", 60 / 90)
+FLIGHT_RADAR_SECONDS_BETWEEN_REQUESTS: float = require_env("FLIGHT_RADAR_SECONDS_BETWEEN_REQUESTS", 60 / 30)
 FLIGHT_RADAR_RANGE_DAYS: int = require_env("FLIGHT_RADAR_RANGE_DAYS", 14)
 FLIGHT_RADAR_MAX_REG_PER_BATCH: int = require_env("FLIGHT_RADAR_MAX_REG_PER_BATCH", 15)
 FLIGHT_RADAR_HEADERS: dict = {
