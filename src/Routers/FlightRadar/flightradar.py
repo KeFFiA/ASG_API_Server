@@ -1,55 +1,88 @@
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
-from typing import Optional
-from datetime import datetime
-import httpx
+from fastapi import APIRouter, Depends, BackgroundTasks
+import uuid
+import asyncio
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.Database.database import get_db
+from src.Database.FlightRadarJobCRUD import create_job, get_job, update_job_status, update_job_progress
+from src.Schemas.FlightRadar import StartRequest
 
 router = APIRouter(prefix="/flightradar", tags=["FlightRadar"])
 
-FLIGHTRADAR_URL = "http://localhost:8001"
 
-class StartRequest(BaseModel):
-    id: Optional[str] = Field(None, description="Flight ID")
-    reg: Optional[str] = Field(None, description="Registration number")
-    icao: Optional[str] = Field(None, description="ICAO24 address")
-    start_date: Optional[datetime] = Field(None, description="Start date")
-    end_date: Optional[datetime] = Field(None, description="End date")
-    type: Optional[str] = Field(None, description="Flight type")
+async def run_stub_job(job_id: uuid.UUID, db: AsyncSession):
+    """Background stub job that simulates work and updates progress in database"""
+    for i in range(1, 11):
+        await asyncio.sleep(2)
+        progress = i * 10
+        await update_job_progress(db, job_id, progress)
     
-    def model_post_init(self, __context):
-        if not any([self.id, self.reg, self.icao]):
-            raise ValueError("At least one of 'id', 'reg', or 'icao' must be provided")
+    await update_job_status(db, job_id, "completed")
 
-@router.post("/start")
-async def start_extraction(params: StartRequest):
+
+@router.post("/start", status_code=201)
+async def start_extraction(
+    params: StartRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db)
+):
+    """Start extraction - creates job in database and runs background stub"""
+    job = await create_job(db, params.dict())
     
-    request_data = params.dict()
-    if request_data.get("start_date"):
-        request_data["start_date"] = request_data["start_date"].isoformat()
-    if request_data.get("end_date"):
-        request_data["end_date"] = request_data["end_date"].isoformat()
+    background_tasks.add_task(run_stub_job, job.id, db)
     
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            f"{FLIGHTRADAR_URL}/start",
-            json=request_data
-        )
-        return response.json()
+    return {
+        "job_id": str(job.id),
+        "status": job.status,
+        "message": "Extraction job started (stub)"
+    }
+
 
 @router.post("/stop")
-async def stop_extraction(job_id: str):
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            f"{FLIGHTRADAR_URL}/stop",
-            params={"job_id": job_id}
-        )
-        return response.json()
+async def stop_extraction(
+    job_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """Stop extraction - updates job status in database"""
+    job_uuid = uuid.UUID(job_id)
+    job = await get_job(db, job_uuid)
+    
+    if not job:
+        return {
+            "job_id": job_id,
+            "status": "error",
+            "message": "Job not found"
+        }
+    
+    await update_job_status(db, job_uuid, "stopped")
+    
+    return {
+        "job_id": job_id,
+        "status": "stopped",
+        "message": "Extraction job stopped"
+    }
+
 
 @router.get("/status")
-async def get_status(job_id: str):
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            f"{FLIGHTRADAR_URL}/status",
-            params={"job_id": job_id}
-        )
-        return response.json()
+async def get_status(
+    job_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get status - reads from database"""
+    job_uuid = uuid.UUID(job_id)
+    job = await get_job(db, job_uuid)
+    
+    if not job:
+        return {
+            "job_id": job_id,
+            "status": "error",
+            "progress": 0,
+            "last_update": None
+        }
+    
+    return {
+        "job_id": str(job.id),
+        "status": job.status,
+        "progress": job.progress,
+        "last_update": job.updated_at.isoformat() if job.updated_at else None
+    }
