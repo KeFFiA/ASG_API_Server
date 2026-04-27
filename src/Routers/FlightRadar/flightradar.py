@@ -4,7 +4,7 @@ import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.Database.database import get_db
-from src.Database.FlightRadarJobCRUD import create_job, get_job, update_job_status, update_job_progress
+from src.Database.FlightRadarJobCRUD import create_job, get_job, update_job
 from src.Schemas.FlightRadar import StartRequest
 
 router = APIRouter(prefix="/flightradar", tags=["FlightRadar"])
@@ -15,9 +15,9 @@ async def run_stub_job(job_id: uuid.UUID, db: AsyncSession):
     for i in range(1, 11):
         await asyncio.sleep(2)
         progress = i * 10
-        await update_job_progress(db, job_id, progress)
-    
-    await update_job_status(db, job_id, "completed")
+        await update_job(db, job_id, progress=progress)
+
+    await update_job(db, job_id, status="completed")
 
 
 @router.post("/start", status_code=201)
@@ -28,9 +28,8 @@ async def start_extraction(
 ):
     """Start extraction - creates job in database and runs background stub"""
     job = await create_job(db, params.dict())
-    
     background_tasks.add_task(run_stub_job, job.id, db)
-    
+
     return {
         "job_id": str(job.id),
         "status": job.status,
@@ -46,16 +45,16 @@ async def stop_extraction(
     """Stop extraction - updates job status in database"""
     job_uuid = uuid.UUID(job_id)
     job = await get_job(db, job_uuid)
-    
+
     if not job:
         return {
             "job_id": job_id,
             "status": "error",
             "message": "Job not found"
         }
-    
-    await update_job_status(db, job_uuid, "stopped")
-    
+
+    await update_job(db, job_uuid, status="stopped")
+
     return {
         "job_id": job_id,
         "status": "stopped",
@@ -71,7 +70,7 @@ async def get_status(
     """Get status - reads from database"""
     job_uuid = uuid.UUID(job_id)
     job = await get_job(db, job_uuid)
-    
+
     if not job:
         return {
             "job_id": job_id,
@@ -79,7 +78,7 @@ async def get_status(
             "progress": 0,
             "last_update": None
         }
-    
+
     return {
         "job_id": str(job.id),
         "status": job.status,
