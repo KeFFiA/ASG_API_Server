@@ -1,3 +1,4 @@
+import asyncio
 from typing import Iterable, Optional
 
 import aiohttp
@@ -7,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from Config import FLIGHT_RADAR_URL, FLIGHT_RADAR_HEADERS
 from Database import DatabaseClient
 from Database.Models import Airport, AirportRunway
+from Utils import str_to_list
 
 
 async def fetch_airport(
@@ -14,7 +16,6 @@ async def fetch_airport(
         code: str,
 ) -> Optional[dict]:
     async with session.get(f"{FLIGHT_RADAR_URL}/static/airports/{code}/full", headers=FLIGHT_RADAR_HEADERS) as resp:
-        print(resp.status, await resp.json())
         if resp.status != 200:
             return None
         return await resp.json()
@@ -92,32 +93,309 @@ async def load_airports(codes: Iterable[str]) -> None:
     async with aiohttp.ClientSession() as http:
         async with client.session("flightradar") as session:
             for code in codes:
-                print(code)
-                data = await fetch_airport(http, code)
-                if not data:
-                    print("No data")
-                    continue
-
                 exists = await airport_exists(
                     session,
-                    iata=data.get("iata"),
-                    icao=data.get("icao"),
+                    iata=code,
+                    icao=code,
                 )
                 if exists:
-                    print("Exists")
+                    continue
+
+                data = await fetch_airport(http, code)
+                if not data:
                     continue
 
                 await save_airport(session, data)
-                print("Saved")
+                await asyncio.sleep(2)
 
             await session.commit()
 
 
 if __name__ == "__main__":
-    import asyncio
 
-    airport_codes = [
-        "UASB", "UAUR", "LLKS", "OEPS", "YSPK", "YTHY"
-    ]
+    # airport_codes = [
+    #
+    # ]
+
+    airport_codes = str_to_list(
+        """
+        NJK
+NQX
+IPL
+HII
+MEI
+NMM
+CBM
+OSN
+YUM
+LIH
+ULD
+NQI
+CXL
+PPL
+DLF
+PEL
+SUL
+FCA
+SKQ
+LES
+SHZ
+JRS
+NIP
+SBA
+ALI
+KMH
+MYL
+RDM
+SNA
+BIY
+FLG
+VNY
+CRP
+EED
+HHH
+LWS
+MAF
+NEW
+NTD
+SHR
+SLE
+AZA
+BWO
+HVR
+KLZ
+QSO
+THB
+APA
+CLD
+FCB
+OMK
+ORL
+QNN
+RVO
+STS
+ABO
+ABY
+BCT
+BUR
+CEU
+ESN
+EUG
+HSH
+MNZ
+PDG
+PIH
+SPW
+TCL
+YEV
+AUO
+BWC
+COF
+CRG
+DOM
+DRT
+GSS
+HDN
+LGB
+ONO
+PHF
+PKU
+QTZ
+RKV
+SUA
+SWU
+TDW
+WGO
+ACK
+AGS
+AOC
+ARA
+ASE
+BLM
+CVO
+DHA
+EGS
+EVV
+EWN
+GCJ
+HST
+IVG
+IYO
+JOG
+KQT
+KTN
+LCV
+LIT
+LMS
+MFR
+MGR
+MMH
+MTZ
+MWC
+MZB
+NCO
+PGD
+QEJ
+QQN
+QSP
+QYA
+QYK
+QYL
+RBK
+RDD
+RKD
+STL
+TEA
+TGV
+TNJ
+TVI
+TVL
+VCT
+VPS
+WJU
+XNA
+YBL
+YHM
+YTR
+YXJ
+YYD
+
+AGF
+AST
+AVX
+BBX
+BPT
+BRO
+BTP
+CDV
+CGF
+CGI
+CHA
+CHF
+CHL
+CHN
+CID
+CLL
+CMH
+COD
+COI
+DIM
+DLS
+DPA
+DTN
+DWH
+EKI
+EKO
+ELD
+ELH
+EME
+ENA
+EPA
+FCH
+FRD
+FUL
+GCY
+GKT
+GSO
+HAR
+HIO
+HQM
+HYA
+ITH
+JAD
+JAF
+JQE
+JZI
+KYE
+LAK
+LAL
+LCI
+LFT
+LGA
+LIX
+LKZ
+LMO
+LNA
+LUL
+LUW
+LVK
+LVM
+MCI
+MCN
+MDJ
+MFE
+MHG
+MIV
+MRB
+MSC
+NKU
+NZY
+OCE
+OGD
+OMA
+OSX
+OTG
+OWD
+PAM
+PGA
+PIA
+PMD
+POU
+PRC
+PUB
+PWN
+PWY
+QGS
+QIE
+QIP
+QKM
+QQF
+QQL
+QSI
+QSS
+QSY
+QTB
+QTC
+QYS
+RAC
+RBG
+RKH
+RST
+RYB
+RZN
+SAF
+SBD
+SCE
+SGU
+SHV
+SLU
+SNS
+SOP
+TIW
+TKF
+TRI
+TRM
+TTN
+TUL
+TVC
+TZN
+ULX
+URO
+USM
+UST
+VDF
+VLD
+VRB
+VYD
+WDB
+WGB
+WNS
+WWD
+YQT
+YVQ
+ZFN
+        """
+    )
+
 
     asyncio.run(load_airports(airport_codes))

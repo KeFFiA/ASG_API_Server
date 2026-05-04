@@ -5,11 +5,12 @@ from typing import Annotated
 from fastapi import Request, status, Query, BackgroundTasks
 from fastapi.responses import FileResponse
 
+from API.FlightRadarAPI.AirportsAPI import load_airports
 from API.FlightRadarAPI.FlightSummary import fetch_all_ranges
 from Config import setup_logger, Router, RESPONSES_PATH
-from Schemas import RequestFRFlightSummary, DefaultResponse
+from Schemas import RequestFRFlightSummary, DefaultResponse, RequestFRAirports
 from Schemas.Enums import service
-from Utils import success_response, warning_response, error_response
+from Utils import success_response, warning_response, error_response, str_to_list
 
 logger = setup_logger(name="flightradar_api")
 
@@ -50,6 +51,7 @@ async def process_data(request: Request,
         background_tasks.add_task(
             fetch_all_ranges,
             registrations=regs,
+            callsigns=payload.callsigns,
             icao=airlines,
             start_date=start_date_str,
             end_date=end_date_str,
@@ -69,6 +71,40 @@ async def process_data(request: Request,
         )
 
         # return success_response(request=request, msg="Process started successfully", status_code=status.HTTP_202_ACCEPTED)
+    except Exception as _ex:
+        return error_response(request=request, exc=_ex)
+
+
+@router.get("/airports")
+async def process_data_airports(request: Request,
+                       background_tasks: BackgroundTasks,
+                       _payload: Annotated[RequestFRAirports, Query()]):
+    payload = RequestFRAirports(
+        **_payload.model_dump()
+    )
+    if not payload.codes:
+        return warning_response(request=request, msg="'codes' must be provided")
+
+    try:
+
+        background_tasks.add_task(
+            load_airports,
+            codes=str_to_list(payload.codes),
+        )
+
+        filename = f"{random.randint(10000, 99999)}.json"
+        filepath = Path(RESPONSES_PATH / filename)
+        filepath.write_text('{"ok": True}', encoding="utf-8")
+
+        return FileResponse(
+            filepath,
+            media_type="application/json",
+            filename=filename,
+            background=background_tasks,
+        )
+
+        # return success_response(request=request, msg="Process started successfully", status_code=status.HTTP_202_ACCEPTED)
+
     except Exception as _ex:
         return error_response(request=request, exc=_ex)
 

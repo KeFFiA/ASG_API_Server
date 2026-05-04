@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, model_validator
 
 class RequestFRFlightSummary(BaseModel):
     regs: Optional[str] = Query(default=None)
+    callsigns: Optional[str] = Query(default=None)
     airlines: Optional[str] = Query(default=None)
     start_date: datetime = Query()
     end_date: datetime = Query()
@@ -21,6 +22,10 @@ class RequestFRFlightSummary(BaseModel):
                 "start_date must be earlier than end_date and cannot be equal"
             )
         return self
+
+
+class RequestFRAirports(BaseModel):
+    codes: Optional[str|List[str]] = Query(default=None)
 
 
 

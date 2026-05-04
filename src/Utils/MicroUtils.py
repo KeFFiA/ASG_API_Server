@@ -1,9 +1,9 @@
 import csv
-from base64 import b64encode
-from datetime import datetime, timezone, timedelta
 import inspect
 import os
 import sys
+from base64 import b64encode
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import List, Optional
 
@@ -16,6 +16,14 @@ from sqlalchemy import Integer, Float, String, DateTime
 from Config import RESPONSES_PATH, FILES_PATH
 from Database import Asset
 from Schemas import ErrorValidationResponse, ErrorValidObject, GetFileResponseSchema
+
+
+def str_to_list(text: str | List[str] | None) -> List[str]:
+    if isinstance(text, str):
+        values = re.split(r"[,\n]+", text)
+        values = [v.strip() for v in values if v.strip()]
+        return list(set(values))
+    return text
 
 
 def map_asset(asset: Asset | None) -> GetFileResponseSchema | None:
@@ -47,7 +55,8 @@ def remove_file(path: str | Path):
         os.remove(str(path))
 
 
-async def validation_error_file(request: Request, exc: ValidationError, filename: str, background_tasks: BackgroundTasks) -> FileResponse:
+async def validation_error_file(request: Request, exc: ValidationError, filename: str,
+                                background_tasks: BackgroundTasks) -> FileResponse:
     detail = [
         ErrorValidObject(field=".".join(map(str, e["loc"])), msg=e["msg"], correlationId=request.state.correlation_id)
         for e in exc.errors()
