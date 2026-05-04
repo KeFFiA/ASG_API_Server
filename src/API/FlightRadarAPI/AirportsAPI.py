@@ -5,10 +5,13 @@ import aiohttp
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from Config import FLIGHT_RADAR_URL, FLIGHT_RADAR_HEADERS
+from Config import FLIGHT_RADAR_URL, FLIGHT_RADAR_HEADERS, setup_logger
 from Database import DatabaseClient
 from Database.Models import Airport, AirportRunway
 from Utils import str_to_list
+
+
+logger = setup_logger("flightradar_airports")
 
 
 async def fetch_airport(
@@ -86,12 +89,14 @@ async def save_airport(session: AsyncSession, data: dict) -> None:
         )
 
     session.add(airport)
+    logger.debug("Airport saved")
 
 
 async def load_airports(codes: Iterable[str]) -> None:
     client = DatabaseClient()
     async with aiohttp.ClientSession() as http:
         async with client.session("flightradar") as session:
+            logger.info(f"Codes: {codes}")
             for code in codes:
                 exists = await airport_exists(
                     session,
@@ -99,10 +104,12 @@ async def load_airports(codes: Iterable[str]) -> None:
                     icao=code,
                 )
                 if exists:
+                    logger.debug(f"Airport {code} exists")
                     continue
 
                 data = await fetch_airport(http, code)
                 if not data:
+                    logger.debug(f"No airport data for {code}")
                     continue
 
                 await save_airport(session, data)

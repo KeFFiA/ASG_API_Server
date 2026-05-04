@@ -86,7 +86,6 @@ async def process_data_airports(request: Request,
         return warning_response(request=request, msg="'codes' must be provided")
 
     try:
-
         background_tasks.add_task(
             load_airports,
             codes=str_to_list(payload.codes),

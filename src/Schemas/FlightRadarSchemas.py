@@ -25,7 +25,7 @@ class RequestFRFlightSummary(BaseModel):
 
 
 class RequestFRAirports(BaseModel):
-    codes: Optional[str|List[str]] = Query(default=None)
+    codes: Optional[str] = Query(default=None)
 
 
 
