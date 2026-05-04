@@ -96,7 +96,7 @@ async def load_airports(codes: Iterable[str]) -> None:
     client = DatabaseClient()
     async with aiohttp.ClientSession() as http:
         async with client.session("flightradar") as session:
-            logger.info(f"Codes: {codes}")
+            logger.info(f"Codes: {', '.join(codes)}")
             for code in codes:
                 exists = await airport_exists(
                     session,
