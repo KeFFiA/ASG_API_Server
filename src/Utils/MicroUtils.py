@@ -1,6 +1,7 @@
 import csv
 import inspect
 import os
+import re
 import sys
 from base64 import b64encode
 from datetime import datetime, timezone, timedelta
