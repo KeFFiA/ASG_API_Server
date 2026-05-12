@@ -4,7 +4,10 @@ from typing import Optional, List
 from sqlalchemy import String, Boolean, ForeignKey, Integer, Date, Float, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.Schemas.Enums import EnginePositionEnum, AircraftInsuredStatusEnum, AircraftDataSourceEnum
+try:
+    from src.Schemas.Enums import EnginePositionEnum, AircraftInsuredStatusEnum, AircraftDataSourceEnum
+except ModuleNotFoundError:
+    from Schemas.Enums import EnginePositionEnum, AircraftInsuredStatusEnum, AircraftDataSourceEnum
 
 from ..config import PowerPlatformBase as Base
 

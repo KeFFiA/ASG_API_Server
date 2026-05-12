@@ -23,19 +23,16 @@ def build_responses(
             status.HTTP_500_INTERNAL_SERVER_ERROR: "Server Error",
         }.get(code, "Response")
 
-    def _empty_data_example(model: Type[Any]):
+    def _empty_data_example(model):
         origin = get_origin(model)
 
-        if origin is list:
+        if origin in (list, set, tuple):
             return []
 
         if origin is dict:
             return {}
 
-        if isinstance(model, type) and issubclass(model, BaseModel):
-            return {}
-
-        return None
+        return {}
 
     def success_example():
         return {
