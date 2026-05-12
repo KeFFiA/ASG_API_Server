@@ -20,6 +20,12 @@ class DefaultResponse(BaseModel, Generic[T]):
     data: T
 
 
+class ErrorResponse(BaseModel):
+    status_code: int
+    details: DetailField
+    data: list = []
+
+
 class ErrorValidObject(DetailField):
     field: str
 
