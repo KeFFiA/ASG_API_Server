@@ -7,13 +7,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from Database import Airline, User, Asset, UserAirlineAccess
-from Schemas import UserSchemaLight, AirlineUsersSchemaLight, AirlineUsersSchemaFull
+from Schemas import UserSchemaLight, AirlineUsersSchemaLight, AirlineUsersSchemaFull, UpsertdelResponseSchema, \
+    UpsertdelStatusEnum
 from Schemas.PowerPlatform.BodySchemas.AirlineSchemas import CreateAirlinesBody
 from Schemas.PowerPlatform.QuerySchemas.AirlineSchemas import GetAirlineQuery
 from Utils import map_asset
 
 
-async def query_create_airline(session: AsyncSession, _payload: CreateAirlinesBody) -> bool:
+async def query_create_airline(session: AsyncSession, _payload: CreateAirlinesBody) -> List[UpsertdelResponseSchema]:
     payload = CreateAirlinesBody(
         **_payload.model_dump()
     )
@@ -63,7 +64,7 @@ async def query_create_airline(session: AsyncSession, _payload: CreateAirlinesBo
             )
 
         await session.commit()
-        return True
+        return [UpsertdelResponseSchema(status=UpsertdelStatusEnum.CREATED)]
     except Exception as _ex:
         raise _ex
 

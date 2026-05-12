@@ -3,7 +3,7 @@ from typing import Annotated, List
 from fastapi import status, Request, Query, Body, Response
 
 from Config import setup_logger, Router
-from Schemas import DefaultResponse, AirlineUsersSchemaFull, AirlineUsersSchemaLight
+from Schemas import DefaultResponse, AirlineUsersSchemaFull, AirlineUsersSchemaLight, UpsertdelResponseSchema
 from Schemas.PowerPlatform.BodySchemas.AirlineSchemas import CreateAirlinesBody
 from Schemas.PowerPlatform.QuerySchemas.AirlineSchemas import GetAirlineQuery
 from Schemas.Enums import service
@@ -96,7 +96,7 @@ async def get_airlines_light(request: Request, response: Response, _payload: Ann
     path="/airlines",
     description="Create Airlines",
     status_code=status.HTTP_201_CREATED,
-    response_model=DefaultResponse[List[None]],
+    response_model=DefaultResponse[List[UpsertdelResponseSchema]],
     responses=build_responses(
         include={status.HTTP_201_CREATED, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
@@ -109,7 +109,7 @@ async def create_airlines(request: Request, response: Response, _payload: Annota
 
     try:
         cache_key = f"airline:{_payload.airline_icao}"
-        await db_proxy.update_and_cache(
+        result = await db_proxy.update_and_cache(
             key=cache_key,
             db_name="powerplatform",
             update_func=db_query,
@@ -117,7 +117,7 @@ async def create_airlines(request: Request, response: Response, _payload: Annota
         )
 
         return success_response(request=request, response=response, msg="Airline created successfully",
-                                status_code=status.HTTP_201_CREATED, data=[])
+                                status_code=status.HTTP_201_CREATED, data=result)
 
     except Exception as _ex:
         logger.error(f"Failed to create airline: {_ex}")

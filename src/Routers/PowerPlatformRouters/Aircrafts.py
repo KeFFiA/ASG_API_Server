@@ -4,7 +4,7 @@ from fastapi import status, Request, Query, Body, Response
 
 from Config import setup_logger, Router
 from Schemas import DefaultResponse, TemplateSchemaLight, TemplateSchemaFull, AircraftSchemaFull, AircraftSchemaLight, \
-    EngineSchema, AdditionalAircraftInfoSchema, EngineTypeSchema
+    EngineSchema, AdditionalAircraftInfoSchema, EngineTypeSchema, UpsertdelResponseSchema
 from Schemas.Enums import service
 from Schemas.PowerPlatform.BodySchemas.AircraftSchemas import CreateAircraftTemplatesBody, CreateUpdateAircraftBody
 from Schemas.PowerPlatform.QuerySchemas.AircraftSchemas import GetAircraftQuery, GetEngineTypeQuery, \
@@ -105,7 +105,7 @@ async def get_aircraft_template_light(request: Request, response: Response, _pay
     path="/templates",
     description="Create Aircraft template",
     status_code=status.HTTP_201_CREATED,
-    response_model=DefaultResponse[List[None]],
+    response_model=DefaultResponse[List[UpsertdelResponseSchema]],
     responses=build_responses(
         include={status.HTTP_201_CREATED, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
@@ -118,7 +118,7 @@ async def create_aircraft_template(request: Request, response: Response, _payloa
 
     try:
         cache_key = f"template:{_payload.template_name}"
-        await db_proxy.update_and_cache(
+        result = await db_proxy.update_and_cache(
             key=cache_key,
             db_name="powerplatform",
             update_func=db_query,
@@ -126,7 +126,7 @@ async def create_aircraft_template(request: Request, response: Response, _payloa
         )
 
         return success_response(request=request, response=response, msg="Aircraft template created successfully",
-                                status_code=status.HTTP_201_CREATED, data=[])
+                                status_code=status.HTTP_201_CREATED, data=result)
 
     except Exception as _ex:
         logger.error(f"Failed to create Aircraft template: {_ex}")
@@ -220,12 +220,12 @@ async def get_aircrafts_light(request: Request, response: Response, _payload: An
     path="/",
     description="Create Aircraft",
     status_code=status.HTTP_201_CREATED,
-    response_model=DefaultResponse[List[None]],
+    response_model=DefaultResponse[List[UpsertdelResponseSchema]],
     responses=build_responses(
         include={status.HTTP_201_CREATED, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )
-async def create_aircraft(request: Request, response: Response, _payload: Annotated[CreateUpdateAircraftBody, Query()]):
+async def create_aircraft(request: Request, response: Response, _payload: Annotated[CreateUpdateAircraftBody, Body()]):
     db_proxy: DBProxy = request.state.db_proxy
 
     async def db_query(session):
@@ -233,7 +233,7 @@ async def create_aircraft(request: Request, response: Response, _payload: Annota
 
     try:
         cache_key = f"aircraft:{_payload.aircraft_registration}"
-        await db_proxy.update_and_cache(
+        result = await db_proxy.update_and_cache(
             key=cache_key,
             db_name="powerplatform",
             update_func=db_query,
@@ -241,7 +241,7 @@ async def create_aircraft(request: Request, response: Response, _payload: Annota
         )
 
         return success_response(request=request, response=response, msg="Aircraft created successfully",
-                                status_code=status.HTTP_201_CREATED, data=[])
+                                status_code=status.HTTP_201_CREATED, data=result)
 
     except Exception as _ex:
         logger.error(f"Failed to create Aircraft: {_ex}")
