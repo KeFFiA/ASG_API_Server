@@ -1,11 +1,10 @@
 import inspect
 import sys
-from datetime import datetime
 from typing import Optional
 
 from pydantic import EmailStr
 
-from sqlalchemy import String, Integer, Float, UniqueConstraint, Index, event, DDL, Computed, Date
+from sqlalchemy import String, Integer, Float, UniqueConstraint, Index, event, DDL, Computed
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import JSONB, ARRAY, UUID
 from pgvector.sqlalchemy import Vector as PGVector

@@ -12,7 +12,7 @@ from Database.Models import Guests
 from API.Clients import MSGraphClient
 from API.Exceptions.MSGraphErrors import InvalidUserFilterError
 from Schemas import InviteUserSchema
-from Schemas.Enums.MSGraphAPI import UserTypesEnum
+from Schemas.Enums.PowerPlatformAPI import UserTypesEnum
 from Utils import performance_timer
 
 

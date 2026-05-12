@@ -1,15 +1,17 @@
 import inspect
 import sys
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
 from msgraph import GraphServiceClient
 
 from API.FlightRadarAPI.LiveFlightsAPI import live_flights_adaptive
 from API.Clients import MSGraphClient
-from API.Utils import create_or_update_subscription
+from API.Utils import create_or_update_subscription, asg_regs_updater
 from Config import setup_logger
-from Scheduler.MSGraphJobs import update_users_job
+from .PowerPlatformJobs import update_users_job, sync_engines_from_cirium
 from Utils import DBProxy, next_quarter, next_ten_minutes
+from .PowerPlatformJobs.Aircraft import update_aircraft_templates, update_aircrafts
+from .PowerPlatformJobs.Airline import sync_airlines
 
 logger = setup_logger("scheduler_processor")
 
@@ -76,10 +78,75 @@ jobs = [
         "max_instances": 1,
         "coalesce": True,
         "misfire_grace_time": 60,
-    }
+    },
+    {
+        "id": "update_asg_regs",
+        "name": "UpdateASGRegs",
+        "func": asg_regs_updater,
+        "trigger": "cron",
+        "day_of_week": "mon",
+        "hour": 9,
+        "minute": 0,
+        "next_run_time": next_ten_minutes(datetime.now(timezone.utc)),
+        "max_instances": 1,
+        "coalesce": True,
+        "misfire_grace_time": 60,
+    },
+    {
+        "id": "update_ac_types",
+        "name": "UpdateACTypes",
+        "func": update_aircraft_templates,
+        "trigger": "cron",
+        "day_of_week": "mon",
+        "hour": 9,
+        "minute": 5,
+        "next_run_time": next_ten_minutes(datetime.now(timezone.utc)),
+        "max_instances": 1,
+        "coalesce": True,
+        "misfire_grace_time": 60,
+    },
+    {
+        "id": "update_engines",
+        "name": "UpdateEngines",
+        "func": sync_engines_from_cirium,
+        "trigger": "cron",
+        "day_of_week": "mon",
+        "hour": 9,
+        "minute": 5,
+        "next_run_time": next_ten_minutes(datetime.now(timezone.utc)),
+        "max_instances": 1,
+        "coalesce": True,
+        "misfire_grace_time": 60,
+    },
+    {
+        "id": "update_airlines",
+        "name": "UpdateAirlines",
+        "func": sync_airlines,
+        "trigger": "cron",
+        "day_of_week": "mon",
+        "hour": 9,
+        "minute": 5,
+        "next_run_time": next_ten_minutes(datetime.now(timezone.utc)),
+        "max_instances": 1,
+        "coalesce": True,
+        "misfire_grace_time": 60,
+    },
+    {
+        "id": "update_aircrafts",
+        "name": "UpdateAircrafts",
+        "func": update_aircrafts,
+        "trigger": "cron",
+        "day_of_week": "mon",
+        "hour": 9,
+        "minute": 10,
+        "next_run_time": next_ten_minutes(datetime.now(timezone.utc)),
+        "max_instances": 1,
+        "coalesce": True,
+        "misfire_grace_time": 60,
+    },
 ]
 
-# TODOo: fix
+# TODO: fix
 
 _current_module = sys.modules[__name__]
 

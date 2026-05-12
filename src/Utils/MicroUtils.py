@@ -6,17 +6,18 @@ import sys
 from base64 import b64encode
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Any, Iterable
 
-import numpy as np
-from fastapi import Request, BackgroundTasks, status
-from fastapi.responses import FileResponse
-from pydantic import ValidationError
-from sqlalchemy import Integer, Float, String, DateTime
-
-from Config import RESPONSES_PATH, FILES_PATH
 from Database import Asset
-from Schemas import ErrorValidationResponse, ErrorValidObject, GetFileResponseSchema
+from Schemas import AssetSchema
+
+
+def cache_key_first_non_null(name: str, data: dict[str, Any], keys: Iterable[str], fallback: str = "all") -> Any:
+    for key in keys:
+        value = data.get(key)
+        if value is not None:
+            return f"{name}:{value}"
+    return f"{name}:{fallback}"
 
 
 def str_to_list(text: str | List[str] | None) -> List[str]:
@@ -27,17 +28,23 @@ def str_to_list(text: str | List[str] | None) -> List[str]:
     return text
 
 
-def map_asset(asset: Asset | None) -> GetFileResponseSchema | None:
+def map_asset(asset: Asset) -> AssetSchema:
     if not asset:
-        return None
+        return AssetSchema(
+        file_name=None,
+        file_description=None,
+        file_data=None,
+        file_id=None
+    )
 
     encoded = b64encode(asset.base64).decode()
     data_uri = f"data:{asset.mime_type};base64,{encoded}"
 
-    return GetFileResponseSchema(
+    return AssetSchema(
         file_name=asset.asset_name,
         file_description=asset.asset_description,
-        file_data=data_uri
+        file_data=data_uri,
+        file_id=asset.id
     )
 
 
@@ -54,69 +61,6 @@ def remove_file(path: str | Path):
         raise FileNotFoundError(f"File {path} not found")
     except Exception:
         os.remove(str(path))
-
-
-async def validation_error_file(request: Request, exc: ValidationError, filename: str,
-                                background_tasks: BackgroundTasks) -> FileResponse:
-    detail = [
-        ErrorValidObject(field=".".join(map(str, e["loc"])), msg=e["msg"], correlationId=request.state.correlation_id)
-        for e in exc.errors()
-    ]
-    filepath = Path(RESPONSES_PATH / filename)
-    error_response = ErrorValidationResponse(
-        details=detail
-    )
-    filepath.write_text(error_response.model_dump_json(indent=4), encoding="utf-8")
-    background_tasks.add_task(remove_file, str(filepath))
-    background_tasks.add_task(remove_file, str(Path(FILES_PATH / filename)))
-    return FileResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        path=filepath,
-        filename=filename,
-        media_type="application/json",
-        background=background_tasks
-    )
-
-
-def pandas_to_python_type(dtype):
-    if isinstance(dtype, np.dtype):
-        if np.issubdtype(dtype, np.integer):
-            return int
-        if np.issubdtype(dtype, np.floating):
-            return float
-        if np.issubdtype(dtype, np.bool_):
-            return bool
-        if np.issubdtype(dtype, np.datetime64):
-            return datetime
-
-        return str
-
-    dtype_str = str(dtype)
-
-    if "string" in dtype_str:
-        return str
-    if "Int" in dtype_str:
-        return int
-    if "Float" in dtype_str:
-        return float
-    if "boolean" in dtype_str:
-        return bool
-
-    return str
-
-
-def sqlalchemy_to_python_type(sql_type):
-    if isinstance(sql_type, Integer):
-        return int
-    elif isinstance(sql_type, Float):
-        return float
-    elif isinstance(sql_type, String):
-        return str
-    elif isinstance(sql_type, DateTime):
-        import datetime
-        return datetime.datetime
-    else:
-        return object
 
 
 def next_quarter(dt: datetime) -> datetime:
@@ -165,30 +109,6 @@ def ensure_naive_utc(dt: datetime | None) -> datetime | None:
     if dt is None:
         return None
     return dt.astimezone(timezone.utc).replace(tzinfo=None)
-
-
-def get_today_range_utc() -> tuple[str, str]:
-    now = datetime.now(timezone.utc)
-    start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
-
-    return (
-        start_of_day.strftime("%Y-%m-%d %H:%M:%S"),
-        now.strftime("%Y-%m-%d %H:%M:%S"),
-    )
-
-
-def get_earliest_time(flights: List[dict]) -> Optional[str]:
-    times = []
-    for flight in flights:
-        if flight["first_seen"]:
-            try:
-                dt = datetime.strptime(flight["first_seen"], "%Y-%m-%d %H:%M:%S")
-                times.append(dt)
-            except ValueError:
-                pass
-    if times:
-        return min(times).strftime("%Y-%m-%d %H:%M:%S")
-    return None
 
 
 _current_module = sys.modules[__name__]

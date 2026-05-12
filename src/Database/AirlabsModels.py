@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import String, BigInteger, Float, Integer, SmallInteger, Enum, DateTime, Index, ForeignKey
+from sqlalchemy import String, BigInteger, Float, Enum, DateTime, Index, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .config import AirlabsBase as Base
 

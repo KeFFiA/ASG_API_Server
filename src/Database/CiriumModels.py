@@ -1,3 +1,5 @@
+from datetime import date
+
 from sqlalchemy import String, Float, Integer, Boolean, Date, ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -39,7 +41,7 @@ class CiriumAircrafts(Base):
     Engine_Series: Mapped[str] = mapped_column(String, nullable=True, name="Engine Series")
 
     # Status dates
-    Status_Change_Date: Mapped[Date] = mapped_column(Date, nullable=True, name="Status Change Date")
+    Status_Change_Date: Mapped[date] = mapped_column(Date, nullable=True, name="Status Change Date")
     Status_Duration_years: Mapped[float] = mapped_column(Float, nullable=True, name="Status Duration (years)")
 
     # Insurance
@@ -70,11 +72,11 @@ class CiriumAircrafts(Base):
     Country_Subregion_of_Registration: Mapped[str] = mapped_column(String, nullable=True, name="Country/Subregion of Registration")
 
     # Dates
-    First_Flight_Date: Mapped[Date] = mapped_column(Date, nullable=True, name="First Flight Date")
+    First_Flight_Date: Mapped[date] = mapped_column(Date, nullable=True, name="First Flight Date")
     Build_Year: Mapped[int] = mapped_column(Integer, nullable=True, name="Build Year")
-    Delivery_Date: Mapped[Date] = mapped_column(Date, nullable=True, name="Delivery Date")
-    In_Service_Date: Mapped[Date] = mapped_column(Date, nullable=True, name="In Service Date")
-    Order_Date: Mapped[Date] = mapped_column(Date, nullable=True, name="Order Date")
+    Delivery_Date: Mapped[date] = mapped_column(Date, nullable=True, name="Delivery Date")
+    In_Service_Date: Mapped[date] = mapped_column(Date, nullable=True, name="In Service Date")
+    Order_Date: Mapped[date] = mapped_column(Date, nullable=True, name="Order Date")
 
     Primary_Usage: Mapped[str] = mapped_column(String, nullable=True, name="Primary Usage")
     Secondary_Usage: Mapped[str] = mapped_column(String, nullable=True, name="Secondary Usage")
@@ -105,8 +107,8 @@ class CiriumAircrafts(Base):
     # Leasing
     Lease_Type: Mapped[str] = mapped_column(String, nullable=True, name="Lease Type")
     Lease_Dry_Wet: Mapped[str] = mapped_column(String, nullable=True, name="Lease Dry / Wet")
-    Lease_Start: Mapped[Date] = mapped_column(Date, nullable=True, name="Lease Start")
-    Lease_End: Mapped[Date] = mapped_column(Date, nullable=True, name="Lease End")
+    Lease_Start: Mapped[date] = mapped_column(Date, nullable=True, name="Lease Start")
+    Lease_End: Mapped[date] = mapped_column(Date, nullable=True, name="Lease End")
     Lease_Duration_months: Mapped[float] = mapped_column(Float, nullable=True, name="Lease Duration (months)")
     Is_Lease_End_Estimated: Mapped[int] = mapped_column(Integer, nullable=True, name="Is Lease End Estimated")
 
@@ -190,7 +192,7 @@ class CiriumAircrafts(Base):
     Operator_Company_Category: Mapped[str] = mapped_column(String, nullable=True, name="Operator Company Category")
     Operator_Company_Type: Mapped[str] = mapped_column(String, nullable=True, name="Operator Company Type")
     Operator_Company_Status: Mapped[str] = mapped_column(String, nullable=True, name="Operator Company Status")
-    Operator_Delivery_Date: Mapped[Date] = mapped_column(Date, nullable=True, name="Operator Delivery Date")
+    Operator_Delivery_Date: Mapped[date] = mapped_column(Date, nullable=True, name="Operator Delivery Date")
     Duration_With_Operator_months: Mapped[float] = mapped_column(Float, nullable=True, name="Duration With Operator (months)")
 
     # Original operator
@@ -362,7 +364,7 @@ class CiriumAircrafts(Base):
     # Flight hours & cycles
     Cumulative_Hours: Mapped[int] = mapped_column(Integer, nullable=True, name="Cumulative Hours")
     Cumulative_Cycles: Mapped[int] = mapped_column(Integer, nullable=True, name="Cumulative Cycles")
-    Reported_Hours_and_Cycles_Date: Mapped[Date] = mapped_column(Date, nullable=True, name="Reported Hours and Cycles Date")
+    Reported_Hours_and_Cycles_Date: Mapped[date] = mapped_column(Date, nullable=True, name="Reported Hours and Cycles Date")
 
     Average_Flight_Time: Mapped[float] = mapped_column(Float, nullable=True, name="Average Flight Time")
     Average_Annual_Cycles: Mapped[float] = mapped_column(Float, nullable=True, name="Average Annual Cycles")
@@ -413,6 +415,7 @@ class CiriumAircrafts(Base):
 
 
 class ASGAircrafts(Base):
+    Airline: Mapped[str] = mapped_column(String, nullable=True, name="Airline")
     Type: Mapped[str] = mapped_column(String, nullable=True, name="Type")
     Serial_Number: Mapped[str] = mapped_column(String, nullable=True, name="Serial Number")
     Manufacturer: Mapped[str] = mapped_column(String, nullable=True, name="Manufacturer")
@@ -431,7 +434,7 @@ class ASGAircrafts(Base):
     Engine_Series: Mapped[str] = mapped_column(String, nullable=True, name="Engine Series")
 
     # Status dates
-    Status_Change_Date: Mapped[Date] = mapped_column(Date, nullable=True, name="Status Change Date")
+    Status_Change_Date: Mapped[date] = mapped_column(Date, nullable=True, name="Status Change Date")
     Status_Duration_years: Mapped[float] = mapped_column(Float, nullable=True, name="Status Duration (years)")
 
     # Insurance
@@ -462,11 +465,11 @@ class ASGAircrafts(Base):
     Country_Subregion_of_Registration: Mapped[str] = mapped_column(String, nullable=True, name="Country/Subregion of Registration")
 
     # Dates
-    First_Flight_Date: Mapped[Date] = mapped_column(Date, nullable=True, name="First Flight Date")
+    First_Flight_Date: Mapped[date] = mapped_column(Date, nullable=True, name="First Flight Date")
     Build_Year: Mapped[int] = mapped_column(Integer, nullable=True, name="Build Year")
-    Delivery_Date: Mapped[Date] = mapped_column(Date, nullable=True, name="Delivery Date")
-    In_Service_Date: Mapped[Date] = mapped_column(Date, nullable=True, name="In Service Date")
-    Order_Date: Mapped[Date] = mapped_column(Date, nullable=True, name="Order Date")
+    Delivery_Date: Mapped[date] = mapped_column(Date, nullable=True, name="Delivery Date")
+    In_Service_Date: Mapped[date] = mapped_column(Date, nullable=True, name="In Service Date")
+    Order_Date: Mapped[date] = mapped_column(Date, nullable=True, name="Order Date")
 
     Primary_Usage: Mapped[str] = mapped_column(String, nullable=True, name="Primary Usage")
     Secondary_Usage: Mapped[str] = mapped_column(String, nullable=True, name="Secondary Usage")
@@ -497,8 +500,8 @@ class ASGAircrafts(Base):
     # Leasing
     Lease_Type: Mapped[str] = mapped_column(String, nullable=True, name="Lease Type")
     Lease_Dry_Wet: Mapped[str] = mapped_column(String, nullable=True, name="Lease Dry / Wet")
-    Lease_Start: Mapped[Date] = mapped_column(Date, nullable=True, name="Lease Start")
-    Lease_End: Mapped[Date] = mapped_column(Date, nullable=True, name="Lease End")
+    Lease_Start: Mapped[date] = mapped_column(Date, nullable=True, name="Lease Start")
+    Lease_End: Mapped[date] = mapped_column(Date, nullable=True, name="Lease End")
     Lease_Duration_months: Mapped[float] = mapped_column(Float, nullable=True, name="Lease Duration (months)")
     Is_Lease_End_Estimated: Mapped[int] = mapped_column(Integer, nullable=True, name="Is Lease End Estimated")
 
@@ -582,7 +585,7 @@ class ASGAircrafts(Base):
     Operator_Company_Category: Mapped[str] = mapped_column(String, nullable=True, name="Operator Company Category")
     Operator_Company_Type: Mapped[str] = mapped_column(String, nullable=True, name="Operator Company Type")
     Operator_Company_Status: Mapped[str] = mapped_column(String, nullable=True, name="Operator Company Status")
-    Operator_Delivery_Date: Mapped[Date] = mapped_column(Date, nullable=True, name="Operator Delivery Date")
+    Operator_Delivery_Date: Mapped[date] = mapped_column(Date, nullable=True, name="Operator Delivery Date")
     Duration_With_Operator_months: Mapped[float] = mapped_column(Float, nullable=True, name="Duration With Operator (months)")
 
     # Original operator
@@ -754,7 +757,7 @@ class ASGAircrafts(Base):
     # Flight hours & cycles
     Cumulative_Hours: Mapped[int] = mapped_column(Integer, nullable=True, name="Cumulative Hours")
     Cumulative_Cycles: Mapped[int] = mapped_column(Integer, nullable=True, name="Cumulative Cycles")
-    Reported_Hours_and_Cycles_Date: Mapped[Date] = mapped_column(Date, nullable=True, name="Reported Hours and Cycles Date")
+    Reported_Hours_and_Cycles_Date: Mapped[date] = mapped_column(Date, nullable=True, name="Reported Hours and Cycles Date")
 
     Average_Flight_Time: Mapped[float] = mapped_column(Float, nullable=True, name="Average Flight Time")
     Average_Annual_Cycles: Mapped[float] = mapped_column(Float, nullable=True, name="Average Annual Cycles")

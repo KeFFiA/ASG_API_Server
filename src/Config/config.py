@@ -2,6 +2,7 @@ import inspect
 import os
 import sys
 from pathlib import Path
+from typing import Optional
 from urllib.parse import quote_plus
 
 from dotenv import load_dotenv, find_dotenv
@@ -28,7 +29,7 @@ def get_project_root() -> Path:
 # ENVIRONMENT
 
 if DEV_MODE:
-    ENV_PATH: Path = os.getenv("ENV_DEV_PATH") or get_project_root() / ".env.dev"
+    ENV_PATH: Path | str = os.getenv("ENV_DEV_PATH") or get_project_root() / ".env.dev"
     ROOT: Path = get_project_root() / "api_data"
     FILES_PATH: Path = ROOT / "input_files"
     EXCEL_FILES_PATH: Path = FILES_PATH / "excel_db"
@@ -43,7 +44,7 @@ if DEV_MODE:
     # RESPONSES_PATH: Path = Path(r"D:\FTPFolder\responses")
     # SUBSCRIPTION_FILE: Path = Path(r"D:\FTPFolder\subscription_data.json")
 else:
-    ENV_PATH: Path = os.getenv("ENV_PATH") or get_project_root() / ".env"
+    ENV_PATH: Path | str = os.getenv("ENV_PATH") or get_project_root() / ".env"
     ROOT: Path = get_project_root() / "api_data"
     FILES_PATH: Path = ROOT / "input_files"
     EXCEL_FILES_PATH: Path = FILES_PATH / "excel_db"
@@ -63,7 +64,7 @@ CIRIUM_FILES_PATH.mkdir(parents=True, exist_ok=True)
 FLIGHT_RADAR_PATH.mkdir(parents=True, exist_ok=True)
 
 
-def require_env(name: str, additional=None):
+def require_env(name: str, additional=None) -> Optional[bool | str | int]:
     value = os.getenv(name)
     if not value and additional or additional == "":
         return additional

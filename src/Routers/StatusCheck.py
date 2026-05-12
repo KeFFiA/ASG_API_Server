@@ -16,7 +16,7 @@ router = Router(
     tags=["Status"]
 )
 
-
+# TODO: Update it like in FlightRadar router
 @router.get("/{email}")
 async def status(email: str, request: Request, background_tasks: BackgroundTasks):
     db_service = await request.state.db.get_db("service")

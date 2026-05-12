@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Optional, List
 from uuid import UUID
 
@@ -186,7 +187,7 @@ async def fetch_all_ranges(
         registrations: Optional[List[str]] = None,
         callsigns: Optional[List[str]] = None,
         storage_mode: str = "db",
-        csv_path: Optional[str] = FLIGHT_RADAR_PATH / f"flights_{datetime.strftime(datetime.now(), '%Y%m%d_%H%M')}.csv"
+        csv_path: Optional[Path] = FLIGHT_RADAR_PATH / f"flights_{datetime.strftime(datetime.now(), '%Y%m%d_%H%M')}.csv"
 ):
     client: DatabaseClient = DatabaseClient()
     if registrations is None and icao is None and callsigns is None:
@@ -260,7 +261,7 @@ async def fetch_all_ranges(
                             select(PBIRequestFRSummaryData)
                             .where(PBIRequestFRSummaryData.correlation_id == correlation_id)
                         )
-                        record: PBIRequestFRSummaryData = result.scalar_one_or_none()
+                        record: Optional[PBIRequestFRSummaryData] = result.scalar_one_or_none()
 
                         if record:
                             record.current_regs = ", ".join(reg_batch) if reg_batch else None

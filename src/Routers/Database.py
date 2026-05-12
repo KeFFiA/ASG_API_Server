@@ -21,6 +21,7 @@ router = Router(
     tags=["Database"]
 )
 
+# TODO: Update it like Flightradar router
 
 @router.get('/{type}')
 async def get_db(type: str, request: Request, background_tasks: BackgroundTasks):

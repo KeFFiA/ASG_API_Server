@@ -10,15 +10,15 @@ from typing import Any, Callable, Optional, Coroutine
 from fastapi import Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
 from Config import setup_logger, DBSettings, ENABLE_PERFORMANCE_LOGGER
 from Database import DatabaseClient
-from Schemas import ErrorValidationResponse, ErrorValidObject
+from Schemas import DefaultResponse, DetailField
 from Schemas.Enums.service import FilesExtensionEnum
 from Utils.FilesFinder import Finder
-from Utils.ResponsesFunc import error_response
 
 logger = setup_logger(
     'fastapi_app',
@@ -130,7 +130,16 @@ class DBProxy:
         session = await self.get_db(db_name)
         result = await query_func(session)
         if result:
-            await self.redis_set(key, result, ttl)
+            if isinstance(result, BaseModel):
+                _result = result.model_dump(mode="json")
+            elif isinstance(result, list):
+                _result = [
+                    item.model_dump(mode="json") if isinstance(item, BaseModel) else item
+                    for item in result
+                ]
+            else:
+                _result = result
+            await self.redis_set(key, _result, ttl)
             logger.debug(f"{key} returned from database")
 
         return result
@@ -152,7 +161,16 @@ class DBProxy:
                 logger.debug(f"Redis DEL {rk} (related key via pattern {related_pattern})")
 
         if result:
-            await self.redis_set(key, result, ttl)
+            if isinstance(result, BaseModel):
+                _result = result.model_dump(mode="json")
+            elif isinstance(result, list):
+                _result = [
+                    item.model_dump(mode="json") if isinstance(item, BaseModel) else item
+                    for item in result
+                ]
+            else:
+                _result = result
+            await self.redis_set(key, _result, ttl)
             logger.debug(f"{key} updated in database and cache")
 
         return result
@@ -298,24 +316,47 @@ def register_middlewares(app):
     async def validation_exception_handler(request: Request, exc: RequestValidationError):
         correlation_id = getattr(request.state, "correlation_id", None)
 
-        detail = [
-            ErrorValidObject(field=".".join(map(str, e["loc"])), msg=e["msg"], correlationId=correlation_id)
+        details = [
+            {
+                "field": ".".join(map(str, e["loc"])),
+                "msg": e["msg"],
+                "correlationId": correlation_id,
+            }
             for e in exc.errors()
         ]
 
+        response = DefaultResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            details=DetailField(
+                msg="Validation error",
+                correlationId=correlation_id
+            ),
+            data=details
+        )
+
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            content=ErrorValidationResponse(
-                details=detail,
-            ).model_dump(mode="json")
+            content=response.model_dump(mode="json")
         )
 
     # Custom 500 exception handler
     @app.exception_handler(Exception)
     async def custom_exception_handler(request: Request, exc: Exception):
-        logger.error(f"Unhandled error: {exc} \n CorrelationID = {request.state.correlation_id}", exc_info=True)
+        correlation_id = getattr(request.state, "correlation_id", None)
+        logger.critical(f"Unhandled error: {exc} \n CorrelationID = {correlation_id}", exc_info=True)
+        response = DefaultResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details=DetailField(
+                msg=f"{exc.__class__.__name__}: {str(exc)}",
+                correlationId=correlation_id
+            ),
+            data=None
+        )
 
-        return error_response(request=request, exc=exc)
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content=response.model_dump(mode="json")
+        )
 
     @app.on_event("shutdown")
     async def shutdown_event():

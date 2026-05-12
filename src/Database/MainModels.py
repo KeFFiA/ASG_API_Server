@@ -1,15 +1,15 @@
 import inspect
 import sys
-from datetime import datetime, date
+from datetime import date
 
-from sqlalchemy import String, Integer, Float, Boolean, DateTime, Date
+from sqlalchemy import String, Integer, Boolean, Date
 from sqlalchemy.orm import Mapped, mapped_column
 from .config import MainBase as Base
 
 try:
-    from Schemas.Enums import MSGraphAPI
+    from Schemas.Enums import PowerPlatformAPI
 except ModuleNotFoundError:
-    from ..Schemas.Enums import MSGraphAPI
+    from ..Schemas.Enums import PowerPlatformAPI
 
 
 class Registrations(Base):
@@ -32,7 +32,7 @@ class Guests(Base):
     is_guest: Mapped[bool] = mapped_column(Boolean, default=False)
     inviter_email: Mapped[str] = mapped_column(String)
     expires_at: Mapped[date] = mapped_column(Date)
-    invite_status: Mapped[int] = mapped_column(Integer, default=MSGraphAPI.InvitationStatusEnum.PENDING_ACCEPTANCE.code)
+    invite_status: Mapped[int] = mapped_column(Integer, default=PowerPlatformAPI.InvitationStatusEnum.PENDING_ACCEPTANCE.code)
 
 
 class Lease_Output(Base):

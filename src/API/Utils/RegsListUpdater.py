@@ -1,10 +1,10 @@
 import asyncio
 
-from sqlalchemy import select, inspect, or_
+from sqlalchemy import select, inspect, or_, case, literal, text, func
 from sqlalchemy.dialects.postgresql import insert
 
 from Database.Models import Airlines, CiriumAircrafts, ASGAircrafts, Registrations
-from Database import DatabaseClient
+from Database import DatabaseClient, AircraftRevision
 from Config import setup_logger
 from Utils import performance_timer
 
@@ -21,7 +21,7 @@ EXCLUDED_STATUSES = ["Cancelled", "On order", "Retired", "Written off"]
 
 
 
-async def regs_updater(client):
+async def regs_updater(client: DatabaseClient):
     async with client.session("cirium") as cirium_session:
         stmt = (
             select(ASGAircrafts.Registration, ASGAircrafts.Serial_Number, ASGAircrafts.Manufacturer, ASGAircrafts.Aircraft_Sub_Series)
@@ -58,11 +58,12 @@ async def regs_updater(client):
 @performance_timer
 async def asg_regs_updater():
     client = DatabaseClient()
+
     logger.info("Starting query")
+
     async with client.session("main") as main_session:
-        stmt = (
-            select(Airlines.airline_name)
-        )
+        stmt = select(Airlines.airline_name)
+
         result = await main_session.execute(stmt)
         airlines = result.scalars().all()
 
@@ -75,39 +76,92 @@ async def asg_regs_updater():
     ]
 
     filters = []
+    airline_cases = []
+
     for company in airlines:
         pattern = f"%{company}%"
-        filters.extend([
+
+        condition = or_(
             CiriumAircrafts.Operator.ilike(pattern),
             CiriumAircrafts.Sub_Lessor.ilike(pattern),
             CiriumAircrafts.Owner.ilike(pattern),
-        ])
+        )
+
+        filters.append(condition)
+
+        airline_cases.append(
+            (condition, literal(company))
+        )
+
+    airline_case_expr = case(
+        *airline_cases,
+        else_=None
+    ).label("Airline")
 
     async with client.session("cirium") as cirium_session:
-        select_stmt = (
-            select(*columns)
-            .where(
-                or_(*filters),
-                CiriumAircrafts.Registration.isnot(None),
-                ~CiriumAircrafts.Status.in_(EXCLUDED_STATUSES)
 
+        latest_revision_stmt = (
+            select(func.max(AircraftRevision.id))
+        )
+
+        latest_revision = await cirium_session.scalar(
+            latest_revision_stmt
+        )
+
+        if latest_revision is None:
+            logger.warning("No revisions found")
+            return
+
+        await cirium_session.execute(
+            text('TRUNCATE TABLE "asgaircraft" RESTART IDENTITY')
+        )
+
+        select_stmt = (
+            select(
+                airline_case_expr,
+                *columns
             )
-            .distinct()
+            .where(
+                CiriumAircrafts.revision_id == latest_revision,
+
+                or_(*filters),
+
+                CiriumAircrafts.Registration.isnot(None),
+
+                ~CiriumAircrafts.Status.in_(
+                    EXCLUDED_STATUSES
+                )
+            )
+            .distinct(
+                CiriumAircrafts.Registration,
+                CiriumAircrafts.Serial_Number
+            )
+            .order_by(
+                CiriumAircrafts.Registration,
+                CiriumAircrafts.Serial_Number
+            )
         )
 
         insert_stmt = (
             insert(ASGAircrafts)
             .from_select(
-                [col.name for col in columns],
+                ["Airline"] + [col.name for col in columns],
                 select_stmt
             )
-            .on_conflict_do_nothing()
+            .on_conflict_do_nothing(
+                index_elements=[
+                    "Registration",
+                    "Serial Number"
+                ]
+            )
         )
 
         await cirium_session.execute(insert_stmt)
+
         await cirium_session.commit()
 
     await regs_updater(client=client)
+
     logger.info("Query completed")
 
 

@@ -1,3 +1,3 @@
 from .Defaults import *
-from .MSGraphAPI import *
+from .PowerPlatformAPI import *
 from .service import *

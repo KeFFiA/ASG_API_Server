@@ -1,13 +1,17 @@
 import inspect
 import sys
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional
 
 from fastapi import Query
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, model_validator
+
+from .decorators import at_most_one_of
 
 
+@at_most_one_of("regs", "callsigns", "airlines")
 class RequestFRFlightSummary(BaseModel):
+    from_pbi: bool = Query(default=False)
     regs: Optional[str] = Query(default=None)
     callsigns: Optional[str] = Query(default=None)
     airlines: Optional[str] = Query(default=None)
@@ -25,7 +29,8 @@ class RequestFRFlightSummary(BaseModel):
 
 
 class RequestFRAirports(BaseModel):
-    codes: Optional[str] = Query(default=None)
+    from_pbi: bool = Query(default=False)
+    codes: str = Query(..., description="ICAO or IATA code of airports")
 
 
 

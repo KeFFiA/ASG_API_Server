@@ -224,3 +224,4 @@ test
 /api_data/
 /src/__test/
 /__admin/
+/src/Database/PowerPlatformModels/__dev/

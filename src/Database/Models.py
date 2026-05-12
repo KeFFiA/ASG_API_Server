@@ -1,12 +1,11 @@
-from .MainModels import *
-from .ServiceModels import *
-from .CiriumModels import *
-from .AirlabsModels import *
-from .FlightRadarModels import *
-from .PowerPlatformModels import *
-
 import inspect
 import sys
+from .PowerPlatformModels import *
+from .AirlabsModels import *
+from .CiriumModels import *
+from .FlightRadarModels import *
+from .ServiceModels import *
+from .MainModels import *
 
 # Add new models below
 # ======================

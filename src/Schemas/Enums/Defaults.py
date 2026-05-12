@@ -8,9 +8,30 @@ class FlightStatusEnum(str, __enum):
     LANDED = "landed"
 
 
-class UpsertStatusEnum(str, __enum):
+class UpsertdelStatusEnum(str, __enum):
     UPDATED = "Updated"
     CREATED = "Created"
+    DELETED = "Deleted"
+
+
+class EnginePositionEnum(int, __enum):
+    NOSE = 0
+    LEFT1 = 1
+    LEFT2 = 2
+    RIGHT1 = 3
+    RIGHT2 = 4
+    TAIL = 5
+
+
+class AircraftInsuredStatusEnum(str, __enum):
+    INSURED = "Insured"
+    NOT_INSURED = "Not Insured"
+
+
+class AircraftDataSourceEnum(str, __enum):
+    CIRIUM = "Cirium"
+    LEASE_AGREEMENT = "Lease Agreement"
+    MANUAL = "Manual"
 
 
 _current_module = sys.modules[__name__]
