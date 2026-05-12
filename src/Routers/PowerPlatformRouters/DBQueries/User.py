@@ -88,9 +88,9 @@ async def query_user_access(session: AsyncSession, user_id: UUID, _payload: GetA
         stmt = (
             select(Access)
             .options(
-                joinedload(Access.application),
+                selectinload(Access.application),
                 selectinload(Access.rules),
-                joinedload(Access.user).load_only(User.super_admin, User.display_name, User.mail)
+                selectinload(Access.user)
             )
             .where(Access.user_id == user_id)
         )
