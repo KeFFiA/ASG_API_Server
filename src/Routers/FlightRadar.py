@@ -28,8 +28,6 @@ router = Router(
     status_code=status.HTTP_202_ACCEPTED,
     response_model=DefaultResponse[List[None]],
     responses=build_responses(
-        list[None],
-        success_status=status.HTTP_202_ACCEPTED,
         include={status.HTTP_202_ACCEPTED, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )
@@ -81,8 +79,6 @@ async def process_data(request: Request, response: Response,
     status_code=status.HTTP_202_ACCEPTED,
     response_model=DefaultResponse[List[None]],
     responses=build_responses(
-        list[None],
-        success_status=status.HTTP_202_ACCEPTED,
         include={status.HTTP_202_ACCEPTED, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )

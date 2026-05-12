@@ -24,8 +24,6 @@ router = Router(
     status_code=status.HTTP_201_CREATED,
     response_model=DefaultResponse[List[None]],
     responses=build_responses(
-        list[None],
-        success_status=status.HTTP_201_CREATED,
         include={status.HTTP_201_CREATED, status.HTTP_400_BAD_REQUEST, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )

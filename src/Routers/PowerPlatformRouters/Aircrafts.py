@@ -28,8 +28,6 @@ router = Router(
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse[List[TemplateSchemaFull]],
     responses=build_responses(
-        list[TemplateSchemaFull],
-        success_status=status.HTTP_200_OK,
         include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )
@@ -69,8 +67,6 @@ async def get_aircraft_template_full(request: Request, response: Response, _payl
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse[List[TemplateSchemaLight]],
     responses=build_responses(
-            list[TemplateSchemaLight],
-            success_status=status.HTTP_200_OK,
             include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
         )
 )
@@ -111,8 +107,6 @@ async def get_aircraft_template_light(request: Request, response: Response, _pay
     status_code=status.HTTP_201_CREATED,
     response_model=DefaultResponse[List[None]],
     responses=build_responses(
-        list[None],
-        success_status=status.HTTP_201_CREATED,
         include={status.HTTP_201_CREATED, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )
@@ -145,8 +139,6 @@ async def create_aircraft_template(request: Request, response: Response, _payloa
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse[List[AircraftSchemaFull]],
     responses=build_responses(
-        list[AircraftSchemaFull],
-        success_status=status.HTTP_200_OK,
         include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )
@@ -188,8 +180,6 @@ async def get_aircrafts_full(request: Request, response: Response, _payload: Ann
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse[List[AircraftSchemaLight]],
     responses=build_responses(
-        list[AircraftSchemaLight],
-        success_status=status.HTTP_200_OK,
         include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )
@@ -232,8 +222,6 @@ async def get_aircrafts_light(request: Request, response: Response, _payload: An
     status_code=status.HTTP_201_CREATED,
     response_model=DefaultResponse[List[None]],
     responses=build_responses(
-        List[None],
-        success_status=status.HTTP_201_CREATED,
         include={status.HTTP_201_CREATED, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )
@@ -266,8 +254,6 @@ async def create_aircraft(request: Request, response: Response, _payload: Annota
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse[List[EngineTypeSchema]],
     responses=build_responses(
-        list[EngineTypeSchema],
-        success_status=status.HTTP_200_OK,
         include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )
@@ -309,8 +295,6 @@ async def get_engines_type(request: Request, response: Response, _payload: Annot
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse[List[EngineSchema]],
     responses=build_responses(
-        list[EngineSchema],
-        success_status=status.HTTP_200_OK,
         include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )
@@ -351,8 +335,6 @@ async def get_engines(request: Request, response: Response, _payload: Annotated[
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse[List[AdditionalAircraftInfoSchema]],
     responses=build_responses(
-        list[AdditionalAircraftInfoSchema],
-        success_status=status.HTTP_200_OK,
         include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )

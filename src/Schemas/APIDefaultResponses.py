@@ -23,7 +23,7 @@ class DefaultResponse(BaseModel, Generic[T]):
 class ErrorResponse(BaseModel):
     status_code: int
     details: DetailField
-    data: list = []
+    data: list[None] = [None]
 
 
 class ErrorValidObject(DetailField):

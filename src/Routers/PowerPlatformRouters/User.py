@@ -25,8 +25,6 @@ router = Router(
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse[List[UserSchemaFull]],
     responses=build_responses(
-        list[UserSchemaFull],
-        success_status=status.HTTP_200_OK,
         include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )
@@ -59,8 +57,6 @@ async def users(request: Request, response: Response):
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse[List[UserSchemaLight]],
     responses=build_responses(
-        list[UserSchemaLight],
-        success_status=status.HTTP_200_OK,
         include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )
@@ -93,8 +89,6 @@ async def users(request: Request, response: Response):
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse[List[UserSchemaFull]],
     responses=build_responses(
-        list[UserSchemaFull],
-        success_status=status.HTTP_200_OK,
         include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )
@@ -126,8 +120,6 @@ async def users(request: Request, response: Response, user_id: UUID):
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse[List[UserSchemaLight]],
     responses=build_responses(
-        list[UserSchemaLight],
-        success_status=status.HTTP_200_OK,
         include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )
@@ -159,8 +151,6 @@ async def users(request: Request, response: Response, user_id: UUID):
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse[List[UserAccessSchema]],
     responses=build_responses(
-        list[UserAccessSchema],
-        success_status=status.HTTP_200_OK,
         include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )

@@ -24,10 +24,8 @@ router = Router(
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse[List[ApplicationSchema]],
     responses=build_responses(
-            list[ApplicationSchema],
-            success_status=status.HTTP_200_OK,
-            include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
-        )
+        include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
+    )
 )
 async def get_apps(request: Request, response: Response, _payload: Annotated[GetApplicationIdQuery, Query()]):
     db_proxy: DBProxy = request.state.db_proxy
@@ -49,7 +47,8 @@ async def get_apps(request: Request, response: Response, _payload: Annotated[Get
         )
 
         if len(apps_data) > 0:
-            return success_response(request=request, response=response, data=apps_data, msg="Application(-s) retrieved successfully")
+            return success_response(request=request, response=response, data=apps_data,
+                                    msg="Application(-s) retrieved successfully")
         return warning_response(request=request, response=response, msg="Application(-s) not found",
                                 status_code=status.HTTP_404_NOT_FOUND)
     except Exception as _ex:
@@ -63,10 +62,8 @@ async def get_apps(request: Request, response: Response, _payload: Annotated[Get
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse[List[FontSchema]],
     responses=build_responses(
-            list[FontSchema],
-            success_status=status.HTTP_200_OK,
-            include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
-        )
+        include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
+    )
 )
 async def get_fonts(request: Request, response: Response, _payload: Annotated[GetApplicationSizeQuery, Query()]):
     db_proxy: DBProxy = request.state.db_proxy
@@ -84,7 +81,8 @@ async def get_fonts(request: Request, response: Response, _payload: Annotated[Ge
         )
 
         if len(fonts_data) > 0:
-            return success_response(request=request, response=response, data=fonts_data, msg="Fonts retrieved successfully")
+            return success_response(request=request, response=response, data=fonts_data,
+                                    msg="Fonts retrieved successfully")
         return warning_response(request=request, response=response, msg="Fonts not found",
                                 status_code=status.HTTP_404_NOT_FOUND)
     except Exception as _ex:

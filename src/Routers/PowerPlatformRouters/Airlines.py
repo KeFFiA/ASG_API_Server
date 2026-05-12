@@ -25,8 +25,6 @@ router = Router(
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse[List[AirlineUsersSchemaFull]],
     responses=build_responses(
-        list[AirlineUsersSchemaFull],
-        success_status=status.HTTP_200_OK,
         include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )
@@ -64,8 +62,6 @@ async def get_airlines_full(request: Request, response: Response, _payload: Anno
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse[List[AirlineUsersSchemaLight]],
     responses=build_responses(
-        list[AirlineUsersSchemaLight],
-        success_status=status.HTTP_200_OK,
         include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )
@@ -102,8 +98,6 @@ async def get_airlines_light(request: Request, response: Response, _payload: Ann
     status_code=status.HTTP_201_CREATED,
     response_model=DefaultResponse[List[None]],
     responses=build_responses(
-        list[None],
-        success_status=status.HTTP_201_CREATED,
         include={status.HTTP_201_CREATED, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )

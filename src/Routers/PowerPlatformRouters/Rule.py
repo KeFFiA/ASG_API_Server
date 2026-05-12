@@ -23,8 +23,6 @@ router = Router(
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse[List[ApplicationRulesSchema]],
     responses=build_responses(
-        list[ApplicationRulesSchema],
-        success_status=status.HTTP_200_OK,
         include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )
@@ -52,9 +50,12 @@ async def get_rules(request: Request, response: Response):
 
 @router.get(
     path="/{application_id}",
-    description="Get all rules",
+    description="Get application rules",
     status_code=status.HTTP_200_OK,
-    response_model=DefaultResponse
+    response_model=DefaultResponse[List[ApplicationRulesSchema]],
+    responses=build_responses(
+        include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
+    )
 )
 async def get_rules(request: Request, response: Response, application_id: UUID):
     db_proxy: DBProxy = request.state.db_proxy

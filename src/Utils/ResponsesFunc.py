@@ -1,35 +1,28 @@
-from typing import Optional, Type, Any, TypeVar, get_origin, Set
+from typing import Optional, TypeVar, Set
+from http import HTTPStatus
+
 
 from fastapi import Request, status, Response
-from pydantic import BaseModel
 
-from Schemas import DetailField, DefaultResponse
-
+from Schemas import DetailField, DefaultResponse, ErrorResponse
 
 T = TypeVar("T")
 
-def build_responses(
-    success_model: Type[Any],
-    *,
-    include: Set[int],
-    success_status: int,
-):
-    def desc(code: int) -> str:
-        return {
-            200: "Success",
-            201: "Created",
-            202: "Accepted",
-            400: "Bad Request",
-            404: "Not Found",
-            500: "Internal Server Error",
-        }.get(code, "Response")
+def build_responses(*, include: Set[int]) -> dict:
+    result = {}
 
-    return {
-        code: {
-            "description": desc(code)
+    success_codes = {200, 201, 202}
+
+    for status_code in include:
+        if status_code in success_codes:
+            continue
+
+        result[status_code] = {
+            "description": HTTPStatus(status_code).phrase,
+            "model": ErrorResponse
         }
-        for code in include
-    }
+
+    return result
 
 
 def success_response(*, request: Request, response: Response, data: T, msg: str = "Success",

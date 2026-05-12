@@ -24,8 +24,6 @@ router = Router(
     status_code=status.HTTP_201_CREATED,
     response_model=DefaultResponse[List[None]],
     responses=build_responses(
-        list[None],
-        success_status=status.HTTP_201_CREATED,
         include={status.HTTP_201_CREATED, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )
@@ -57,8 +55,6 @@ async def upload_file(request: Request, response: Response, _payload: Annotated[
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse[List[AssetSchema]],
     responses=build_responses(
-        list[AssetSchema],
-        success_status=status.HTTP_200_OK,
         include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )
