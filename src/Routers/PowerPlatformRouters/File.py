@@ -3,7 +3,7 @@ from typing import Annotated, List
 from fastapi import status, Request, Query, Body, Response
 
 from Config import setup_logger, Router
-from Schemas import DefaultResponse, ApplicationFileLoadBody, AssetSchema
+from Schemas import DefaultResponse, ApplicationFileLoadBody, AssetSchema, UpsertdelResponseSchema
 from Schemas.PowerPlatform.QuerySchemas.ApplicationSchemas import GetApplicationFileQuery
 from Schemas.Enums import service
 from Utils import DBProxy, success_response, error_response, warning_response
@@ -22,7 +22,7 @@ router = Router(
     path="/",
     description="Upload file to Database",
     status_code=status.HTTP_201_CREATED,
-    response_model=DefaultResponse[List[None]],
+    response_model=DefaultResponse[List[UpsertdelResponseSchema]],
     responses=build_responses(
         include={status.HTTP_201_CREATED, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
@@ -35,14 +35,14 @@ async def upload_file(request: Request, response: Response, _payload: Annotated[
 
     try:
         cache_key = f"file:{_payload.file_name}"
-        await db_proxy.update_and_cache(
+        result = await db_proxy.update_and_cache(
             key=cache_key,
             db_name="powerplatform",
             update_func=db_query,
             ttl=600
         )
 
-        return success_response(request=request, response=response, data=[], msg="File uploaded successfully", status_code=status.HTTP_201_CREATED)
+        return success_response(request=request, response=response, data=result, msg="File uploaded successfully", status_code=status.HTTP_201_CREATED)
 
     except Exception as _ex:
         logger.error(f"Failed to upload file: {_ex}")

@@ -5,12 +5,13 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from Database import Asset
+from Schemas import UpsertdelStatusEnum
 from Schemas.PowerPlatform.BodySchemas.DefaultSchemas import ApplicationFileLoadBody
-from Schemas.PowerPlatform.DefaultSchemas import AssetSchema
+from Schemas.PowerPlatform.DefaultSchemas import AssetSchema, UpsertdelResponseSchema
 from Schemas.PowerPlatform.QuerySchemas.ApplicationSchemas import GetApplicationFileQuery
 
 
-async def query_load_file(session: AsyncSession, _payload: ApplicationFileLoadBody):
+async def query_load_file(session: AsyncSession, _payload: ApplicationFileLoadBody) -> List[UpsertdelResponseSchema]:
     payload = ApplicationFileLoadBody(
         **_payload.model_dump()
     )
@@ -29,6 +30,8 @@ async def query_load_file(session: AsyncSession, _payload: ApplicationFileLoadBo
 
         session.add(file)
         await session.commit()
+
+        return [UpsertdelResponseSchema(status=UpsertdelStatusEnum.CREATED)]
 
     except Exception as _ex:
         raise _ex
