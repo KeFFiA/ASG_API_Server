@@ -38,11 +38,7 @@ if DEV_MODE:
     RESPONSES_PATH: Path = ROOT / "responses"
     SUBSCRIPTION_FILE: Path = ROOT / "subscription_data.json"
     FLIGHT_RADAR_PATH: Path = ROOT / "flight_radar"
-    # FILES_PATH: Path = Path(r"D:\FTPFolder\input_files")
-    # EXCEL_FILES_PATH: Path = FILES_PATH / "excel_files"
-    # NOPASSED_PATH: Path = Path(r"D:\FTPFolder\nopassed")
-    # RESPONSES_PATH: Path = Path(r"D:\FTPFolder\responses")
-    # SUBSCRIPTION_FILE: Path = Path(r"D:\FTPFolder\subscription_data.json")
+    AVIATION_EDGE_PATH: Path = ROOT / "aviation_edge"
 else:
     ENV_PATH: Path | str = os.getenv("ENV_PATH") or get_project_root() / ".env"
     ROOT: Path = get_project_root() / "api_data"
@@ -53,6 +49,8 @@ else:
     RESPONSES_PATH: Path = ROOT / "responses"
     SUBSCRIPTION_FILE: Path = ROOT / "subscription_data.json"
     FLIGHT_RADAR_PATH: Path = ROOT / "flight_radar"
+    AVIATION_EDGE_PATH: Path = ROOT / "aviation_edge"
+
 
 
 ROOT.mkdir(parents=True, exist_ok=True)
@@ -62,6 +60,7 @@ NOPASSED_PATH.mkdir(parents=True, exist_ok=True)
 RESPONSES_PATH.mkdir(parents=True, exist_ok=True)
 CIRIUM_FILES_PATH.mkdir(parents=True, exist_ok=True)
 FLIGHT_RADAR_PATH.mkdir(parents=True, exist_ok=True)
+AVIATION_EDGE_PATH.mkdir(parents=True, exist_ok=True)
 
 
 def require_env(name: str, additional=None) -> Optional[bool | str | int]:
@@ -224,6 +223,16 @@ FLIGHT_RADAR_BOOTSTRAP_KEY: str = "fr:bootstrap_done"
 FLIGHT_RADAR_CHECK_INTERVAL_MISS: int = require_env("FLIGHT_RADAR_CHECK_INTERVAL_MISS", 8 * 60)
 FLIGHT_RADAR_CHECK_INTERVAL_FOUND: int = require_env("FLIGHT_RADAR_CHECK_INTERVAL_FOUND", 18 * 60)
 FLIGHT_RADAR_FORCE_RECHECK_MISS: int = require_env("FLIGHT_RADAR_FORCE_RECHECK_MISS", 8 * 60)
+
+
+# Aviation Edge
+
+AVIATION_EDGE_API_KEY: str = require_env("AVIATION_EDGE_API_KEY")
+AVIATION_EDGE_URL: str = require_env("AVIATION_EDGE_URL", "https://aviation-edge.com/v2/public")
+AVIATION_EDGE_SECONDS_BETWEEN_REQUESTS: float = require_env("AVIATION_EDGE_SECONDS_BETWEEN_REQUESTS", 60 / 90)
+AVIATION_EDGE_MAX_BATCH_SIZE: int = require_env("AVIATION_EDGE_MAX_BATCH_SIZE", 1)
+AVIATION_EDGE_MAX_RANGE_DAYS: int = require_env("AVIATION_EDGE_MAX_RANGE_DAYS", 30)
+
 
 # IMPORTS
 

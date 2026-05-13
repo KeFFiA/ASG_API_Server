@@ -99,19 +99,6 @@ async def asg_regs_updater():
     ).label("Airline")
 
     async with client.session("cirium") as cirium_session:
-
-        latest_revision_stmt = (
-            select(func.max(AircraftRevision.id))
-        )
-
-        latest_revision = await cirium_session.scalar(
-            latest_revision_stmt
-        )
-
-        if latest_revision is None:
-            logger.warning("No revisions found")
-            return
-
         await cirium_session.execute(
             text('TRUNCATE TABLE "asgaircraft" RESTART IDENTITY')
         )
@@ -122,8 +109,6 @@ async def asg_regs_updater():
                 *columns
             )
             .where(
-                CiriumAircrafts.revision_id == latest_revision,
-
                 or_(*filters),
 
                 CiriumAircrafts.Registration.isnot(None),

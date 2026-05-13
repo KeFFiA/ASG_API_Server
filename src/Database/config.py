@@ -51,6 +51,10 @@ class PowerPlatformBase(AsyncAttrs, BaseMixin, DeclarativeBase):
     pass
 
 
+class AviationEdgeBase(AsyncAttrs, BaseMixin, DeclarativeBase):
+    pass
+
+
 _current_module = sys.modules[__name__]
 
 __all__ = [

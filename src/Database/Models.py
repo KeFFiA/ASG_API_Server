@@ -6,6 +6,7 @@ from .CiriumModels import *
 from .FlightRadarModels import *
 from .ServiceModels import *
 from .MainModels import *
+from .AviationEdgeModels import *
 
 # Add new models below
 # ======================
