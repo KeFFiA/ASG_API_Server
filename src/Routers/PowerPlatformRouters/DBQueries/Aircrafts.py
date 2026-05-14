@@ -479,16 +479,19 @@ async def query_create_update_aircraft(session: AsyncSession, _payload: CreateUp
     manual.lessee = payload.lessee
     manual.lessor = payload.lessor
 
-    await session.flush()
+    # ENGINES
+    await session.refresh(manual, ["engines"])
 
-    manual.engines = [
-        AircraftEngineManual(
-            engine_id=e.engine_id,
-            position=e.position,
-            engine_msn=e.engine_msn
+    manual.engines.clear()
+
+    for e in payload.engines:
+        manual.engines.append(
+            AircraftEngineManual(
+                engine_id=e.engine_id,
+                position=e.position,
+                engine_msn=e.engine_msn
+            )
         )
-        for e in payload.engines
-    ]
 
     await session.commit()
 
