@@ -480,26 +480,23 @@ async def query_create_update_aircraft(session: AsyncSession, _payload: CreateUp
     manual.lessor = payload.lessor
 
     # ENGINES
-    await session.refresh(manual, ["engines"])
+    manual_id = manual.id
 
     manual.engines.clear()
 
-    for e in payload.engines:
-        manual.engines.append(
-            AircraftEngineManual(
-                engine_id=e.engine_id,
-                position=e.position,
-                engine_msn=e.engine_msn
-            )
+    manual.engines.extend([
+        AircraftEngineManual(
+            engine_id=e.engine_id,
+            position=e.position,
+            engine_msn=e.engine_msn
         )
-
-    manual_id = manual.id
+        for e in payload.engines
+    ])
 
     await session.commit()
 
     import asyncio
-    loop = asyncio.get_running_loop()
-    loop.create_task(
+    asyncio.create_task(
         update_create_aircraft_manual(manual_id)
     )
 
