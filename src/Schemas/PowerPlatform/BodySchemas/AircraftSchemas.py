@@ -14,9 +14,9 @@ class AircraftTechnicalDataBody(BaseModel):
 
 
 class CreateUpdateEngineBody(BaseModel):
-    engine_id: Optional[int] = Field(default=None, alias="Engine ID")
-    position: Optional[EnginePositionEnum] = Field(default=None, alias="Engine Position")
-    engine_msn: Optional[str] = Field(default=None, alias="Engine MSN")
+    engine_id: Optional[int] = Field(default=None, description="Engine ID")
+    position: Optional[EnginePositionEnum] = Field(default=None, description="Engine Position")
+    engine_msn: Optional[str] = Field(default=None, description="Engine MSN")
 
 
 class CreateUpdateAircraftBody(BaseModel):
