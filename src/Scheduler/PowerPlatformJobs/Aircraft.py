@@ -383,7 +383,6 @@ async def update_create_aircraft_manual(target: int):
             )
 
         await session.commit()
-        await session.refresh(aircraft)
 
         return aircraft
 
