@@ -493,12 +493,14 @@ async def query_create_update_aircraft(session: AsyncSession, _payload: CreateUp
             )
         )
 
+    manual_id = manual.id
+
     await session.commit()
 
     import asyncio
     loop = asyncio.get_running_loop()
     loop.create_task(
-        update_create_aircraft_manual(manual.id)
+        update_create_aircraft_manual(manual_id)
     )
 
     return status
