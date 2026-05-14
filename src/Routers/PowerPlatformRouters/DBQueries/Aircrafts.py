@@ -480,8 +480,6 @@ async def query_create_update_aircraft(session: AsyncSession, _payload: CreateUp
     manual.lessor = payload.lessor
 
     # ENGINES
-    manual_id = manual.id
-
     manual.engines.clear()
 
     manual.engines.extend([
@@ -492,6 +490,10 @@ async def query_create_update_aircraft(session: AsyncSession, _payload: CreateUp
         )
         for e in payload.engines
     ])
+
+    await session.flush()
+
+    manual_id = manual.id
 
     await session.commit()
 
