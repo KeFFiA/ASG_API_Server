@@ -9,7 +9,7 @@ import asyncio
 def manual_aircraft_changed(mapper, connection, target):
     try:
         loop = asyncio.get_running_loop()
-        loop.create_task(test(target.id))
+        loop.create_task(test(target))
     except RuntimeError:
         raise RuntimeError("No running event loop")
 
