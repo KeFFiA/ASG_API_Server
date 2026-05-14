@@ -1,29 +1,39 @@
-import asyncio
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, List
 
+import asyncio
 import aiohttp
-from sqlalchemy import select
+import orjson
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from Config import setup_logger, AVIATION_EDGE_API_KEY, AVIATION_EDGE_URL, AVIATION_EDGE_SECONDS_BETWEEN_REQUESTS, \
-    AVIATION_EDGE_MAX_BATCH_SIZE, AVIATION_EDGE_MAX_RANGE_DAYS, AVIATION_EDGE_PATH
+from Config import setup_logger, AVIATION_EDGE_API_KEY, AVIATION_EDGE_URL, AVIATION_EDGE_MAX_BATCH_SIZE, \
+    AVIATION_EDGE_MAX_RANGE_DAYS, AVIATION_EDGE_PATH
 from Database import DatabaseClient
 from Database.Models import HistoricalSchedule
-from Utils import (
-    parse_date_or_datetime,
-    parse_dt,
-    ensure_naive_utc,
-    write_csv,
-    performance_timer
-)
+from Utils import parse_date_or_datetime, parse_dt, write_csv, performance_timer, ensure_utc
+
 
 logger = setup_logger("aviationedge_historical")
 
 
-def split_batches(data: Optional[List[str]], batch_size: int) -> List[Optional[List[str]]]:
+MAX_CONCURRENT_REQUESTS = 5
+BULK_INSERT_SIZE = 5000 # TODO: Move to config
+DB_INSERT_BATCH_SIZE = 650
+
+
+def chunked(iterable, size):
+    for i in range(0, len(iterable), size):
+        yield iterable[i:i + size]
+
+
+def split_batches(
+        data: Optional[List[str]],
+        batch_size: int
+) -> List[List[str]]:
     if not data:
-        return [None]
+        return [[]]
 
     return [
         data[i:i + batch_size]
@@ -53,6 +63,34 @@ def chunk_date_ranges(
     return ranges
 
 
+async def bulk_insert_historical_schedule(
+        session: AsyncSession,
+        rows: List[dict]
+) -> int:
+
+    total_inserted = 0
+
+    for batch in chunked(rows, DB_INSERT_BATCH_SIZE):
+
+        stmt = insert(HistoricalSchedule).values(batch)
+
+        stmt = stmt.on_conflict_do_nothing(
+            index_elements=[
+                "type",
+                "departure_scheduled_time",
+                "departure_iata_code",
+                "arrival_iata_code",
+                "flight_number"
+            ]
+        )
+
+        result = await session.execute(stmt)
+
+        total_inserted += result.rowcount or 0
+
+    return total_inserted
+
+
 async def fetch_historical_schedule_chunk(
         airport_code: str,
         schedule_type: str,
@@ -71,17 +109,6 @@ async def fetch_historical_schedule_chunk(
         - both
     """
 
-    client = DatabaseClient()
-
-    logger.debug(
-        f"[Historical Schedule] "
-        f"{airport_code=} | "
-        f"{schedule_type=} | "
-        f"{range_from=} | "
-        f"{range_to=} | "
-        f"{airline_iata=}"
-    )
-
     params = {
         "key": AVIATION_EDGE_API_KEY,
         "code": airport_code,
@@ -96,8 +123,6 @@ async def fetch_historical_schedule_chunk(
     if flight_num:
         params["flight_num"] = flight_num
 
-    await asyncio.sleep(AVIATION_EDGE_SECONDS_BETWEEN_REQUESTS)
-
     async with http.get(
             f"{AVIATION_EDGE_URL}/flightsHistory",
             params=params
@@ -110,7 +135,15 @@ async def fetch_historical_schedule_chunk(
             )
             return 0
 
-        data = await resp.json()
+        try:
+            raw = await resp.read()
+            data = orjson.loads(raw)
+
+        except Exception as e:
+            logger.error(
+                f"[Historical Schedule] JSON parse error: {e}"
+            )
+            return 0
 
         if not isinstance(data, list):
             logger.warning(
@@ -128,193 +161,169 @@ async def fetch_historical_schedule_chunk(
         rows_to_insert = []
         csv_rows = []
 
-        async with client.session("aviationedge") as session:
+        parse_errors = 0
 
-            existing_ids = set()
+        for item in data:
 
-            flight_keys = []
-
-            for item in data:
+            try:
+                departure = item.get("departure", {})
+                arrival = item.get("arrival", {})
+                airline = item.get("airline", {})
                 flight = item.get("flight", {})
+                codeshared = item.get("codeshared", {})
 
-                flight_iata = flight.get("iataNumber")
-                flight_icao = flight.get("icaoNumber")
+                codeshared_airline = codeshared.get("airline", {})
+                codeshared_flight = codeshared.get("flight", {})
 
-                dep = item.get("departure", {})
-                arr = item.get("arrival", {})
-
-                scheduled_time = parse_dt(
-                    dep.get("scheduledTime")
-                    or arr.get("scheduledTime")
+                departure_scheduled = ensure_utc(
+                    parse_dt(departure.get("scheduledTime"))
                 )
 
-                flight_keys.append((
-                    flight_iata,
-                    flight_icao,
-                    ensure_naive_utc(scheduled_time)
-                ))
+                row_data = {
+                    # Base
+                    "type": item.get("type"),
+                    "status": item.get("status"),
 
-            if storage_mode in ("db", "both") and flight_keys:
-                stmt = (
-                    select(
-                        HistoricalSchedule.type,
-                        HistoricalSchedule.departure_scheduled_time,
-                        HistoricalSchedule.departure_iata_code,
-                        HistoricalSchedule.arrival_iata_code,
-                        HistoricalSchedule.flight_number
-                    )
-                    .where(
-                        HistoricalSchedule.departure_scheduled_time.between(
-                            range_from,
-                            range_to
-                        )
-                    )
-                )
+                    # Departure
+                    "departure_iata_code": departure.get("iataCode"),
+                    "departure_icao_code": departure.get("icaoCode"),
+                    "departure_terminal": departure.get("terminal"),
+                    "departure_gate": departure.get("gate"),
+                    "departure_delay": departure.get("delay"),
 
-                existing = (await session.execute(stmt)).all()
+                    "departure_scheduled_time": departure_scheduled,
+                    "departure_estimated_time": ensure_utc(
+                        parse_dt(departure.get("estimatedTime"))
+                    ),
+                    "departure_actual_time": ensure_utc(
+                        parse_dt(departure.get("actualTime"))
+                    ),
+                    "departure_estimated_runway": ensure_utc(
+                        parse_dt(departure.get("estimatedRunway"))
+                    ),
+                    "departure_actual_runway": ensure_utc(
+                        parse_dt(departure.get("actualRunway"))
+                    ),
 
-                existing_ids = {
-                    (
-                        row[0],
-                        row[1],
-                        row[2],
-                        row[3],
-                        row[4]
-                    )
-                    for row in existing
+                    # Arrival
+                    "arrival_iata_code": arrival.get("iataCode"),
+                    "arrival_icao_code": arrival.get("icaoCode"),
+                    "arrival_terminal": arrival.get("terminal"),
+                    "arrival_baggage": arrival.get("baggage"),
+                    "arrival_gate": arrival.get("gate"),
+                    "arrival_delay": arrival.get("delay"),
+
+                    "arrival_scheduled_time": ensure_utc(
+                        parse_dt(arrival.get("scheduledTime"))
+                    ),
+                    "arrival_estimated_time": ensure_utc(
+                        parse_dt(arrival.get("estimatedTime"))
+                    ),
+                    "arrival_actual_time": ensure_utc(
+                        parse_dt(arrival.get("actualTime"))
+                    ),
+                    "arrival_estimated_runway": ensure_utc(
+                        parse_dt(arrival.get("estimatedRunway"))
+                    ),
+                    "arrival_actual_runway": ensure_utc(
+                        parse_dt(arrival.get("actualRunway"))
+                    ),
+
+                    # Airline
+                    "airline_name": airline.get("name"),
+                    "airline_iata_code": airline.get("iataCode"),
+                    "airline_icao_code": airline.get("icaoCode"),
+
+                    # Flight
+                    "flight_number": flight.get("number"),
+                    "flight_iata_number": flight.get("iataNumber"),
+                    "flight_icao_number": flight.get("icaoNumber"),
+
+                    # Codeshare Airline
+                    "codeshared_airline_name": codeshared_airline.get("name"),
+                    "codeshared_airline_iata_code": codeshared_airline.get("iataCode"),
+                    "codeshared_airline_icao_code": codeshared_airline.get("icaoCode"),
+
+                    # Codeshare Flight
+                    "codeshared_flight_number": codeshared_flight.get("number"),
+                    "codeshared_flight_iata_number": codeshared_flight.get("iataNumber"),
+                    "codeshared_flight_icao_number": codeshared_flight.get("icaoNumber")
                 }
 
-            for item in data:
-                try:
-                    departure = item.get("departure", {})
-                    arrival = item.get("arrival", {})
-                    airline = item.get("airline", {})
-                    flight = item.get("flight", {})
-                    codeshared = item.get("codeshared", {})
+                if storage_mode in ("db", "both"):
+                    rows_to_insert.append(row_data)
 
-                    codeshared_airline = codeshared.get("airline", {})
-                    codeshared_flight = codeshared.get("flight", {})
+                if storage_mode in ("csv", "both"):
+                    csv_rows.append(row_data)
 
-                    departure_scheduled = ensure_naive_utc(
-                        parse_dt(departure.get("scheduledTime"))
-                    )
+            except Exception as e:
+                parse_errors += 1
 
-                    unique_key = (
-                        item.get("type"),
-                        departure_scheduled,
-                        departure.get("iataCode"),
-                        arrival.get("iataCode"),
-                        flight.get("number")
-                    )
-
-                    if unique_key in existing_ids:
-                        logger.debug(
-                            f"[Historical Schedule] Duplicate skipped: "
-                            f"{unique_key}"
-                        )
-                        continue
-
-                    row_data = {
-                        "type": item.get("type"),
-                        "status": item.get("status"),
-
-                        # Departure
-                        "departure_iata_code": departure.get("iataCode"),
-                        "departure_icao_code": departure.get("icaoCode"),
-                        "departure_terminal": departure.get("terminal"),
-                        "departure_gate": departure.get("gate"),
-                        "departure_delay": departure.get("delay"),
-
-                        "departure_scheduled_time": departure_scheduled,
-                        "departure_estimated_time": ensure_naive_utc(
-                            parse_dt(departure.get("estimatedTime"))
-                        ),
-                        "departure_actual_time": ensure_naive_utc(
-                            parse_dt(departure.get("actualTime"))
-                        ),
-                        "departure_estimated_runway": ensure_naive_utc(
-                            parse_dt(departure.get("estimatedRunway"))
-                        ),
-                        "departure_actual_runway": ensure_naive_utc(
-                            parse_dt(departure.get("actualRunway"))
-                        ),
-
-                        # Arrival
-                        "arrival_iata_code": arrival.get("iataCode"),
-                        "arrival_icao_code": arrival.get("icaoCode"),
-                        "arrival_terminal": arrival.get("terminal"),
-                        "arrival_baggage": arrival.get("baggage"),
-                        "arrival_gate": arrival.get("gate"),
-                        "arrival_delay": arrival.get("delay"),
-
-                        "arrival_scheduled_time": ensure_naive_utc(
-                            parse_dt(arrival.get("scheduledTime"))
-                        ),
-                        "arrival_estimated_time": ensure_naive_utc(
-                            parse_dt(arrival.get("estimatedTime"))
-                        ),
-                        "arrival_actual_time": ensure_naive_utc(
-                            parse_dt(arrival.get("actualTime"))
-                        ),
-                        "arrival_estimated_runway": ensure_naive_utc(
-                            parse_dt(arrival.get("estimatedRunway"))
-                        ),
-                        "arrival_actual_runway": ensure_naive_utc(
-                            parse_dt(arrival.get("actualRunway"))
-                        ),
-
-                        # Airline
-                        "airline_name": airline.get("name"),
-                        "airline_iata_code": airline.get("iataCode"),
-                        "airline_icao_code": airline.get("icaoCode"),
-
-                        # Flight
-                        "flight_number": flight.get("number"),
-                        "flight_iata_number": flight.get("iataNumber"),
-                        "flight_icao_number": flight.get("icaoNumber"),
-
-                        # Codeshared Airline
-                        "codeshared_airline_name": codeshared_airline.get("name"),
-                        "codeshared_airline_iata_code": codeshared_airline.get("iataCode"),
-                        "codeshared_airline_icao_code": codeshared_airline.get("icaoCode"),
-
-                        # Codeshared Flight
-                        "codeshared_flight_number": codeshared_flight.get("number"),
-                        "codeshared_flight_iata_number": codeshared_flight.get("iataNumber"),
-                        "codeshared_flight_icao_number": codeshared_flight.get("icaoNumber")
-                    }
-
-                    if storage_mode in ("db", "both"):
-                        rows_to_insert.append(
-                            HistoricalSchedule(**row_data)
-                        )
-
-                    if storage_mode in ("csv", "both"):
-                        csv_rows.append(row_data)
-
-                except Exception as e:
-                    logger.warning(
-                        f"[Historical Schedule] Parse error: {e}"
-                    )
-
-            if rows_to_insert and storage_mode in ("db", "both"):
-                session.add_all(rows_to_insert)
-                await session.commit()
-
-                logger.debug(
-                    f"[Historical Schedule] "
-                    f"Inserted {len(rows_to_insert)} rows"
+                logger.warning(
+                    f"[Historical Schedule] Parse error: {e}"
                 )
 
-            if csv_rows and storage_mode in ("csv", "both") and csv_path:
+        inserted = 0
+
+
+        if rows_to_insert and storage_mode in ("db", "both"):
+
+            try:
+                client = DatabaseClient()
+
+                async with client.session("aviationedge") as session:
+
+                    inserted = await bulk_insert_historical_schedule(
+                        session=session,
+                        rows=rows_to_insert
+                    )
+
+                    await session.commit()
+
+                logger.info(
+                    f"[Historical Schedule] "
+                    f"Inserted {inserted}/{len(rows_to_insert)} "
+                    f"rows | "
+                    f"{airport_code=} | "
+                    f"{schedule_type=} | "
+                    f"{range_from.date()} -> {range_to.date()}"
+                )
+
+            except Exception as e:
+                logger.exception(
+                    f"[Historical Schedule] Bulk insert failed: {e}"
+                )
+
+        if csv_rows and storage_mode in ("csv", "both") and csv_path:
+
+            try:
                 write_csv(csv_rows, csv_path.as_posix())
 
-                logger.debug(
+                logger.info(
                     f"[Historical Schedule] "
                     f"Written {len(csv_rows)} rows to CSV"
                 )
 
-            return len(rows_to_insert) + len(csv_rows)
+            except Exception as e:
+                logger.exception(
+                    f"[Historical Schedule] CSV write failed: {e}"
+                )
+
+        if parse_errors:
+            logger.warning(
+                f"[Historical Schedule] "
+                f"Parse errors: {parse_errors}"
+            )
+
+        return inserted
+
+
+async def fetch_with_semaphore(
+        sem: asyncio.Semaphore,
+        **kwargs
+):
+    async with sem:
+        return await fetch_historical_schedule_chunk(**kwargs)
 
 
 @performance_timer
@@ -328,7 +337,8 @@ async def fetch_historical_schedules(
         csv_path: Optional[Path] = AVIATION_EDGE_PATH / (
                 f"historical_schedules_"
                 f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-        )
+        ),
+        resume_from: int = 0
 ):
     """
     storage_mode:
@@ -353,9 +363,44 @@ async def fetch_historical_schedules(
         AVIATION_EDGE_MAX_BATCH_SIZE
     )
 
+    airline_batch_sizes = [
+        len(batch) if batch else 1
+        for batch in airline_batches
+    ]
+
+    total_iterations = (
+            len(date_ranges)
+            * len(airport_codes)
+            * len(schedule_types)
+            * sum(airline_batch_sizes)
+    )
+
+    current_iteration = 0
     total_saved = 0
 
-    async with aiohttp.ClientSession() as http:
+    sem = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
+
+    connector = aiohttp.TCPConnector(
+        limit=MAX_CONCURRENT_REQUESTS,
+        ttl_dns_cache=300
+    )
+
+    timeout = aiohttp.ClientTimeout(
+        total=120
+    )
+
+    client = DatabaseClient()
+
+    async with (
+        aiohttp.ClientSession(
+            connector=connector,
+            timeout=timeout
+        ) as http,
+
+        client.session("aviationedge") as session
+    ):
+
+        tasks = []
 
         for range_start, range_end in date_ranges:
 
@@ -369,26 +414,58 @@ async def fetch_historical_schedules(
                             airline_batch = [None]
 
                         for airline_iata in airline_batch:
+
+                            current_iteration += 1
+
+                            if current_iteration < resume_from:
+                                continue
+
                             logger.info(
                                 f"[Historical Schedule] "
+                                f"Progress "
+                                f"{current_iteration}/{total_iterations} | "
                                 f"{airport_code=} | "
                                 f"{schedule_type=} | "
                                 f"{airline_iata=} | "
-                                f"{range_start.date()} -> {range_end.date()}"
+                                f"{range_start.date()} -> "
+                                f"{range_end.date()}"
                             )
 
-                            saved = await fetch_historical_schedule_chunk(
-                                airport_code=airport_code,
-                                schedule_type=schedule_type,
-                                range_from=range_start,
-                                range_to=range_end,
-                                airline_iata=airline_iata,
-                                http=http,
-                                storage_mode=storage_mode,
-                                csv_path=csv_path
+                            tasks.append(
+                                fetch_with_semaphore(
+                                    sem=sem,
+                                    airport_code=airport_code,
+                                    schedule_type=schedule_type,
+                                    range_from=range_start,
+                                    range_to=range_end,
+                                    airline_iata=airline_iata,
+                                    http=http,
+                                    storage_mode=storage_mode,
+                                    csv_path=csv_path
+                                )
                             )
 
-                            total_saved += saved
+        logger.info(
+            f"[Historical Schedule] "
+            f"Executing {len(tasks)} tasks"
+        )
+
+        results = await asyncio.gather(
+            *tasks,
+            return_exceptions=True
+        )
+
+        for result in results:
+
+            if isinstance(result, Exception):
+                logger.exception(
+                    f"[Historical Schedule] Task failed: {result}"
+                )
+                continue
+
+            total_saved += result
+
+        await session.commit()
 
     logger.info(
         f"[Historical Schedule] Completed. "
@@ -404,7 +481,212 @@ if __name__ == "__main__":
 
     AIRPORTS = str_to_list(
         """
-        DXB
+AAN
+ABJ
+ACC
+ADD
+ADL
+AGP
+AKL
+ALA
+ALG
+AMD
+AMM
+AMS
+ANC
+ARN
+ATH
+AUH
+AVV
+BAH
+BCN
+BEY
+BGW
+BHX
+BKK
+BLQ
+BLR
+BNE
+BOG
+BOM
+BOS
+BQN
+BRU
+BSR
+BUD
+CAI
+CAN
+CCU
+CDG
+CEB
+CGK
+CGO
+CHC
+CKY
+CLO
+CMB
+CMN
+COK
+COO
+CPH
+CPT
+CRK
+CTU
+CVG
+DAC
+DAD
+DAM
+DAR
+DEL
+DFW
+DME
+DMK
+DMM
+DOH
+DPS
+DSS
+DTW
+DUB
+DUR
+DUS
+DWC
+DXB
+EBB
+EBL
+EDI
+EMA
+EWR
+EZE
+FCO
+FLL
+FRA
+GIG
+GLA
+GRU
+GVA
+GYD
+HAJ
+HAM
+HAN
+HGH
+HKG
+HKT
+HND
+HRE
+HTT
+HYD
+IAD
+IAH
+ICN
+IKA
+ISB
+ISL
+IST
+JED
+JFK
+JNB
+KEF
+KHH
+KHI
+KHN
+KIX
+KTI
+KUL
+KWI
+LAD
+LAX
+LBG
+LCA
+LED
+LGG
+LGW
+LHE
+LHR
+LIS
+LLW
+LOS
+LPL
+LUN
+LYS
+MAA
+MAD
+MAN
+MBA
+MCO
+MCT
+MEB
+MED
+MEL
+MEX
+MIA
+MLA
+MLE
+MNL
+MRU
+MST
+MUC
+MXP
+NBJ
+NBO
+NCE
+NCL
+NHD
+NKC
+NLU
+NQY
+NRT
+OAK
+OHS
+OKC
+ORD
+OSF
+OSL
+PAE
+PEK
+PER
+PEW
+PKX
+PNH
+PRG
+PVG
+QEC
+QUA
+RFD
+RKT
+RMB
+RUH
+SAI
+SEA
+SEZ
+SFO
+SGN
+SHJ
+SIN
+SKT
+STN
+SYD
+SYZ
+SZX
+TAN
+TEV
+THR
+TLS
+TNR
+TPE
+TRV
+TUN
+UIO
+UTP
+VCE
+VIE
+WAW
+XMN
+YUL
+YYZ
+ZAZ
+ZDY
+ZIA
+ZRH
         """.upper()
     )
 
@@ -416,11 +698,11 @@ if __name__ == "__main__":
 
     SCHEDULE_TYPES = ["departure"]
 
-    START_DATE = "2025-06-01"
-    END_DATE = "2025-06-30"
+    START_DATE = "2025-07-01"
+    END_DATE = "2026-01-31"
 
     SAVE_MODE = "both"
-    CSV_NAME = "test"
+    CSV_NAME = "data_14_05_26_5(01-07-25 - 31-01-26).csv"
 
     asyncio.run(
         fetch_historical_schedules(
@@ -431,7 +713,6 @@ if __name__ == "__main__":
             end_date=END_DATE,
             storage_mode=SAVE_MODE,
             csv_path=(AVIATION_EDGE_PATH / CSV_NAME) if CSV_NAME else None,
+            resume_from=0
         )
     )
-
-

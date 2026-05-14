@@ -105,7 +105,7 @@ class Router(APIRouter):
 
 API_TITLE: str = require_env("API_TITLE", "AIXII API Server")
 API_DESCRIPTION: str = require_env("API_DESCRIPTION", "")
-API_VERSION: str = require_env("API_VERSION", "v1.0.1a")
+API_VERSION: str = require_env("API_VERSION", "v1.0.2")
 API_SWAGGER_URL: str = require_env("API_SWAGGER_URL", "/api/docs")
 API_REDOC_URL: str = require_env("API_REDOC_URL", "/api/redoc")
 API_ROOT_URL: str = require_env("API_ROOT_URL", "/api/v1")
@@ -229,9 +229,9 @@ FLIGHT_RADAR_FORCE_RECHECK_MISS: int = require_env("FLIGHT_RADAR_FORCE_RECHECK_M
 
 AVIATION_EDGE_API_KEY: str = require_env("AVIATION_EDGE_API_KEY")
 AVIATION_EDGE_URL: str = require_env("AVIATION_EDGE_URL", "https://aviation-edge.com/v2/public")
-AVIATION_EDGE_SECONDS_BETWEEN_REQUESTS: float = require_env("AVIATION_EDGE_SECONDS_BETWEEN_REQUESTS", 60 / 90)
+AVIATION_EDGE_SECONDS_BETWEEN_REQUESTS: float = require_env("AVIATION_EDGE_SECONDS_BETWEEN_REQUESTS", 60 / 180)
 AVIATION_EDGE_MAX_BATCH_SIZE: int = require_env("AVIATION_EDGE_MAX_BATCH_SIZE", 1)
-AVIATION_EDGE_MAX_RANGE_DAYS: int = require_env("AVIATION_EDGE_MAX_RANGE_DAYS", 30)
+AVIATION_EDGE_MAX_RANGE_DAYS: int = require_env("AVIATION_EDGE_MAX_RANGE_DAYS", 15)
 
 
 # IMPORTS

@@ -20,12 +20,12 @@ def cache_key_first_non_null(name: str, data: dict[str, Any], keys: Iterable[str
     return f"{name}:{fallback}"
 
 
-def str_to_list(text: str | List[str] | None) -> List[str]:
+def str_to_list(text: str | List[str]) -> List[str]:
     if isinstance(text, str):
         values = re.split(r"[,\n]+", text)
         values = [v.strip() for v in values if v.strip()]
-        return list(set(values))
-    return text
+        return sorted(set(values))
+    return sorted(text)
 
 
 def map_asset(asset: Asset) -> AssetSchema:
@@ -91,6 +91,12 @@ def write_csv(rows: List[dict], path: str):
         writer.writerows(rows)
 
 
+def normalize_dt(dt: datetime | None) -> str | None:
+    if not dt:
+        return None
+    return dt.astimezone(timezone.utc).replace(microsecond=0).isoformat()
+
+
 def parse_dt(value: str | None) -> datetime | None:
     if not value:
         return None
@@ -103,6 +109,13 @@ def parse_date_or_datetime(value: str) -> datetime:
         return datetime.strptime(value, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
     except ValueError:
         return datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+
+
+def ensure_utc(dt: datetime | None) -> datetime | None:
+    if dt is None:
+        return None
+
+    return dt.astimezone(timezone.utc)
 
 
 def ensure_naive_utc(dt: datetime | None) -> datetime | None:

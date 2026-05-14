@@ -430,8 +430,14 @@ async def query_create_update_aircraft(session: AsyncSession, _payload: CreateUp
         **_payload.model_dump()
     )
 
-    stmt = select(AircraftManual).where(
-        AircraftManual.aircraft_id == payload.aircraft_id
+    stmt = (
+        select(AircraftManual)
+        .options(
+            selectinload(AircraftManual.engines)
+        )
+        .where(
+            AircraftManual.aircraft_id == payload.aircraft_id
+        )
     )
 
     result = await session.execute(stmt)
