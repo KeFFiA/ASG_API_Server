@@ -231,21 +231,21 @@ async def create_aircraft(request: Request, response: Response, _payload: Annota
     async def db_query(session):
         return await query_create_update_aircraft(session, _payload)
 
-    try:
-        cache_key = f"aircraft:{_payload.aircraft_registration}"
-        result = await db_proxy.update_and_cache(
-            key=cache_key,
-            db_name="powerplatform",
-            update_func=db_query,
-            ttl=60
-        )
+    # try:
+    cache_key = f"aircraft:{_payload.aircraft_registration}"
+    result = await db_proxy.update_and_cache(
+        key=cache_key,
+        db_name="powerplatform",
+        update_func=db_query,
+        ttl=60
+    )
 
-        return success_response(request=request, response=response, msg="Aircraft created successfully",
-                                status_code=status.HTTP_201_CREATED, data=result)
+    return success_response(request=request, response=response, msg="Aircraft created successfully",
+                            status_code=status.HTTP_201_CREATED, data=result)
 
-    except Exception as _ex:
-        logger.error(f"Failed to create Aircraft: {_ex}")
-        return error_response(request=request, response=response, exc=_ex)
+    # except Exception as _ex:
+    #     logger.error(f"Failed to create Aircraft: {_ex}")
+    #     return error_response(request=request, response=response, exc=_ex)
 
 
 @router.get(
