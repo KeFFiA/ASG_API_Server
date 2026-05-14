@@ -11,6 +11,6 @@ from Scheduler.PowerPlatformJobs.Aircraft import update_create_aircraft_manual
 def manual_aircraft_changed(mapper, connection, target):
     try:
         loop = asyncio.get_running_loop()
-        loop.create_task(update_create_aircraft_manual(target))
+        loop.create_task(update_create_aircraft_manual(target.id))
     except RuntimeError:
         raise RuntimeError("No running event loop")
