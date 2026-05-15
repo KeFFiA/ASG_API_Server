@@ -279,29 +279,17 @@ async def update_create_aircraft_manual(target: int):
         aircraft.mtow = manual_aircraft.mtow
 
         aircraft.agreed_value = manual_aircraft.agreed_value
-        aircraft.agreed_value_result = (
-            manual_aircraft.agreed_value_result
-        )
+        aircraft.agreed_value_result = manual_aircraft.agreed_value_result
 
-        aircraft.combined_single_limit = (
-            manual_aircraft.combined_single_limit
-        )
+        aircraft.combined_single_limit = manual_aircraft.combined_single_limit
 
-        aircraft.hsl_deductible = (
-            manual_aircraft.hsl_deductible
-        )
+        aircraft.hsl_deductible = manual_aircraft.hsl_deductible
 
-        aircraft.hd_deductible = (
-            manual_aircraft.hd_deductible
-        )
+        aircraft.hd_deductible = manual_aircraft.hd_deductible
 
-        aircraft.depreciation_rate = (
-            manual_aircraft.depreciation_rate
-        )
+        aircraft.depreciation_rate = manual_aircraft.depreciation_rate
 
-        aircraft.depreciation_start_date = (
-            manual_aircraft.depreciation_start_date
-        )
+        aircraft.depreciation_start_date = manual_aircraft.depreciation_start_date
 
         if not aircraft.technical_data:
             aircraft.technical_data = AircraftTechnicalData(
@@ -312,13 +300,9 @@ async def update_create_aircraft_manual(target: int):
             )
 
         else:
-            aircraft.technical_data.data_source = (
-                AircraftDataSourceEnum.MANUAL
-            )
-
-            aircraft.technical_data.data_source_row_id = (
-                manual_aircraft.id
-            )
+            aircraft.technical_data.data_source = manual_aircraft.data_source
+            aircraft.technical_data.data_source_row_id = manual_aircraft.id
+            aircraft.technical_data.status = manual_aircraft.status
 
         for policy in aircraft.policy:
             policy.active = False

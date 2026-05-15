@@ -1,5 +1,6 @@
 from base64 import b64decode
-from typing import List
+from datetime import date
+from typing import List, Optional
 
 from sqlalchemy import select, func, cast, Date, literal, Select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -425,6 +426,38 @@ async def query_get_engines(session: AsyncSession, _payload: GetAircraftIDQuery)
     ]
 
 
+def calculate_depreciated_value(
+    agreed_value: Optional[float],
+    depreciation_rate: Optional[float],
+    depreciation_start_date: Optional[date],
+    policy_from: Optional[date],
+    av_fixed: bool = False
+) -> Optional[float]:
+
+    if agreed_value is None:
+        return None
+
+    if av_fixed:
+        return round(agreed_value, 2)
+
+    if not depreciation_start_date or not policy_from:
+        return round(agreed_value, 2)
+
+    if policy_from <= depreciation_start_date:
+        return round(agreed_value, 2)
+
+    if not depreciation_rate:
+        return round(agreed_value, 2)
+
+    days = (policy_from - depreciation_start_date).days
+    years = days / 365.25
+
+    rate = depreciation_rate / 100
+    final_value = agreed_value * ((1 - rate) ** years)
+
+    return round(final_value, 2)
+
+
 async def query_create_update_aircraft(session: AsyncSession, _payload: CreateUpdateAircraftBody) -> List[
     UpsertdelResponseSchema]:
     payload = CreateUpdateAircraftBody(
@@ -455,6 +488,13 @@ async def query_create_update_aircraft(session: AsyncSession, _payload: CreateUp
 
         status = [UpsertdelResponseSchema(status=UpsertdelStatusEnum.CREATED)]
 
+    # UPDATE TECHNICAL DATA
+
+    manual.av_fixed = payload.technical_data.av_fixed
+    manual.status = payload.technical_data.status
+    manual.data_source = payload.technical_data.data_source
+    manual.in_dashboard = payload.technical_data.in_dashboard
+
     # UPDATE MAIN DATA
     manual.registration = payload.aircraft_registration
     manual.msn = payload.aircraft_msn
@@ -468,6 +508,14 @@ async def query_create_update_aircraft(session: AsyncSession, _payload: CreateUp
 
     # LEASE
     manual.agreed_value = payload.agreed_value
+    manual.agreed_value_result = calculate_depreciated_value(
+        agreed_value=payload.agreed_value,
+        depreciation_rate=payload.depreciation_rate,
+        depreciation_start_date=payload.depreciation_start_date,
+        policy_from=payload.policy_from,
+        av_fixed=payload.technical_data.av_fixed
+    )
+
     manual.depreciation_rate = payload.depreciation_rate
     manual.depreciation_start_date = payload.depreciation_start_date
 

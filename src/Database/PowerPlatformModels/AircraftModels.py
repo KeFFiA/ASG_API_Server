@@ -48,6 +48,22 @@ class AircraftManual(Base):
     lessee: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     lessor: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
+    data_source: Mapped[AircraftDataSourceEnum] = mapped_column(
+        Enum(AircraftDataSourceEnum),
+        nullable=True,
+        default=AircraftDataSourceEnum.CIRIUM
+    )
+
+    status: Mapped[AircraftInsuredStatusEnum] = mapped_column(
+        Enum(AircraftInsuredStatusEnum),
+        nullable=False,
+        default=AircraftInsuredStatusEnum.INSURED
+    )
+
+    av_fixed: Mapped[bool] = mapped_column(Boolean, default=False)
+    in_dashboard: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
     engines: Mapped[list["AircraftEngineManual"]] = relationship(
         back_populates="manual",
         cascade="all, delete-orphan",
