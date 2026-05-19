@@ -14,9 +14,10 @@ from Schemas import AdditionalAircraftInfoSchema, AdditionalAircraftInfoValuatio
     PolicySchema, AircraftSchemaFull, EngineSchema, AirlineSchemaFull, TemplateSchemaFull, \
     AircraftSchemaLight, AirlineSchemaLight, TemplateSchemaLight, EngineTypeSchema, AircraftTechnicalDataSchema, \
     UpsertdelResponseSchema, UpsertdelStatusEnum, CiriumAircraftSchema
-from Schemas.PowerPlatform.BodySchemas.AircraftSchemas import CreateUpdateAircraftBody, CreateAircraftTemplatesBody
+from Schemas.PowerPlatform.BodySchemas.AircraftSchemas import CreateUpdateAircraftBody, CreateAircraftTemplatesBody, \
+    GetAircraftsFromCiriumBody
 from Schemas.PowerPlatform.QuerySchemas.AircraftSchemas import GetAircraftQuery, GetEngineTypeQuery, \
-    GetAircraftTemplateQuery, GetAircraftIDQuery, GetAircraftsFromCiriumQuery
+    GetAircraftTemplateQuery, GetAircraftIDQuery
 from Utils import map_asset
 
 
@@ -553,7 +554,7 @@ async def query_create_update_aircraft(session: AsyncSession, _payload: CreateUp
     return status
 
 
-async def query_get_aircrafts_cirium(session: AsyncSession, _payload: GetAircraftsFromCiriumQuery) -> List[CiriumAircraftSchema]:
+async def query_get_aircrafts_cirium(session: AsyncSession, _payload: GetAircraftsFromCiriumBody) -> List[CiriumAircraftSchema]:
     payload = GetAircraftsFromCiriumQuery(
         **_payload.model_dump()
     )

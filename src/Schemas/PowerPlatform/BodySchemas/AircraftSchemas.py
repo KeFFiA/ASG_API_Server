@@ -67,3 +67,7 @@ class AddSumPolicyBody(BaseModel):
     paid_to_date_amount: Optional[float] = Field(default=None, description="Paid to date amount")
     currency_rate: Optional[float] = Field(None, description="Currency rate")
 
+
+class GetAircraftsFromCiriumBody(BaseModel):
+    airlines_name: List[str] = Field(..., description="Airlines name")
+

@@ -6,9 +6,10 @@ from Config import setup_logger, Router
 from Schemas import DefaultResponse, TemplateSchemaLight, TemplateSchemaFull, AircraftSchemaFull, AircraftSchemaLight, \
     EngineSchema, AdditionalAircraftInfoSchema, EngineTypeSchema, UpsertdelResponseSchema, CiriumAircraftSchema
 from Schemas.Enums import service
-from Schemas.PowerPlatform.BodySchemas.AircraftSchemas import CreateAircraftTemplatesBody, CreateUpdateAircraftBody
+from Schemas.PowerPlatform.BodySchemas.AircraftSchemas import CreateAircraftTemplatesBody, CreateUpdateAircraftBody, \
+    GetAircraftsFromCiriumBody
 from Schemas.PowerPlatform.QuerySchemas.AircraftSchemas import GetAircraftQuery, GetEngineTypeQuery, \
-    GetAircraftTemplateQuery, GetAircraftIDQuery, GetAircraftsFromCiriumQuery
+    GetAircraftTemplateQuery, GetAircraftIDQuery
 from Utils import DBProxy, success_response, error_response, warning_response, cache_key_first_non_null
 from .DBQueries.Aircrafts import query_aircrafts, query_get_engines_type, query_templates, query_create_template, \
     query_create_update_aircraft, query_aircraft_additional, query_get_engines, query_get_aircrafts_cirium
@@ -370,7 +371,7 @@ async def get_aircrafts_additional(request: Request, response: Response, _payloa
         return error_response(request=request, response=response, exc=_ex)
 
 
-@router.get(
+@router.post(
     path="/cirium",
     description="Get Aircrafts From Cirium",
     status_code=status.HTTP_200_OK,
@@ -379,7 +380,7 @@ async def get_aircrafts_additional(request: Request, response: Response, _payloa
         include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )
-async def get_aircrafts_cirium(request: Request, response: Response, _payload: Annotated[GetAircraftsFromCiriumQuery, Query()]):
+async def get_aircrafts_cirium(request: Request, response: Response, _payload: Annotated[GetAircraftsFromCiriumBody, Body()]):
     db_proxy: DBProxy = request.state.db_proxy
 
     async def db_query(session):

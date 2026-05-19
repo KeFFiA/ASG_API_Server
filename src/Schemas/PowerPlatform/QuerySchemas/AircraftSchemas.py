@@ -28,10 +28,6 @@ class GetAircraftQuery(BaseModel):
     airline_id: Optional[int] = Query(default=None, description="Airline ID")
 
 
-class GetAircraftsFromCiriumQuery(BaseModel):
-    airlines_name: List[str] = Query(..., description="Airlines name")
-
-
 @exactly_one_of('engine_id', 'engine_type', 'engine_manufacture')
 class GetEngineTypeQuery(BaseModel):
     engine_id: Optional[int] = Query(default=None, description="Engine ID")
