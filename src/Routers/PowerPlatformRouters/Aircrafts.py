@@ -4,14 +4,14 @@ from fastapi import status, Request, Query, Body, Response
 
 from Config import setup_logger, Router
 from Schemas import DefaultResponse, TemplateSchemaLight, TemplateSchemaFull, AircraftSchemaFull, AircraftSchemaLight, \
-    EngineSchema, AdditionalAircraftInfoSchema, EngineTypeSchema, UpsertdelResponseSchema
+    EngineSchema, AdditionalAircraftInfoSchema, EngineTypeSchema, UpsertdelResponseSchema, CiriumAircraftSchema
 from Schemas.Enums import service
 from Schemas.PowerPlatform.BodySchemas.AircraftSchemas import CreateAircraftTemplatesBody, CreateUpdateAircraftBody
 from Schemas.PowerPlatform.QuerySchemas.AircraftSchemas import GetAircraftQuery, GetEngineTypeQuery, \
-    GetAircraftTemplateQuery, GetAircraftIDQuery
+    GetAircraftTemplateQuery, GetAircraftIDQuery, GetAircraftsFromCiriumQuery
 from Utils import DBProxy, success_response, error_response, warning_response, cache_key_first_non_null
 from .DBQueries.Aircrafts import query_aircrafts, query_get_engines_type, query_templates, query_create_template, \
-    query_create_update_aircraft, query_aircraft_additional, query_get_engines
+    query_create_update_aircraft, query_aircraft_additional, query_get_engines, query_get_aircrafts_cirium
 from Utils.ResponsesFunc import build_responses
 
 logger = setup_logger(name="powerplatform_aircrafts")
@@ -368,3 +368,44 @@ async def get_aircrafts_additional(request: Request, response: Response, _payloa
     except Exception as _ex:
         logger.error(f"Failed to get Aircraft additional info: {_ex}")
         return error_response(request=request, response=response, exc=_ex)
+
+
+@router.get(
+    path="/cirium",
+    description="Get Aircrafts From Cirium",
+    status_code=status.HTTP_200_OK,
+    response_model=DefaultResponse[List[CiriumAircraftSchema]],
+    responses=build_responses(
+        include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
+    )
+)
+async def get_aircrafts_cirium(request: Request, response: Response, _payload: Annotated[GetAircraftsFromCiriumQuery, Query()]):
+    db_proxy: DBProxy = request.state.db_proxy
+
+    async def db_query(session):
+        return await query_get_aircrafts_cirium(session, _payload=_payload)
+
+    try:
+        cache_key = cache_key_first_non_null(name="aircraft:cirium", data=_payload.model_dump(),
+                                             keys=("airlines_name"),
+                                             fallback="all")
+
+        aircraft_data = await db_proxy.get_or_cache(
+            key=cache_key,
+            db_name="cirium",
+            query_func=db_query,
+            ttl=60
+        )
+        if len(aircraft_data) > 0:
+            return success_response(request=request, response=response, data=aircraft_data,
+                                    msg="Aircraft retrieved successfully")
+        return warning_response(request=request, response=response, msg="Aircraft not found",
+                                status_code=status.HTTP_404_NOT_FOUND)
+
+    except ValueError:
+        return warning_response(request=request, response=response, msg="Aircraft not found",
+                                status_code=status.HTTP_404_NOT_FOUND)
+    except Exception as _ex:
+        logger.error(f"Failed to get Aircraft: {_ex}")
+        return error_response(request=request, response=response, exc=_ex)
+

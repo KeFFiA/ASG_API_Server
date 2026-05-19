@@ -5,7 +5,7 @@ from fastapi import status, Request, Query, Response
 from Config import setup_logger, Router
 from Schemas import DefaultResponse, ApplicationSchema, FontSchema
 from Schemas.Enums import service
-from Schemas.PowerPlatform.QuerySchemas.ApplicationSchemas import GetApplicationIdQuery, GetApplicationSizeQuery
+from Schemas.PowerPlatform.QuerySchemas.ApplicationSchemas import GetApplicationIdQuery, DeviceInfo
 from Utils import DBProxy, success_response, warning_response, error_response, cache_key_first_non_null
 from Utils.ResponsesFunc import build_responses
 from .DBQueries.Application import query_fonts, query_apps
@@ -65,7 +65,7 @@ async def get_apps(request: Request, response: Response, _payload: Annotated[Get
         include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )
-async def get_fonts(request: Request, response: Response, _payload: Annotated[GetApplicationSizeQuery, Query()]):
+async def get_fonts(request: Request, response: Response, _payload: Annotated[DeviceInfo, Query()]):
     db_proxy: DBProxy = request.state.db_proxy
 
     async def db_query(session):

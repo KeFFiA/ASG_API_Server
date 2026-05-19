@@ -2,7 +2,7 @@ from base64 import b64decode
 from datetime import date
 from typing import List, Optional
 
-from sqlalchemy import select, func, cast, Date, literal, Select
+from sqlalchemy import select, func, cast, Date, literal, Select, or_, case
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, joinedload
 
@@ -13,10 +13,10 @@ from Scheduler.PowerPlatformJobs.Aircraft import update_create_aircraft_manual
 from Schemas import AdditionalAircraftInfoSchema, AdditionalAircraftInfoValuationSchema, \
     PolicySchema, AircraftSchemaFull, EngineSchema, AirlineSchemaFull, TemplateSchemaFull, \
     AircraftSchemaLight, AirlineSchemaLight, TemplateSchemaLight, EngineTypeSchema, AircraftTechnicalDataSchema, \
-    UpsertdelResponseSchema, UpsertdelStatusEnum
+    UpsertdelResponseSchema, UpsertdelStatusEnum, CiriumAircraftSchema
 from Schemas.PowerPlatform.BodySchemas.AircraftSchemas import CreateUpdateAircraftBody, CreateAircraftTemplatesBody
 from Schemas.PowerPlatform.QuerySchemas.AircraftSchemas import GetAircraftQuery, GetEngineTypeQuery, \
-    GetAircraftTemplateQuery, GetAircraftIDQuery
+    GetAircraftTemplateQuery, GetAircraftIDQuery, GetAircraftsFromCiriumQuery
 from Utils import map_asset
 
 
@@ -551,3 +551,75 @@ async def query_create_update_aircraft(session: AsyncSession, _payload: CreateUp
     )
 
     return status
+
+
+async def query_get_aircrafts_cirium(session: AsyncSession, _payload: GetAircraftsFromCiriumQuery) -> List[CiriumAircraftSchema]:
+    payload = GetAircraftsFromCiriumQuery(
+        **_payload.model_dump()
+    )
+    EXCLUDED_STATUSES = ["Cancelled", "On order", "Retired", "Written off"]
+
+    filters = []
+    airline_cases = []
+
+    for company in payload.airlines_name:
+        pattern = f"%{company}%"
+
+        condition = or_(
+            CiriumAircrafts.Operator.ilike(pattern),
+            CiriumAircrafts.Sub_Lessor.ilike(pattern),
+            CiriumAircrafts.Owner.ilike(pattern),
+        )
+
+        filters.append(condition)
+
+        airline_cases.append(
+            (condition, literal(company))
+        )
+
+    airline_case_expr = case(
+        *airline_cases,
+        else_=None
+    ).label("airline")
+
+    stmt = (
+        select(
+            CiriumAircrafts.Registration.label("registration"),
+            CiriumAircrafts.Serial_Number.label("msn"),
+            (
+                    CiriumAircrafts.Manufacturer +
+                    literal(" ") +
+                    CiriumAircrafts.Aircraft_Sub_Series
+            ).label("master_series"),
+            airline_case_expr
+        )
+        .where(
+            or_(*filters),
+
+            CiriumAircrafts.Registration.isnot(None),
+
+            ~CiriumAircrafts.Status.in_(EXCLUDED_STATUSES)
+        )
+        .distinct(
+            CiriumAircrafts.Registration,
+            CiriumAircrafts.Serial_Number
+        )
+        .order_by(
+            CiriumAircrafts.Registration,
+            CiriumAircrafts.Serial_Number
+        )
+    )
+
+    result = await session.execute(stmt)
+
+    return [
+        CiriumAircraftSchema(
+            registration=row.registration,
+            msn=row.msn,
+            master_series=row.master_series,
+            airline=row.airline
+        )
+        for row in result
+    ]
+
+

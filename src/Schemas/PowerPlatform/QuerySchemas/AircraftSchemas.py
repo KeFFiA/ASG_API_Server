@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 
 from fastapi import Query
 from pydantic import BaseModel
@@ -18,7 +18,7 @@ class GetAircraftTemplateQuery(BaseModel):
 
 @at_most_one_of('template_id', 'template_name', 'aircraft_registration',
                 'aircraft_msn', 'aircraft_id', 'airline_id', 'airline_name')
-class GetAircraftQuery(GetAircraftIDQuery):
+class GetAircraftQuery(BaseModel):
     aircraft_id: Optional[int] = Query(default=None, description="Aircraft ID")
     aircraft_registration: Optional[str] = Query(default=None, description="Aircraft registration number")
     aircraft_msn: Optional[int] = Query(default=None, description="Aircraft MSN")
@@ -26,6 +26,10 @@ class GetAircraftQuery(GetAircraftIDQuery):
     template_id: Optional[int] = Query(default=None, description="Template ID")
     airline_name: Optional[str] = Query(default=None, description="Airline name")
     airline_id: Optional[int] = Query(default=None, description="Airline ID")
+
+
+class GetAircraftsFromCiriumQuery(BaseModel):
+    airlines_name: List[str] = Query(..., description="Airlines name")
 
 
 @exactly_one_of('engine_id', 'engine_type', 'engine_manufacture')

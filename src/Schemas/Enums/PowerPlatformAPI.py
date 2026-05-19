@@ -71,6 +71,19 @@ class ApplicationAccessEnum(IntEnum, __enum):
     VIEW_USERS_ADMIN = 28
 
 
+class ClientType(str, __enum):
+    WEB = "Web"
+    MOBILE = "Mobile"
+    DESKTOP = "Desktop"
+
+
+class OSType(str, __enum):
+    WINDOWS = "Windows"
+    ANDROID = "Android"
+    IOS = "iOS"
+    LINUX = "Linux"
+    MACOS = "macOS"
+
 
 _current_module = sys.modules[__name__]
 

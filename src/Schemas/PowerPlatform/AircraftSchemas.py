@@ -110,6 +110,14 @@ class SumPolicySchema(BaseModel):
     hsl_paid: float
 
 
+
+class CiriumAircraftSchema(BaseModel):
+    registration: str
+    msn: str
+    master_series: str
+    airline: str
+
+
 _current_module = sys.modules[__name__]
 
 __all__ = [

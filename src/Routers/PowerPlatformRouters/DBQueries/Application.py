@@ -1,5 +1,4 @@
-from typing import List, Optional
-from uuid import UUID
+from typing import List
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,7 +6,7 @@ from sqlalchemy.orm import selectinload
 
 from Database import Font, Application
 from Schemas.PowerPlatform.DefaultSchemas import FontSchema, ApplicationSchema
-from Schemas.PowerPlatform.QuerySchemas.ApplicationSchemas import GetApplicationIdQuery, GetApplicationSizeQuery
+from Schemas.PowerPlatform.QuerySchemas.ApplicationSchemas import GetApplicationIdQuery, DeviceInfo
 from Utils import map_asset
 
 
@@ -48,9 +47,8 @@ async def query_apps(session: AsyncSession, _payload: GetApplicationIdQuery) -> 
 
 
 
-
-async def query_fonts(session: AsyncSession, _payload: GetApplicationSizeQuery) -> List[FontSchema]:
-    payload = GetApplicationSizeQuery(
+async def query_fonts(session: AsyncSession, _payload: DeviceInfo) -> List[FontSchema]:
+    payload = DeviceInfo(
         **_payload.model_dump()
     )
 
