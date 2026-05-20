@@ -9,6 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from Database import AircraftManual, AircraftEngineManual, AircraftTemplate, AircraftDataSourceEnum, \
     AircraftInsuredStatusEnum, EnginePositionEnum, Airline, Engine, CiriumAircrafts, DatabaseClient
+from Scheduler.PowerPlatformJobs.Aircraft import update_create_aircraft_manual
 from Schemas import UpsertdelResponseSchema, UpsertdelStatusEnum
 
 
@@ -243,6 +244,8 @@ async def build_engines(session: AsyncSession, row: pd.Series, cirium_aircraft: 
 
 
 async def query_import_aircrafts(session: AsyncSession, file: UploadFile) -> List[UpsertdelResponseSchema]:
+    import asyncio
+
     with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
         contents = await file.read()
         tmp.write(contents)
@@ -312,6 +315,14 @@ async def query_import_aircrafts(session: AsyncSession, file: UploadFile) -> Lis
             created += 1
         else:
             updated += 1
+
+        await session.flush()
+
+        manual_id = aircraft_manual.id
+
+        asyncio.create_task(
+            update_create_aircraft_manual(manual_id)
+        )
 
     await session.commit()
 
