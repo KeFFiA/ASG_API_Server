@@ -30,7 +30,7 @@ class AircraftEngineManual(Base):
 
 class AircraftManual(Base):
     __tablename__ = "aircraftmanual"
-    aircraft_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    aircraft_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
     registration: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
     msn: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
     airline_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)

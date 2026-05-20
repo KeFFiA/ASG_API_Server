@@ -366,6 +366,9 @@ async def update_create_aircraft_manual(target: int):
                 )
             )
 
+        if manual_aircraft.aircraft_id is None:
+            manual_aircraft.aircraft_id = aircraft.id
+
         await session.commit()
 
         return aircraft
