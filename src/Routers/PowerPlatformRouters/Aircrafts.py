@@ -456,7 +456,7 @@ async def create_aircraft_cirium(request: Request, response: Response,
     path="/import",
     description="Import Aircrafts From Excel",
     status_code=status.HTTP_201_CREATED,
-    response_model=DefaultResponse[UpsertdelResponseSchema],
+    response_model=DefaultResponse[List[UpsertdelResponseSchema]],
     responses=build_responses(
         include={
             status.HTTP_201_CREATED,
