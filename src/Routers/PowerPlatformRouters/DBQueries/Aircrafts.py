@@ -217,6 +217,7 @@ async def query_aircrafts(
                         airline_id=a.airline.id,
                         airline_name=a.airline.airline_name,
                         airline_icao=a.airline.icao,
+                        airline_iata=a.airline.iata,
                         asset=map_asset(a.airline.asset)
                     ),
                     template=TemplateSchemaFull(
@@ -238,7 +239,8 @@ async def query_aircrafts(
             airline=AirlineSchemaLight(
                 airline_id=a.airline.id,
                 airline_name=a.airline.airline_name,
-                airline_icao=a.airline.icao
+                airline_icao=a.airline.icao,
+                airline_iata=a.airline.iata,
             ),
             template=TemplateSchemaLight(
                 template_id=a.template.id,
