@@ -263,8 +263,13 @@ async def update_create_aircraft_manual(target: int):
         if not aircraft:
             aircraft = Aircraft(
                 registration=manual_aircraft.registration,
-                msn=manual_aircraft.msn
+                msn=manual_aircraft.msn,
             )
+
+            aircraft.technical_data = None
+            aircraft.policy = []
+            aircraft.lessee_lessors = []
+            aircraft.engines = []
 
             session.add(aircraft)
 
