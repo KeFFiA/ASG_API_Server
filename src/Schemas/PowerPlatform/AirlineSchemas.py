@@ -11,7 +11,8 @@ from .UserSchemas import UserSchemaLight
 class AirlineSchemaFull(BaseModel):
     airline_id: int
     airline_name: str
-    airline_icao: str
+    airline_icao: Optional[str]
+    airline_iata: Optional[str]
     asset: AssetSchema
 
 
@@ -21,12 +22,14 @@ class AirlineUsersSchemaFull(AirlineSchemaFull):
 
 class AirlineSchemaLight(BaseModel):
     airline_id: int
-    airline_name: Optional[str]
+    airline_name: str
     airline_icao: Optional[str]
+    airline_iata: Optional[str]
 
 
 class AirlineUsersSchemaLight(AirlineSchemaLight):
     users: List[UserSchemaLight]
+
 
 
 _current_module = sys.modules[__name__]

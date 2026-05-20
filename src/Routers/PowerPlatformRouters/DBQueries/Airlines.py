@@ -1,5 +1,5 @@
 from base64 import b64decode
-from typing import Optional, List
+from typing import List
 from uuid import UUID
 
 from sqlalchemy import select
@@ -83,6 +83,7 @@ async def map_airline_to_schema(airline, full: bool) -> AirlineUsersSchemaFull |
             airline_id=airline.id,
             airline_name=airline.airline_name,
             airline_icao=airline.icao,
+            airline_iata=airline.iata,
             asset=map_asset(asset=airline.asset),
             users=users_list
         )
@@ -92,6 +93,7 @@ async def map_airline_to_schema(airline, full: bool) -> AirlineUsersSchemaFull |
             airline_id=airline.id,
             airline_name=airline.airline_name,
             airline_icao=airline.icao,
+            airline_iata=airline.iata,
             users=users_list
         )
         return response

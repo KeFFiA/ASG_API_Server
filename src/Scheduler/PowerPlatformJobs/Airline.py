@@ -1,16 +1,24 @@
-from sqlalchemy import select
+from sqlalchemy import select, func
 
-from Database import DatabaseClient, Airline, Airlines
+from Database import DatabaseClient, Airline, CiriumAircrafts
 
 
 async def sync_airlines():
     client: DatabaseClient = DatabaseClient()
 
     stmt = (
-        select(Airlines.airline_name, Airlines.icao)
+        select(CiriumAircrafts.Operator, CiriumAircrafts.Operator_ICAO, CiriumAircrafts.Operator_IATA)
+        .order_by(CiriumAircrafts.Operator)
+        .distinct()
+        .where(
+            CiriumAircrafts.revision_id == (
+                select(func.max(CiriumAircrafts.revision_id))
+                .scalar_subquery()
+            )
+        )
     )
-    async with client.session("main") as main_session:
-        result = await main_session.execute(stmt)
+    async with client.session("cirium") as cirium_session:
+        result = await cirium_session.execute(stmt)
         airlines = result.all()
 
 
@@ -22,12 +30,13 @@ async def sync_airlines():
         existing_airlines = set(existing_result.scalars().all())
 
         new_airlines = []
-        for airline_name, airline_icao in airlines:
+        for airline_name, airline_icao, airline_iata in airlines:
             if airline_name not in existing_airlines:
                 new_airlines.append(
                     Airline(
                         airline_name=airline_name,
-                        icao=airline_icao
+                        icao=airline_icao,
+                        iata=airline_iata,
                     )
                 )
 

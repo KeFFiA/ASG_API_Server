@@ -49,8 +49,8 @@ async def get_airlines_full(request: Request, response: Response, _payload: Anno
         return warning_response(request=request, response=response, msg="Airline(-s) not found",
                                 status_code=status.HTTP_404_NOT_FOUND)
 
-    # except ValueError:
-    #     return warning_response(request=request, response=response, msg="Airline(-s) not found", status_code=status.HTTP_404_NOT_FOUND)
+    except ValueError:
+        return warning_response(request=request, response=response, msg="Airline(-s) not found", status_code=status.HTTP_404_NOT_FOUND)
     except Exception as _ex:
         logger.error(f"Failed to get Airline(-s): {_ex}")
         return error_response(request=request, response=response, exc=_ex)
@@ -122,6 +122,7 @@ async def create_airlines(request: Request, response: Response, _payload: Annota
     except Exception as _ex:
         logger.error(f"Failed to create airline: {_ex}")
         return error_response(request=request, response=response, exc=_ex)
+
 
 
 

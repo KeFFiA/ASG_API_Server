@@ -21,7 +21,8 @@ class UserAirlineAccess(Base):
 
 class Airline(Base):
     airline_name: Mapped[str] = mapped_column(String, nullable=False)
-    icao: Mapped[str] = mapped_column(String, nullable=False)
+    icao: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    iata: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     asset_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("assets.id", ondelete="SET NULL"),
