@@ -639,8 +639,18 @@ async def query_create_aircrafts_cirium(session: AsyncSession, _payload: CreateA
         cirium_stmt = (
             select(CiriumAircrafts)
             .where(
-                (CiriumAircrafts.Registration.in_(payload.registrations))
-                | (CiriumAircrafts.Serial_Number.in_(payload.msns))
+                (
+                        (CiriumAircrafts.Registration.in_(payload.registrations))
+                        |
+                        (CiriumAircrafts.Serial_Number.in_(payload.msns))
+                )
+                &
+                (
+                        CiriumAircrafts.revision_id == (
+                    select(func.max(CiriumAircrafts.revision_id))
+                    .scalar_subquery()
+                )
+                )
             )
         )
 
