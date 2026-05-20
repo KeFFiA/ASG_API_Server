@@ -5,10 +5,11 @@ from fastapi.responses import FileResponse
 
 from Config import setup_logger, Router, OUTPUT_PATH
 from Schemas import DefaultResponse, TemplateSchemaLight, TemplateSchemaFull, AircraftSchemaFull, AircraftSchemaLight, \
-    EngineSchema, AdditionalAircraftInfoSchema, EngineTypeSchema, UpsertdelResponseSchema, CiriumAircraftSchema
+    EngineSchema, AdditionalAircraftInfoSchema, EngineTypeSchema, UpsertdelResponseSchema, CiriumAircraftSchema, \
+    ExcelAircraftSchema
 from Schemas.Enums import service
 from Schemas.PowerPlatform.BodySchemas.AircraftSchemas import CreateAircraftTemplatesBody, CreateUpdateAircraftBody, \
-    GetAircraftsFromCiriumBody, CreateAircraftsFromCiriumBody
+    GetAircraftsFromCiriumBody, CreateAircraftsFromCiriumBody, CreateAircraftsFromExcelSchema
 from Schemas.PowerPlatform.QuerySchemas.AircraftSchemas import GetAircraftQuery, GetEngineTypeQuery, \
     GetAircraftTemplateQuery, GetAircraftIDQuery
 from Utils import DBProxy, success_response, error_response, warning_response, cache_key_first_non_null
@@ -16,7 +17,7 @@ from Utils.ResponsesFunc import build_responses
 from .DBQueries.Aircrafts import query_aircrafts, query_get_engines_type, query_templates, query_create_template, \
     query_create_update_aircraft, query_aircraft_additional, query_get_engines, query_get_aircrafts_cirium, \
     query_create_aircrafts_cirium
-from .DBQueries.AircraftsExcel import query_import_aircrafts
+from .DBQueries.AircraftsExcel import query_import_aircrafts, query_parse_aircrafts_excel
 
 logger = setup_logger(name="powerplatform_aircrafts")
 
@@ -453,6 +454,47 @@ async def create_aircraft_cirium(request: Request, response: Response,
 
 
 @router.post(
+    path="/parse",
+    description="Parse Aircrafts From Excel",
+    status_code=status.HTTP_200_OK,
+    response_model=DefaultResponse[List[ExcelAircraftSchema]],
+    responses=build_responses(
+        include={
+            status.HTTP_200_OK,
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status.HTTP_400_BAD_REQUEST
+        }
+    ),
+)
+async def parse_aircraft_manuals(request: Request, response: Response, file: Annotated[UploadFile, File(...)]):
+    db_proxy: DBProxy = request.state.db_proxy
+
+    async def db_query(session):
+        return await query_parse_aircrafts_excel(file=file)
+
+    try:
+        cache_key = f"aircraft_manual_parse:{file.filename}"
+
+        result = await db_proxy.get_or_cache(
+            key=cache_key,
+            db_name="powerplatform",
+            query_func=db_query,
+            ttl=60,
+        )
+
+        if len(result) > 0:
+            return success_response(request=request, response=response, msg="Aircrafts parsed successfully",
+                                    status_code=status.HTTP_200_OK, data=result)
+        return warning_response(request=request, response=response, msg="Aircraft not parsed",
+                                status_code=status.HTTP_400_BAD_REQUEST)
+
+    except Exception as _ex:
+        logger.error(f"Failed to parse aircrafts: {_ex}")
+
+        return error_response(request=request, response=response, exc=_ex)
+
+
+@router.post(
     path="/import",
     description="Import Aircrafts From Excel",
     status_code=status.HTTP_201_CREATED,
@@ -464,22 +506,19 @@ async def create_aircraft_cirium(request: Request, response: Response,
         }
     ),
 )
-async def import_aircraft_manuals(request: Request, response: Response, file: Annotated[UploadFile, File(...)]):
+async def import_aircraft_manuals(request: Request, response: Response, _payload: Annotated[List[CreateAircraftsFromExcelSchema], Body()]):
     db_proxy: DBProxy = request.state.db_proxy
 
     async def db_query(session):
-        return await query_import_aircrafts(
-            session=session,
-            file=file,
-        )
+        return await query_import_aircrafts(_payload=_payload, session=session)
 
     try:
-        cache_key = f"aircraft_manual_import:{file.filename}"
+        cache_key = f"aircraft_manual_import:{_payload[0].msn}"
 
-        result = await db_proxy.update_and_cache(
+        result = await db_proxy.get_or_cache(
             key=cache_key,
             db_name="powerplatform",
-            update_func=db_query,
+            query_func=db_query,
             ttl=60,
         )
 
@@ -487,7 +526,7 @@ async def import_aircraft_manuals(request: Request, response: Response, file: An
                                 status_code=status.HTTP_201_CREATED, data=result)
 
     except Exception as _ex:
-        logger.error(f"Failed to import aircrafts: {_ex}")
+        logger.error(f"Failed to imported aircrafts: {_ex}")
 
         return error_response(request=request, response=response, exc=_ex)
 

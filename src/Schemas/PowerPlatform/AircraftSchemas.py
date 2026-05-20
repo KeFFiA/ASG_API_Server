@@ -118,6 +118,28 @@ class CiriumAircraftSchema(BaseModel):
     airline: str
 
 
+class ExcelAircraftSchema(BaseModel):
+    registration: Optional[str]
+    msn: Optional[str]
+    airline: Optional[str]
+    mtow: Optional[int]
+    av_fixed: Optional[bool]
+    agreed_value: Optional[int]
+    csl: Optional[int]
+    hsl_deductible: Optional[int]
+    hd_deductible: Optional[int]
+    depreciation_rate: Optional[float]
+    depreciation_start_date: Optional[date]
+    policy_start: Optional[date]
+    policy_end: Optional[date]
+    lessee: Optional[str]
+    lessor: Optional[str]
+    engine_msn_1: Optional[str]
+    engine_msn_2: Optional[str]
+    engine_msn_3: Optional[str]
+    engine_msn_4: Optional[str]
+
+
 _current_module = sys.modules[__name__]
 
 __all__ = [

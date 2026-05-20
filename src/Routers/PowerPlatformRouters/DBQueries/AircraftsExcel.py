@@ -10,7 +10,8 @@ from sqlalchemy.orm import selectinload
 from Database import AircraftManual, AircraftEngineManual, AircraftTemplate, AircraftDataSourceEnum, \
     AircraftInsuredStatusEnum, EnginePositionEnum, Airline, Engine, CiriumAircrafts, DatabaseClient
 from Scheduler.PowerPlatformJobs.Aircraft import update_create_aircraft_manual
-from Schemas import UpsertdelResponseSchema, UpsertdelStatusEnum
+from Schemas import UpsertdelResponseSchema, UpsertdelStatusEnum, ExcelAircraftSchema
+from Schemas.PowerPlatform.BodySchemas.AircraftSchemas import CreateAircraftsFromExcelSchema
 
 
 async def fuzzy_find_one(session: AsyncSession, model, field, value: str, threshold: float = 0.4):
@@ -203,22 +204,15 @@ async def get_engine_id(session: AsyncSession, cirium_aircraft: Optional[CiriumA
     return engine.id if engine else None
 
 
-async def build_engines(session: AsyncSession, row: pd.Series, cirium_aircraft: Optional[CiriumAircrafts]) -> list[
+async def build_engines(session: AsyncSession, aircraft: CreateAircraftsFromExcelSchema, cirium_aircraft: Optional[CiriumAircrafts]) -> list[
     AircraftEngineManual]:
-    engine_columns = [
-        "Engine MSN #1",
-        "Engine MSN #2",
-        "Engine MSN #3",
-        "Engine MSN #4",
-    ]
 
-    engine_msns = [
-        str(row[col]).strip()
-        for col in engine_columns
-        if col in row
-           and not pd.isna(row[col])
-           and str(row[col]).strip()
-    ]
+    engine_msns = list(filter(None, [
+        aircraft.engine_msn_1,
+        aircraft.engine_msn_2,
+        aircraft.engine_msn_3,
+        aircraft.engine_msn_4,
+    ]))
 
     engine_count = len(engine_msns)
 
@@ -243,9 +237,8 @@ async def build_engines(session: AsyncSession, row: pd.Series, cirium_aircraft: 
     return engines
 
 
-async def query_import_aircrafts(session: AsyncSession, file: UploadFile) -> List[UpsertdelResponseSchema]:
-    import asyncio
 
+async def query_parse_aircrafts_excel(file: UploadFile) -> List[ExcelAircraftSchema]:
     with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
         contents = await file.read()
         tmp.write(contents)
@@ -253,21 +246,64 @@ async def query_import_aircrafts(session: AsyncSession, file: UploadFile) -> Lis
 
     df = pd.read_excel(tmp_path, header=0, skiprows=[1])
 
+    aircrafts: List[ExcelAircraftSchema] = []
+
+    for _, row in df.iterrows():
+        aircraft = ExcelAircraftSchema(
+            registration=row.get("Registration"),
+            msn=str(parse_int(row.get("MSN"))) if parse_int(row.get("MSN")) else None,
+            airline=row.get("Airline"),
+            mtow=parse_int(row.get("MTOW, kgs")),
+
+            av_fixed=parse_bool(row.get("Agreed value fixed")),
+            agreed_value=parse_int(row.get("Agreed value, $")),
+            csl=parse_int(row.get("Combined single limit, $")),
+
+            hsl_deductible=parse_int(row.get("HSL deductible, $")),
+            hd_deductible=parse_int(row.get("HD deductible, $")),
+
+            depreciation_rate=parse_float(row.get("Depreciation rate, %")),
+            depreciation_start_date=parse_date(row.get("Depreciation start date")),
+
+            policy_start=parse_date(row.get("Policy start date")),
+            policy_end=parse_date(row.get("Policy end date")),
+
+            lessee=row.get("Lessee"),
+            lessor=row.get("Lessor"),
+
+            engine_msn_1=row.get("Engine MSN 1"),
+            engine_msn_2=row.get("Engine MSN 2"),
+            engine_msn_3=row.get("Engine MSN 3"),
+            engine_msn_4=row.get("Engine MSN 4"),
+        )
+
+        aircrafts.append(aircraft)
+
+    return aircrafts
+
+
+
+async def query_import_aircrafts(session: AsyncSession, _payload: List[CreateAircraftsFromExcelSchema]) -> List[UpsertdelResponseSchema]:
+    import asyncio
+    payload = [
+        CreateAircraftsFromExcelSchema(**p.model_dump())
+        for p in _payload
+    ]
+
     created = 0
     updated = 0
 
     client: DatabaseClient = DatabaseClient()
-    for _, row in df.iterrows():
-        msn = parse_int(row.get("MSN"))
+
+    for item in payload:
+        msn = parse_int(item.msn)
 
         cirium_aircraft = await get_cirium_aircraft(client, msn)
 
         aircraft_manual = await session.scalar(
             select(AircraftManual)
             .options(
-                selectinload(
-                    AircraftManual.engines
-                )
+                selectinload(AircraftManual.engines)
             )
             .where(
                 AircraftManual.msn == msn
@@ -279,33 +315,37 @@ async def query_import_aircrafts(session: AsyncSession, file: UploadFile) -> Lis
         if is_new:
             aircraft_manual = AircraftManual()
 
-        aircraft_manual.registration = row.get("Registration")
+        aircraft_manual.registration = item.registration
         aircraft_manual.msn = msn
-        aircraft_manual.airline_id = await get_airline_id(session, row.get("Airline"))
-        aircraft_manual.mtow = parse_int(row.get("MTOW, kgs"))
+        aircraft_manual.airline_id = await get_airline_id(session, item.airline)
+        aircraft_manual.mtow = item.mtow
         aircraft_manual.template_id = await get_template_id(session, cirium_aircraft)
 
-        aircraft_manual.av_fixed = parse_bool(row.get("Agreed value fixed"))
-        aircraft_manual.agreed_value = parse_float(row.get("Agreed value, $"))
-        aircraft_manual.combined_single_limit = parse_float(row.get("Combined single limit, $"))
+        aircraft_manual.av_fixed = item.av_fixed
+        aircraft_manual.agreed_value = item.agreed_value
+        aircraft_manual.combined_single_limit = item.csl
 
-        aircraft_manual.hsl_deductible = parse_float(row.get("HSL deductible, $"))
-        aircraft_manual.hd_deductible = parse_float(row.get("HD deductible, $"))
+        aircraft_manual.hsl_deductible = item.hsl_deductible
+        aircraft_manual.hd_deductible = item.hd_deductible
 
-        aircraft_manual.depreciation_rate = parse_float(row.get("Depreciation rate, %"))
-        aircraft_manual.depreciation_start_date = parse_date(row.get("Depreciation start date"))
+        aircraft_manual.depreciation_rate = item.depreciation_rate
+        aircraft_manual.depreciation_start_date = item.depreciation_start_date
 
-        aircraft_manual.policy_start = parse_date(row.get("Policy start date"))
-        aircraft_manual.policy_end = parse_date(row.get("Policy end date"))
+        aircraft_manual.policy_start = item.policy_start
+        aircraft_manual.policy_end = item.policy_end
 
-        aircraft_manual.lessee = row.get("Lessee")
-        aircraft_manual.lessor = row.get("Lessor")
+        aircraft_manual.lessee = item.lessee
+        aircraft_manual.lessor = item.lessor
 
         aircraft_manual.data_source = AircraftDataSourceEnum.MANUAL
         aircraft_manual.status = AircraftInsuredStatusEnum.INSURED
         aircraft_manual.in_dashboard = True
 
-        new_engines = await build_engines(session, row, cirium_aircraft)
+        new_engines = await build_engines(
+            session=session,
+            aircraft=item,
+            cirium_aircraft=cirium_aircraft
+        )
 
         aircraft_manual.engines.clear()
         aircraft_manual.engines.extend(new_engines)
@@ -326,4 +366,8 @@ async def query_import_aircrafts(session: AsyncSession, file: UploadFile) -> Lis
 
     await session.commit()
 
-    return [UpsertdelResponseSchema(status=UpsertdelStatusEnum.CREATED)]
+    return [
+        UpsertdelResponseSchema(
+            status=UpsertdelStatusEnum.CREATED,
+        )
+    ]

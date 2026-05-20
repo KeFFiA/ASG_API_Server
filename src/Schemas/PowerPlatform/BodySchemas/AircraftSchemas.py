@@ -76,3 +76,25 @@ class CreateAircraftsFromCiriumBody(BaseModel):
     registrations: List[str] = Field(..., description="Registrations")
     msns: List[str] = Field(..., description="MSNs")
 
+
+class CreateAircraftsFromExcelSchema(BaseModel):
+    registration: Optional[str] = Field(default=None, description="Registration")
+    msn: Optional[str] = Field(default=None, description="MSN")
+    airline: Optional[str] = Field(default=None, description="Airline")
+    mtow: Optional[int] = Field(default=None, description="MTOW")
+    av_fixed: Optional[bool] = Field(default=None, description="Agreed value fixed")
+    agreed_value: Optional[int] = Field(default=None, description="Agreed value")
+    csl: Optional[int] = Field(default=None, description="Combined Single Limit")
+    hsl_deductible: Optional[int] = Field(default=None, description="HSL deductible")
+    hd_deductible: Optional[int] = Field(default=None, description="HD deductible")
+    depreciation_rate: Optional[float] = Field(default=None, description="Depreciation rate")
+    depreciation_start_date: Optional[date] = Field(default=None, description="Depreciation start date")
+    policy_start: Optional[date] = Field(default=None, description="Policy start date")
+    policy_end: Optional[date] = Field(default=None, description="Policy end date")
+    lessee: Optional[str] = Field(default=None, description="Lessee")
+    lessor: Optional[str] = Field(default=None, description="Lessor")
+    engine_msn_1: Optional[str] = Field(default=None, description="Engine #1 MSN")
+    engine_msn_2: Optional[str] = Field(default=None, description="Engine #2 MSN")
+    engine_msn_3: Optional[str] = Field(default=None, description="Engine #3 MSN")
+    engine_msn_4: Optional[str] = Field(default=None, description="Engine #4 MSN")
+
