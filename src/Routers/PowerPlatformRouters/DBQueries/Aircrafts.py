@@ -645,16 +645,19 @@ async def query_create_aircrafts_cirium(session: AsyncSession, _payload: CreateA
         cirium_stmt = (
             select(CiriumAircrafts)
             .where(
-                CiriumAircrafts.Registration.in_(payload.registrations) | CiriumAircrafts.Serial_Number.in_(payload.msns),
-                (
-                    CiriumAircrafts.revision_id == (
-                        select(func.max(CiriumAircrafts.revision_id))
-                        .scalar_subquery()
-                    )
-                )
-                & ~CiriumAircrafts.Status.in_(EXCLUDED_STATUSES)
-                & CiriumAircrafts.Registration.is_not(None)
-                & func.length(CiriumAircrafts.Registration) > 3
+                or_(
+                    CiriumAircrafts.Registration.in_(payload.registrations),
+                    CiriumAircrafts.Serial_Number.in_(payload.msns),
+                ),
+
+                CiriumAircrafts.revision_id == (
+                    select(func.max(CiriumAircrafts.revision_id))
+                    .scalar_subquery()
+                ),
+
+                ~CiriumAircrafts.Status.in_(EXCLUDED_STATUSES),
+                CiriumAircrafts.Registration.is_not(None),
+                func.length(CiriumAircrafts.Registration) > 3,
             )
         )
 
