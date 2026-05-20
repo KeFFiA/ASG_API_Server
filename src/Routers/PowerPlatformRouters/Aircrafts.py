@@ -7,7 +7,7 @@ from Schemas import DefaultResponse, TemplateSchemaLight, TemplateSchemaFull, Ai
     EngineSchema, AdditionalAircraftInfoSchema, EngineTypeSchema, UpsertdelResponseSchema, CiriumAircraftSchema
 from Schemas.Enums import service
 from Schemas.PowerPlatform.BodySchemas.AircraftSchemas import CreateAircraftTemplatesBody, CreateUpdateAircraftBody, \
-    GetAircraftsFromCiriumBody
+    GetAircraftsFromCiriumBody, CreateAircraftsFromCiriumBody
 from Schemas.PowerPlatform.QuerySchemas.AircraftSchemas import GetAircraftQuery, GetEngineTypeQuery, \
     GetAircraftTemplateQuery, GetAircraftIDQuery
 from Utils import DBProxy, success_response, error_response, warning_response, cache_key_first_non_null
@@ -410,3 +410,34 @@ async def get_aircrafts_cirium(request: Request, response: Response, _payload: A
         logger.error(f"Failed to get Aircraft: {_ex}")
         return error_response(request=request, response=response, exc=_ex)
 
+
+@router.post(
+    path="/cirium/create",
+    description="Create Aircrafts From Cirium",
+    status_code=status.HTTP_201_CREATED,
+    response_model=DefaultResponse[List[CiriumAircraftSchema]],
+    responses=build_responses(
+        include={status.HTTP_201_CREATED, status.HTTP_500_INTERNAL_SERVER_ERROR}
+    )
+)
+async def create_aircraft_cirium(request: Request, response: Response, _payload: Annotated[CreateAircraftsFromCiriumBody, Body()]):
+    db_proxy: DBProxy = request.state.db_proxy
+
+    async def db_query(session):
+        return await query_create_update_aircraft(session, _payload)
+
+    try:
+        cache_key = f"aircraft:{_payload.registrations}"
+        result = await db_proxy.update_and_cache(
+            key=cache_key,
+            db_name="powerplatform",
+            update_func=db_query,
+            ttl=60
+        )
+
+        return success_response(request=request, response=response, msg="Aircraft created successfully",
+                                status_code=status.HTTP_201_CREATED, data=result)
+
+    except Exception as _ex:
+        logger.error(f"Failed to create Aircraft: {_ex}")
+        return error_response(request=request, response=response, exc=_ex)

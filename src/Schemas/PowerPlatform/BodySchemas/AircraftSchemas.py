@@ -71,3 +71,8 @@ class AddSumPolicyBody(BaseModel):
 class GetAircraftsFromCiriumBody(BaseModel):
     airlines_name: List[str] = Field(..., description="Airlines name")
 
+
+class CreateAircraftsFromCiriumBody(BaseModel):
+    registrations: List[str] = Field(..., description="Registrations")
+    msns: List[str] = Field(..., description="MSNs")
+

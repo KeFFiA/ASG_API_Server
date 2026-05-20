@@ -1,6 +1,6 @@
 from base64 import b64decode
 from datetime import date
-from typing import List, Optional
+from typing import List, Optional, Sequence, Dict
 
 from sqlalchemy import select, func, cast, Date, literal, Select, or_, case
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,14 +8,15 @@ from sqlalchemy.orm import selectinload, joinedload
 
 from Database import Airline, Asset, AircraftTemplate, Aircraft, CiriumAircrafts, \
     AircraftRevision, DatabaseClient, Engine, AircraftEngine, AircraftManual, \
-    AircraftEngineManual
-from Scheduler.PowerPlatformJobs.Aircraft import update_create_aircraft_manual
+    AircraftEngineManual, AircraftTechnicalData
+from Scheduler.PowerPlatformJobs.Aircraft import update_create_aircraft_manual, load_references, get_engine_positions
 from Schemas import AdditionalAircraftInfoSchema, AdditionalAircraftInfoValuationSchema, \
     PolicySchema, AircraftSchemaFull, EngineSchema, AirlineSchemaFull, TemplateSchemaFull, \
     AircraftSchemaLight, AirlineSchemaLight, TemplateSchemaLight, EngineTypeSchema, AircraftTechnicalDataSchema, \
-    UpsertdelResponseSchema, UpsertdelStatusEnum, CiriumAircraftSchema
+    UpsertdelResponseSchema, UpsertdelStatusEnum, CiriumAircraftSchema, AircraftDataSourceEnum, \
+    AircraftInsuredStatusEnum
 from Schemas.PowerPlatform.BodySchemas.AircraftSchemas import CreateUpdateAircraftBody, CreateAircraftTemplatesBody, \
-    GetAircraftsFromCiriumBody
+    GetAircraftsFromCiriumBody, CreateAircraftsFromCiriumBody
 from Schemas.PowerPlatform.QuerySchemas.AircraftSchemas import GetAircraftQuery, GetEngineTypeQuery, \
     GetAircraftTemplateQuery, GetAircraftIDQuery
 from Utils import map_asset
@@ -624,5 +625,94 @@ async def query_get_aircrafts_cirium(session: AsyncSession, _payload: GetAircraf
         )
         for row in result
     ]
+
+
+async def query_create_aircrafts_cirium(session: AsyncSession, _payload: CreateAircraftsFromCiriumBody) -> List[UpsertdelResponseSchema]:
+    payload = CreateAircraftsFromCiriumBody(
+        **_payload.model_dump()
+    )
+
+    client = DatabaseClient()
+
+    async with client.session("cirium") as cirium_session:
+        cirium_stmt = (
+            select(CiriumAircrafts)
+            .where(
+                (CiriumAircrafts.Registration.in_(payload.registrations))
+                | (CiriumAircrafts.Serial_Number.in_(payload.msns))
+            )
+        )
+
+        cirium_result = await cirium_session.execute(cirium_stmt)
+        cirium_aircrafts: Sequence[CiriumAircrafts] = cirium_result.scalars().all()
+
+    if not cirium_aircrafts:
+        return []
+
+    stmt = select(Aircraft).where(
+        (Aircraft.registration.in_(payload.registrations))
+        | (Aircraft.msn.in_([int(m) for m in payload.msns]))
+    )
+
+    result = await session.execute(stmt)
+
+    existing_aircrafts: Dict[int, Aircraft] = {
+        a.msn: a for a in result.scalars().all()
+    }
+
+    refs = await load_references(session)
+
+    created = []
+    for cirium in cirium_aircrafts:
+        msn = int(cirium.Serial_Number)
+
+        aircraft = existing_aircrafts.get(msn)
+        if not aircraft:
+            aircraft = Aircraft(
+                registration=cirium.Registration,
+                msn=msn,
+            )
+
+            aircraft.technical_data = AircraftTechnicalData(
+                data_source=AircraftDataSourceEnum.CIRIUM,
+                data_source_row_id=cirium.id,
+                status=AircraftInsuredStatusEnum.INSURED,
+                av_fixed=True,
+                in_dashboard=True,
+            )
+
+            session.add(aircraft)
+
+        aircraft.airline = refs["airlines"].get(cirium.Operator)
+
+        aircraft.template = refs["templates"].get(
+            f"{cirium.Manufacturer} {cirium.Series}"
+        )
+
+        engine = refs["engines"].get(cirium.Engine_Master_Series)
+
+        aircraft.engines = []
+        if engine:
+            positions = get_engine_positions(
+                cirium.Number_Of_Engines or 2
+            )
+
+            aircraft.engines = [
+                AircraftEngine(
+                    aircraft=aircraft,
+                    engine=engine,
+                    position=pos,
+                )
+                for pos in positions
+            ]
+
+        aircraft.mtow = round((cirium.Operating_MTOW_lbs or 0) * 0.45359237)
+        aircraft.agreed_value_result = cirium.Indicative_Market_Value_USm
+
+        created.append(aircraft)
+
+    await session.commit()
+
+    return [UpsertdelResponseSchema(status=UpsertdelStatusEnum.CREATED)]
 
 

@@ -68,113 +68,113 @@ async def update_aircrafts():
 
         cirium_aircrafts: Sequence[ASGAircrafts] = result.scalars().all()
 
-        async with client.session("powerplatform") as pp_session:
-            stmt = (
-                select(Aircraft)
-                .options(
-                    joinedload(Aircraft.technical_data),
-                    joinedload(Aircraft.airline),
-                    joinedload(Aircraft.template),
+    async with client.session("powerplatform") as pp_session:
+        stmt = (
+            select(Aircraft)
+            .options(
+                joinedload(Aircraft.technical_data),
+                joinedload(Aircraft.airline),
+                joinedload(Aircraft.template),
 
-                    selectinload(Aircraft.engines)
-                    .joinedload(AircraftEngine.engine),
+                selectinload(Aircraft.engines)
+                .joinedload(AircraftEngine.engine),
 
-                    selectinload(Aircraft.lessee_lessors),
-                    selectinload(Aircraft.policy),
+                selectinload(Aircraft.lessee_lessors),
+                selectinload(Aircraft.policy),
+            )
+        )
+
+        result = await pp_session.execute(stmt)
+
+        pp_aircrafts = {
+            a.msn: a
+            for a in result.scalars().unique().all()
+        }
+
+        refs = await load_references(pp_session)
+
+        for cirium_aircraft in cirium_aircrafts:
+            pp_aircraft = pp_aircrafts.get(int(cirium_aircraft.Serial_Number))
+
+            if not pp_aircraft:
+                pp_aircraft = Aircraft(
+                    registration=cirium_aircraft.Registration,
+                    msn=int(cirium_aircraft.Serial_Number),
                 )
+
+                pp_aircraft.engines = []
+                pp_aircraft.lessee_lessors = []
+                pp_aircraft.engines = []
+
+                pp_aircraft.technical_data = AircraftTechnicalData(
+                    data_source=AircraftDataSourceEnum.CIRIUM,
+                    data_source_row_id=cirium_aircraft.id,
+                    status=AircraftInsuredStatusEnum.INSURED,
+                    av_fixed=True,
+                    in_dashboard=True
+                )
+
+                pp_session.add(pp_aircraft)
+
+            technical_data: AircraftTechnicalData = pp_aircraft.technical_data
+
+            if technical_data and technical_data.data_source != AircraftDataSourceEnum.CIRIUM:
+                continue
+
+            airline: Optional[Airline] = refs.get("airlines", {}).get(cirium_aircraft.Airline, None)
+            if airline:
+                pp_aircraft.airline = airline
+
+            template: Optional[AircraftTemplate] = refs.get("templates", {}).get(
+                f"{cirium_aircraft.Manufacturer} {cirium_aircraft.Series}", None)
+            if template:
+                pp_aircraft.template = template
+
+            engine: Engine = refs.get("engines").get(cirium_aircraft.Engine_Master_Series)
+
+            engine_positions = get_engine_positions(
+                cirium_aircraft.Number_Of_Engines if cirium_aircraft.Number_Of_Engines else 2)
+
+            aircraft_engines = []
+            for engine_position in engine_positions:
+                aircraft_engines.append(
+                    AircraftEngine(
+                        aircraft=pp_aircraft,
+                        engine=engine,
+                        position=engine_position,
+                    )
+                )
+
+            pp_aircraft.engines = aircraft_engines
+
+            lessee_lessor = next(
+                (
+                    item
+                    for item in pp_aircraft.lessee_lessors
+                    if item.lessee == cirium_aircraft.Airline
+                       and item.lessor == cirium_aircraft.Operational_Lessor
+                ),
+                None
             )
 
-            result = await pp_session.execute(stmt)
+            if not lessee_lessor:
+                for item in pp_aircraft.lessee_lessors:
+                    item.active = False
 
-            pp_aircrafts = {
-                a.msn: a
-                for a in result.scalars().unique().all()
-            }
-
-            refs = await load_references(pp_session)
-
-            for cirium_aircraft in cirium_aircrafts:
-                pp_aircraft = pp_aircrafts.get(int(cirium_aircraft.Serial_Number))
-
-                if not pp_aircraft:
-                    pp_aircraft = Aircraft(
-                        registration=cirium_aircraft.Registration,
-                        msn=int(cirium_aircraft.Serial_Number),
+                pp_aircraft.lessee_lessors.append(
+                    AircraftLesseeLessor(
+                        lessee=cirium_aircraft.Airline,
+                        lessor=cirium_aircraft.Operational_Lessor,
+                        active=True,
                     )
-
-                    pp_aircraft.engines = []
-                    pp_aircraft.lessee_lessors = []
-                    pp_aircraft.engines = []
-
-                    pp_aircraft.technical_data = AircraftTechnicalData(
-                        data_source=AircraftDataSourceEnum.CIRIUM,
-                        data_source_row_id=cirium_aircraft.id,
-                        status=AircraftInsuredStatusEnum.INSURED,
-                        av_fixed=True,
-                        in_dashboard=True
-                    )
-
-                    pp_session.add(pp_aircraft)
-
-                technical_data: AircraftTechnicalData = pp_aircraft.technical_data
-
-                if technical_data and technical_data.data_source != AircraftDataSourceEnum.CIRIUM:
-                    continue
-
-                airline: Optional[Airline] = refs.get("airlines", {}).get(cirium_aircraft.Airline, None)
-                if airline:
-                    pp_aircraft.airline = airline
-
-                template: Optional[AircraftTemplate] = refs.get("templates", {}).get(
-                    f"{cirium_aircraft.Manufacturer} {cirium_aircraft.Series}", None)
-                if template:
-                    pp_aircraft.template = template
-
-                engine: Engine = refs.get("engines").get(cirium_aircraft.Engine_Master_Series)
-
-                engine_positions = get_engine_positions(
-                    cirium_aircraft.Number_Of_Engines if cirium_aircraft.Number_Of_Engines else 2)
-
-                aircraft_engines = []
-                for engine_position in engine_positions:
-                    aircraft_engines.append(
-                        AircraftEngine(
-                            aircraft=pp_aircraft,
-                            engine=engine,
-                            position=engine_position,
-                        )
-                    )
-
-                pp_aircraft.engines = aircraft_engines
-
-                lessee_lessor = next(
-                    (
-                        item
-                        for item in pp_aircraft.lessee_lessors
-                        if item.lessee == cirium_aircraft.Airline
-                           and item.lessor == cirium_aircraft.Operational_Lessor
-                    ),
-                    None
                 )
+            else:
+                lessee_lessor.active = True
 
-                if not lessee_lessor:
-                    for item in pp_aircraft.lessee_lessors:
-                        item.active = False
+            pp_aircraft.mtow = round((cirium_aircraft.Operating_MTOW_lbs or 0) * 0.45359237)
+            pp_aircraft.agreed_value_result = cirium_aircraft.Indicative_Market_Value_USm
 
-                    pp_aircraft.lessee_lessors.append(
-                        AircraftLesseeLessor(
-                            lessee=cirium_aircraft.Airline,
-                            lessor=cirium_aircraft.Operational_Lessor,
-                            active=True,
-                        )
-                    )
-                else:
-                    lessee_lessor.active = True
-
-                pp_aircraft.mtow = round((cirium_aircraft.Operating_MTOW_lbs or 0) * 0.45359237)
-                pp_aircraft.agreed_value_result = cirium_aircraft.Indicative_Market_Value_USm
-
-            await pp_session.commit()
+        await pp_session.commit()
 
 
 async def update_aircraft_templates():
