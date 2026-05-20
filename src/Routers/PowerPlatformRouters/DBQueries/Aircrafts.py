@@ -629,7 +629,8 @@ async def query_get_aircrafts_cirium(session: AsyncSession, _payload: GetAircraf
 
 async def query_create_aircrafts_cirium(session: AsyncSession, _payload: CreateAircraftsFromCiriumBody) -> List[UpsertdelResponseSchema]:
     payload = CreateAircraftsFromCiriumBody(
-        **_payload.model_dump()
+        registrations=[r for r in _payload.registrations if r],
+        msns=[m for m in _payload.msns if m],
     )
 
     client = DatabaseClient()
@@ -651,7 +652,7 @@ async def query_create_aircrafts_cirium(session: AsyncSession, _payload: CreateA
 
     stmt = select(Aircraft).where(
         (Aircraft.registration.in_(payload.registrations))
-        | (Aircraft.msn.in_([int(m) for m in payload.msns]))
+        | (Aircraft.msn.in_([int(m) for m in payload.msns if str(m).strip()]))
     )
 
     result = await session.execute(stmt)
@@ -664,6 +665,9 @@ async def query_create_aircrafts_cirium(session: AsyncSession, _payload: CreateA
 
     created = []
     for cirium in cirium_aircrafts:
+        if not cirium.Serial_Number:
+            continue
+
         msn = int(cirium.Serial_Number)
 
         aircraft = existing_aircrafts.get(msn)
