@@ -15,12 +15,11 @@ class UpsertdelStatusEnum(str, __enum):
 
 
 class EnginePositionEnum(int, __enum):
-    NOSE = 0
+    CENTER = 0
     LEFT1 = 1
     LEFT2 = 2
     RIGHT1 = 3
     RIGHT2 = 4
-    TAIL = 5
 
 
 class AircraftInsuredStatusEnum(str, __enum):

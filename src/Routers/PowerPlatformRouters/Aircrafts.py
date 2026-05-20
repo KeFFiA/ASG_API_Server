@@ -1,8 +1,9 @@
 from typing import Annotated, List
 
-from fastapi import status, Request, Query, Body, Response
+from fastapi import status, Request, Query, Body, Response, UploadFile, File
+from fastapi.responses import FileResponse
 
-from Config import setup_logger, Router
+from Config import setup_logger, Router, OUTPUT_PATH
 from Schemas import DefaultResponse, TemplateSchemaLight, TemplateSchemaFull, AircraftSchemaFull, AircraftSchemaLight, \
     EngineSchema, AdditionalAircraftInfoSchema, EngineTypeSchema, UpsertdelResponseSchema, CiriumAircraftSchema
 from Schemas.Enums import service
@@ -11,10 +12,11 @@ from Schemas.PowerPlatform.BodySchemas.AircraftSchemas import CreateAircraftTemp
 from Schemas.PowerPlatform.QuerySchemas.AircraftSchemas import GetAircraftQuery, GetEngineTypeQuery, \
     GetAircraftTemplateQuery, GetAircraftIDQuery
 from Utils import DBProxy, success_response, error_response, warning_response, cache_key_first_non_null
+from Utils.ResponsesFunc import build_responses
 from .DBQueries.Aircrafts import query_aircrafts, query_get_engines_type, query_templates, query_create_template, \
     query_create_update_aircraft, query_aircraft_additional, query_get_engines, query_get_aircrafts_cirium, \
     query_create_aircrafts_cirium
-from Utils.ResponsesFunc import build_responses
+from .DBQueries.AircraftsExcel import query_import_aircrafts
 
 logger = setup_logger(name="powerplatform_aircrafts")
 
@@ -33,7 +35,8 @@ router = Router(
         include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )
-async def get_aircraft_template_full(request: Request, response: Response, _payload: Annotated[GetAircraftTemplateQuery, Query()]):
+async def get_aircraft_template_full(request: Request, response: Response,
+                                     _payload: Annotated[GetAircraftTemplateQuery, Query()]):
     db_proxy: DBProxy = request.state.db_proxy
 
     async def db_query(session):
@@ -41,8 +44,8 @@ async def get_aircraft_template_full(request: Request, response: Response, _payl
 
     try:
         cache_key = cache_key_first_non_null(name="aircraft_template:full", data=_payload.model_dump(),
-                                 keys=("template_id", "template_name"),
-                                 fallback="all")
+                                             keys=("template_id", "template_name"),
+                                             fallback="all")
         aircraft_template_data = await db_proxy.get_or_cache(
             key=cache_key,
             db_name="powerplatform",
@@ -69,10 +72,11 @@ async def get_aircraft_template_full(request: Request, response: Response, _payl
     status_code=status.HTTP_200_OK,
     response_model=DefaultResponse[List[TemplateSchemaLight]],
     responses=build_responses(
-            include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
-        )
+        include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
+    )
 )
-async def get_aircraft_template_light(request: Request, response: Response, _payload: Annotated[GetAircraftTemplateQuery, Query()]):
+async def get_aircraft_template_light(request: Request, response: Response,
+                                      _payload: Annotated[GetAircraftTemplateQuery, Query()]):
     db_proxy: DBProxy = request.state.db_proxy
 
     async def db_query(session):
@@ -80,9 +84,9 @@ async def get_aircraft_template_light(request: Request, response: Response, _pay
 
     try:
         cache_key = cache_key_first_non_null(name="aircraft_template:light", data=_payload.model_dump(),
-                                 keys=(
-                                     "template_id", "template_name"),
-                                 fallback="all")
+                                             keys=(
+                                                 "template_id", "template_name"),
+                                             fallback="all")
         aircraft_template_data = await db_proxy.get_or_cache(
             key=cache_key,
             db_name="powerplatform",
@@ -112,7 +116,8 @@ async def get_aircraft_template_light(request: Request, response: Response, _pay
         include={status.HTTP_201_CREATED, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )
-async def create_aircraft_template(request: Request, response: Response, _payload: Annotated[CreateAircraftTemplatesBody, Body()]):
+async def create_aircraft_template(request: Request, response: Response,
+                                   _payload: Annotated[CreateAircraftTemplatesBody, Body()]):
     db_proxy: DBProxy = request.state.db_proxy
 
     async def db_query(session):
@@ -340,7 +345,8 @@ async def get_engines(request: Request, response: Response, _payload: Annotated[
         include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )
-async def get_aircrafts_additional(request: Request, response: Response, _payload: Annotated[GetAircraftIDQuery, Query()]):
+async def get_aircrafts_additional(request: Request, response: Response,
+                                   _payload: Annotated[GetAircraftIDQuery, Query()]):
     payload = GetAircraftIDQuery(
         **_payload.model_dump()
     )
@@ -381,7 +387,8 @@ async def get_aircrafts_additional(request: Request, response: Response, _payloa
         include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )
-async def get_aircrafts_cirium(request: Request, response: Response, _payload: Annotated[GetAircraftsFromCiriumBody, Body()]):
+async def get_aircrafts_cirium(request: Request, response: Response,
+                               _payload: Annotated[GetAircraftsFromCiriumBody, Body()]):
     db_proxy: DBProxy = request.state.db_proxy
 
     async def db_query(session):
@@ -421,7 +428,8 @@ async def get_aircrafts_cirium(request: Request, response: Response, _payload: A
         include={status.HTTP_201_CREATED, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )
-async def create_aircraft_cirium(request: Request, response: Response, _payload: Annotated[CreateAircraftsFromCiriumBody, Body()]):
+async def create_aircraft_cirium(request: Request, response: Response,
+                                 _payload: Annotated[CreateAircraftsFromCiriumBody, Body()]):
     db_proxy: DBProxy = request.state.db_proxy
 
     async def db_query(session):
@@ -442,3 +450,75 @@ async def create_aircraft_cirium(request: Request, response: Response, _payload:
     except Exception as _ex:
         logger.error(f"Failed to create Aircraft: {_ex}")
         return error_response(request=request, response=response, exc=_ex)
+
+
+@router.post(
+    path="/import",
+    description="Import Aircrafts From Excel",
+    status_code=status.HTTP_201_CREATED,
+    response_model=DefaultResponse[UpsertdelResponseSchema],
+    responses=build_responses(
+        include={
+            status.HTTP_201_CREATED,
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+        }
+    ),
+)
+async def import_aircraft_manuals(request: Request, response: Response, file: Annotated[UploadFile, File(...)]):
+    db_proxy: DBProxy = request.state.db_proxy
+
+    async def db_query(session):
+        return await query_import_aircrafts(
+            session=session,
+            file=file,
+        )
+
+    try:
+        cache_key = f"aircraft_manual_import:{file.filename}"
+
+        result = await db_proxy.update_and_cache(
+            key=cache_key,
+            db_name="powerplatform",
+            update_func=db_query,
+            ttl=60,
+        )
+
+        return success_response(request=request, response=response, msg="Aircrafts imported successfully",
+                                status_code=status.HTTP_201_CREATED, data=result)
+
+    except Exception as _ex:
+        logger.error(f"Failed to import aircrafts: {_ex}")
+
+        return error_response(request=request, response=response, exc=_ex)
+
+
+@router.get(
+    path="/template_file",
+    description="Download Aircrafts Template File",
+    status_code=status.HTTP_200_OK,
+    responses=build_responses(
+        include={
+            status.HTTP_200_OK,
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+        }
+    ),
+)
+async def export_aircrafts_file(request: Request, response: Response):
+    try:
+        file_path = OUTPUT_PATH / "Aircrafts Template.xlsx"
+        file_name = "Aircrafts Template.xlsx"
+
+        return FileResponse(
+            path=file_path,
+            filename=file_name,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
+    except Exception as _ex:
+        logger.error(f"Failed to export aircrafts file: {_ex}")
+
+        return error_response(
+            request=request,
+            response=response,
+            exc=_ex,
+        )

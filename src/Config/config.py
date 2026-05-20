@@ -31,6 +31,7 @@ def get_project_root() -> Path:
 if DEV_MODE:
     ENV_PATH: Path | str = os.getenv("ENV_DEV_PATH") or get_project_root() / ".env.dev"
     ROOT: Path = get_project_root() / "api_data"
+    OUTPUT_PATH: Path = ROOT / "output_files"
     FILES_PATH: Path = ROOT / "input_files"
     EXCEL_FILES_PATH: Path = FILES_PATH / "excel_db"
     CIRIUM_FILES_PATH: Path = EXCEL_FILES_PATH / "cirium"
@@ -42,6 +43,7 @@ if DEV_MODE:
 else:
     ENV_PATH: Path | str = os.getenv("ENV_PATH") or get_project_root() / ".env"
     ROOT: Path = get_project_root() / "api_data"
+    OUTPUT_PATH: Path = ROOT / "output_files"
     FILES_PATH: Path = ROOT / "input_files"
     EXCEL_FILES_PATH: Path = FILES_PATH / "excel_db"
     CIRIUM_FILES_PATH: Path = EXCEL_FILES_PATH / "cirium"
@@ -54,6 +56,7 @@ else:
 
 
 ROOT.mkdir(parents=True, exist_ok=True)
+OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
 FILES_PATH.mkdir(parents=True, exist_ok=True)
 EXCEL_FILES_PATH.mkdir(parents=True, exist_ok=True)
 NOPASSED_PATH.mkdir(parents=True, exist_ok=True)
