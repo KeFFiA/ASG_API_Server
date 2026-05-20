@@ -660,9 +660,18 @@ async def query_create_aircrafts_cirium(session: AsyncSession, _payload: CreateA
     if not cirium_aircrafts:
         return []
 
-    stmt = select(Aircraft).where(
-        (Aircraft.registration.in_(payload.registrations))
-        | (Aircraft.msn.in_([int(m) for m in payload.msns if str(m).strip()]))
+    stmt = (
+        select(Aircraft)
+        .options(
+            selectinload(Aircraft.engines),
+            selectinload(Aircraft.airline),
+            selectinload(Aircraft.template),
+            selectinload(Aircraft.technical_data),
+        )
+        .where(
+            (Aircraft.registration.in_(payload.registrations))
+            | (Aircraft.msn.in_([int(m) for m in payload.msns if str(m).strip()]))
+        )
     )
 
     result = await session.execute(stmt)
