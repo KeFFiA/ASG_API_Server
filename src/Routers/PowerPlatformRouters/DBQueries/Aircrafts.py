@@ -555,7 +555,7 @@ async def query_create_update_aircraft(session: AsyncSession, _payload: CreateUp
 
 
 async def query_get_aircrafts_cirium(session: AsyncSession, _payload: GetAircraftsFromCiriumBody) -> List[CiriumAircraftSchema]:
-    payload = GetAircraftsFromCiriumQuery(
+    payload = GetAircraftsFromCiriumBody(
         **_payload.model_dump()
     )
     EXCLUDED_STATUSES = ["Cancelled", "On order", "Retired", "Written off"]
