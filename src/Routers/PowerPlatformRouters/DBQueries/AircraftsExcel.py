@@ -237,6 +237,9 @@ async def build_engines(session: AsyncSession, aircraft: CreateAircraftsFromExce
     return engines
 
 
+def nan_to_none(value):
+    return None if pd.isna(value) else value
+
 
 async def query_parse_aircrafts_excel(file: UploadFile) -> List[ExcelAircraftSchema]:
     with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
@@ -250,9 +253,9 @@ async def query_parse_aircrafts_excel(file: UploadFile) -> List[ExcelAircraftSch
 
     for _, row in df.iterrows():
         aircraft = ExcelAircraftSchema(
-            registration=row.get("Registration"),
+            registration=nan_to_none(row.get("Registration")),
             msn=str(parse_int(row.get("MSN"))) if parse_int(row.get("MSN")) else None,
-            airline=row.get("Airline"),
+            airline=nan_to_none(row.get("Airline")),
             mtow=parse_int(row.get("MTOW, kgs")),
 
             av_fixed=parse_bool(row.get("Agreed value fixed")),
@@ -268,13 +271,13 @@ async def query_parse_aircrafts_excel(file: UploadFile) -> List[ExcelAircraftSch
             policy_start=parse_date(row.get("Policy start date")),
             policy_end=parse_date(row.get("Policy end date")),
 
-            lessee=row.get("Lessee"),
-            lessor=row.get("Lessor"),
+            lessee=nan_to_none(row.get("Lessee")),
+            lessor=nan_to_none(row.get("Lessor")),
 
-            engine_msn_1=row.get("Engine MSN 1"),
-            engine_msn_2=row.get("Engine MSN 2"),
-            engine_msn_3=row.get("Engine MSN 3"),
-            engine_msn_4=row.get("Engine MSN 4"),
+            engine_msn_1=nan_to_none(row.get("Engine MSN 1")),
+            engine_msn_2=nan_to_none(row.get("Engine MSN 2")),
+            engine_msn_3=nan_to_none(row.get("Engine MSN 3")),
+            engine_msn_4=nan_to_none(row.get("Engine MSN 4")),
         )
 
         aircrafts.append(aircraft)
