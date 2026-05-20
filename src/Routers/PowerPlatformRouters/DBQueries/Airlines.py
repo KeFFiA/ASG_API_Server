@@ -110,6 +110,7 @@ async def get_by_user_id(session: AsyncSession, user_id: UUID, full: bool) -> Li
             .selectinload(Airline.users)
         )
         .where(User.user_id == user_id)
+        .order_by(Airline.id)
     )
 
     result = await session.execute(stmt)
@@ -126,7 +127,7 @@ async def get_by_airline(session: AsyncSession, full: bool, airline_id: int | No
     stmt = select(Airline).options(
         selectinload(Airline.asset),
         selectinload(Airline.users)
-    )
+    ).order_by(Airline.id)
     if airline_id:
         stmt = stmt.where(Airline.id == airline_id)
     if airline_name:
