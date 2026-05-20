@@ -12,7 +12,8 @@ from Schemas.PowerPlatform.QuerySchemas.AircraftSchemas import GetAircraftQuery,
     GetAircraftTemplateQuery, GetAircraftIDQuery
 from Utils import DBProxy, success_response, error_response, warning_response, cache_key_first_non_null
 from .DBQueries.Aircrafts import query_aircrafts, query_get_engines_type, query_templates, query_create_template, \
-    query_create_update_aircraft, query_aircraft_additional, query_get_engines, query_get_aircrafts_cirium
+    query_create_update_aircraft, query_aircraft_additional, query_get_engines, query_get_aircrafts_cirium, \
+    query_create_aircrafts_cirium
 from Utils.ResponsesFunc import build_responses
 
 logger = setup_logger(name="powerplatform_aircrafts")
@@ -424,7 +425,7 @@ async def create_aircraft_cirium(request: Request, response: Response, _payload:
     db_proxy: DBProxy = request.state.db_proxy
 
     async def db_query(session):
-        return await query_create_update_aircraft(session, _payload)
+        return await query_create_aircrafts_cirium(session, _payload)
 
     try:
         cache_key = f"aircraft:{_payload.registrations}"
