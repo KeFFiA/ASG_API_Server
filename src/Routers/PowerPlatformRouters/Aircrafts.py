@@ -415,7 +415,7 @@ async def get_aircrafts_cirium(request: Request, response: Response, _payload: A
     path="/cirium/create",
     description="Create Aircrafts From Cirium",
     status_code=status.HTTP_201_CREATED,
-    response_model=DefaultResponse[List[CiriumAircraftSchema]],
+    response_model=DefaultResponse[List[UpsertdelResponseSchema]],
     responses=build_responses(
         include={status.HTTP_201_CREATED, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
