@@ -557,11 +557,13 @@ async def query_create_update_aircraft(session: AsyncSession, _payload: CreateUp
     return status
 
 
+EXCLUDED_STATUSES = ["Cancelled", "On order", "Retired", "Written off"]
+
+
 async def query_get_aircrafts_cirium(session: AsyncSession, _payload: GetAircraftsFromCiriumBody) -> List[CiriumAircraftSchema]:
     payload = GetAircraftsFromCiriumBody(
         **_payload.model_dump()
     )
-    EXCLUDED_STATUSES = ["Cancelled", "On order", "Retired", "Written off"]
 
     filters = []
     airline_cases = []
@@ -598,6 +600,10 @@ async def query_get_aircrafts_cirium(session: AsyncSession, _payload: GetAircraf
             airline_case_expr
         )
         .where(
+            CiriumAircrafts.revision_id == (
+                select(func.max(CiriumAircrafts.revision_id))
+                .scalar_subquery()
+            ),
             or_(*filters),
 
             CiriumAircrafts.Registration.isnot(None),
@@ -639,18 +645,16 @@ async def query_create_aircrafts_cirium(session: AsyncSession, _payload: CreateA
         cirium_stmt = (
             select(CiriumAircrafts)
             .where(
+                CiriumAircrafts.Registration.in_(payload.registrations) | CiriumAircrafts.Serial_Number.in_(payload.msns),
                 (
-                        (CiriumAircrafts.Registration.in_(payload.registrations))
-                        |
-                        (CiriumAircrafts.Serial_Number.in_(payload.msns))
+                    CiriumAircrafts.revision_id == (
+                        select(func.max(CiriumAircrafts.revision_id))
+                        .scalar_subquery()
+                    )
                 )
-                &
-                (
-                        CiriumAircrafts.revision_id == (
-                    select(func.max(CiriumAircrafts.revision_id))
-                    .scalar_subquery()
-                )
-                )
+                & ~CiriumAircrafts.Status.in_(EXCLUDED_STATUSES)
+                & CiriumAircrafts.Registration.is_not(None)
+                & func.length(CiriumAircrafts.Registration) > 3
             )
         )
 
