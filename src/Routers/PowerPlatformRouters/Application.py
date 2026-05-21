@@ -79,7 +79,7 @@ async def get_fonts(request: Request, response: Response, _payload: Annotated[De
             key=cache_key,
             db_name="powerplatform",
             query_func=db_query,
-            ttl=60
+            ttl=2
         )
 
         if len(fonts_data) > 0:
