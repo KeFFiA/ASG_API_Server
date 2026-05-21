@@ -3,7 +3,7 @@ from typing import Annotated, List
 from fastapi import status, Request, Query, Response
 
 from Config import setup_logger, Router
-from Schemas import DefaultResponse, ApplicationSchema, FontSchema
+from Schemas import DefaultResponse, ApplicationSchema, FontSchema, ApplicationAppearanceSchema
 from Schemas.Enums import service
 from Schemas.PowerPlatform.QuerySchemas.ApplicationSchemas import GetApplicationIdQuery, DeviceInfo
 from Utils import DBProxy, success_response, warning_response, error_response, cache_key_first_non_null
@@ -94,7 +94,7 @@ async def get_fonts(request: Request, response: Response, _payload: Annotated[De
     path="/appearance",
     description="Get appearance by user device",
     status_code=status.HTTP_200_OK,
-    response_model=DefaultResponse[List[FontSchema]],
+    response_model=DefaultResponse[List[ApplicationAppearanceSchema]],
     responses=build_responses(
         include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
