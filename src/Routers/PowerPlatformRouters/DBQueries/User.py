@@ -7,9 +7,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, joinedload
 
-from Database import User, Access
-from Schemas.PowerPlatform.DefaultSchemas import ApplicationAccessSchema, RuleSchema
+from Database import User, Access, UserDeviceSetting
+from Schemas import UpsertdelStatusEnum
+from Schemas.PowerPlatform.DefaultSchemas import ApplicationAccessSchema, RuleSchema, UpsertdelResponseSchema
 from Schemas.PowerPlatform.QuerySchemas.ApplicationSchemas import GetApplicationIdQuery
+from Schemas.PowerPlatform.QuerySchemas.DefaultSchemas import SwitchUserAppearanceQuery
 from Schemas.PowerPlatform.UserSchemas import UserSchemaFull, UserSchemaLight, UserAccessSchema
 
 
@@ -132,6 +134,25 @@ async def query_user_access(session: AsyncSession, user_id: UUID, _payload: GetA
         return [response]
     except Exception as _ex:
         raise _ex
+
+
+async def query_switch_user_appearance(session: AsyncSession, _payload: SwitchUserAppearanceQuery) -> List[UpsertdelResponseSchema]:
+    payload = SwitchUserAppearanceQuery(
+        **_payload.model_dump()
+    )
+
+    stmt = select(UserDeviceSetting).where(
+        UserDeviceSetting.user_id == payload.user_id,
+        UserDeviceSetting.os_type == payload.os_type,
+    )
+
+    result = await session.execute(stmt)
+    device_setting: Optional[UserDeviceSetting] = result.scalar_one_or_none()
+    if device_setting:
+        device_setting.appearance = payload.appearance
+        await session.commit()
+        return [UpsertdelResponseSchema(status=UpsertdelStatusEnum.UPDATED)]
+    return []
 
 
 _current_module = sys.modules[__name__]

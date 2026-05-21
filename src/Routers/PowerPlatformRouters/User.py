@@ -4,12 +4,13 @@ from uuid import UUID
 from fastapi import Request, status, Query, Response
 
 from Config import setup_logger, Router
-from Schemas import DefaultResponse, UserSchemaFull, UserSchemaLight, UserAccessSchema
+from Schemas import DefaultResponse, UserSchemaFull, UserSchemaLight, UserAccessSchema, UpsertdelResponseSchema
 from Schemas.PowerPlatform.QuerySchemas.ApplicationSchemas import GetApplicationIdQuery
 from Schemas.Enums import service
+from Schemas.PowerPlatform.QuerySchemas.DefaultSchemas import SwitchUserAppearanceQuery
 from Utils import DBProxy, success_response, warning_response, error_response
 from Utils.ResponsesFunc import build_responses
-from .DBQueries.User import query_users, query_user_access
+from .DBQueries.User import query_users, query_user_access, query_switch_user_appearance
 
 logger = setup_logger(name="powerplatform_users")
 
@@ -178,4 +179,35 @@ async def users_access(request: Request, response: Response, user_id: UUID, _pay
                                 status_code=status.HTTP_404_NOT_FOUND)
     except Exception as _ex:
         logger.error(f"Failed to get user's access rules: {_ex}")
+        return error_response(request=request, response=response, exc=_ex)
+
+
+@router.post(
+    path="/switchappearance",
+    description="Switch user appearance",
+    status_code=status.HTTP_200_OK,
+    response_model=DefaultResponse[List[UpsertdelResponseSchema]],
+    responses=build_responses(
+        include={status.HTTP_200_OK, status.HTTP_500_INTERNAL_SERVER_ERROR}
+    )
+)
+async def switch_user_appearance(request: Request, response: Response, _payload: Annotated[SwitchUserAppearanceQuery, Query()]):
+    db_proxy: DBProxy = request.state.db_proxy
+
+    async def db_query(session):
+        return await query_switch_user_appearance(session, _payload)
+
+    try:
+        cache_key = f"users:appearance:{_payload.user_id}:{_payload.os_type}"
+        data = await db_proxy.get_or_cache(
+            key=cache_key,
+            db_name="powerplatform",
+            query_func=db_query,
+            ttl=2
+        )
+
+        if len(data) > 0:
+            return success_response(request=request, response=response, data=data, msg="User appearance switched successfully")
+        return warning_response(request=request, response=response, msg="User not found", status_code=status.HTTP_404_NOT_FOUND)
+    except Exception as _ex:
         return error_response(request=request, response=response, exc=_ex)
