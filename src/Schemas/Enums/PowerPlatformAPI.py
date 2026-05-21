@@ -79,9 +79,9 @@ class OSTypeEnum(str, __enum):
     MACOS = "macOS"
 
 
-class AppearanceEnum(int, __enum):
-    LIGHT = 1
-    DARK = 2
+class AppearanceEnum(str, __enum):
+    LIGHT = "Light"
+    DARK = "Dark"
 
 
 _current_module = sys.modules[__name__]
