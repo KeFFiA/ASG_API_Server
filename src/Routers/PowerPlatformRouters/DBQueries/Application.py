@@ -1,12 +1,12 @@
-from typing import List
+from typing import List, Optional
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from Database import Font, Application
-from Schemas import OSType
-from Schemas.PowerPlatform.DefaultSchemas import FontSchema, ApplicationSchema
+from Database import Font, Application, UserDeviceSetting, ApplicationAppearance
+from Schemas import OSTypeEnum, AppearanceEnum
+from Schemas.PowerPlatform.DefaultSchemas import FontSchema, ApplicationSchema, ApplicationAppearanceSchema
 from Schemas.PowerPlatform.QuerySchemas.ApplicationSchemas import GetApplicationIdQuery, DeviceInfo
 from Utils import map_asset
 
@@ -54,40 +54,118 @@ async def query_fonts(session: AsyncSession, _payload: DeviceInfo) -> List[FontS
     )
 
     try:
+        appearance: Optional[int] = None
         stmt = select(Font)
         if payload.screen_size:
             stmt = stmt.where(Font.screen_size == payload.screen_size)
+        if payload.user_id:
+            user_stmt = (
+                select(ApplicationAppearance.appearance_type)
+                .join(
+                    UserDeviceSetting,
+                    UserDeviceSetting.appearance_id == ApplicationAppearance.id
+                )
+                .where(
+                    UserDeviceSetting.user_id == payload.user_id,
+                    UserDeviceSetting.os_type == payload.os_type
+                )
+            )
+            user_result = await session.execute(user_stmt)
+            appearance = user_result.scalars().first()
 
         result = await session.execute(stmt)
         fonts = result.scalars().all()
 
+        fonts_list: List[FontSchema] = []
 
+        for font in fonts:
+            if payload.os_type in {OSTypeEnum.IOS, OSTypeEnum.ANDROID}:
+                font_size = font.font_size_alternative if font.font_size_alternative is not None else font.font_size
+            else:
+                font_size = font.font_size
 
-        if payload.os_type not in {OSType.IOS, OSType.ANDROID}:
-            fonts_list = [
+            if appearance == AppearanceEnum.DARK:
+                font_color = font.font_color_alternative if font.font_color_alternative else font.font_color
+            else:
+                font_color = font.font_color
+
+            fonts_list.append(
                 FontSchema(
                     font_name=font.font_name,
-                    font_size=font.font_size,
-                    screen_size=font.screen_size,
-                    usage_name=font.usage_name,
-                    font_color=font.font_color,
+                    font_size=font_size,
+                    font_color=font_color,
                     font_weight=font.font_weight,
-                )
-                for font in fonts
-            ]
-        else:
-            fonts_list = [
-                FontSchema(
-                    font_name=font.font_name,
-                    font_size=font.font_size_alternative,
                     screen_size=font.screen_size,
-                    usage_name=font.usage_name,
-                    font_color=font.font_color,
-                    font_weight=font.font_weight,
+                    usage_name=font.usage_name
                 )
-                for font in fonts
-            ]
+            )
 
         return fonts_list
+
+
     except Exception as _ex:
         raise _ex
+
+
+async def query_get_appearance(session: AsyncSession, _payload: DeviceInfo) -> List[ApplicationAppearanceSchema]:
+    payload = DeviceInfo(
+        **_payload.model_dump()
+    )
+
+    stmt = (
+        select(ApplicationAppearance)
+        .join(
+            UserDeviceSetting,
+            UserDeviceSetting.appearance_id == ApplicationAppearance.id
+        )
+        .where(
+            UserDeviceSetting.user_id == payload.user_id,
+            UserDeviceSetting.os_type == payload.os_type
+        )
+    )
+
+    result = await session.execute(stmt)
+    appearance: Optional[ApplicationAppearance] = result.scalars().first()
+    if not appearance:
+
+        default_stmt = (
+            select(ApplicationAppearance)
+            .where(
+                ApplicationAppearance.appearance_type == AppearanceEnum.LIGHT
+            )
+        )
+
+        default_result = await session.execute(default_stmt)
+
+        default_appearance = default_result.scalars().first()
+
+        if not default_appearance:
+            raise ValueError("Default appearance LIGHT not found")
+
+        new_setting = UserDeviceSetting(
+            user_id=payload.user_id,
+            os_type=payload.os_type,
+            appearance_id=default_appearance.id
+        )
+
+        session.add(new_setting)
+
+        await session.commit()
+        await session.refresh(new_setting)
+
+        appearance = default_appearance
+
+    appearance_result = [
+        ApplicationAppearanceSchema(
+            appearance=appearance.appearance_type,
+            main_color=appearance.main_color,
+            secondary_color=appearance.secondary_color,
+            app_color=appearance.app_color,
+            background_color=appearance.background_color,
+            field_color=appearance.field_color,
+            button_color=appearance.button_color
+        )
+    ]
+
+    return appearance_result
+

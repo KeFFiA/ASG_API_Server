@@ -2,11 +2,16 @@ from datetime import datetime, date
 from typing import Optional, List
 from uuid import UUID as UUID_Python
 
-from sqlalchemy import DateTime, String, Boolean, ForeignKey, LargeBinary, Date, Float
+from sqlalchemy import DateTime, String, Boolean, ForeignKey, LargeBinary, Date, Float, Enum, UniqueConstraint
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from .AssociationModels import _claim_users
 
+try:
+    from src.Schemas.Enums import OSTypeEnum
+except ModuleNotFoundError:
+    from Schemas.Enums import OSTypeEnum
+
+from .AssociationModels import _claim_users
 from ..config import PowerPlatformBase as Base
 
 
@@ -58,6 +63,40 @@ class User(Base):
         secondary=_claim_users,
         back_populates="users"
     )
+
+    device_settings: Mapped[list["UserDeviceSetting"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+
+class UserDeviceSetting(Base):
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "os_type",
+            name="uq_user_device_os_type"
+        ),
+    )
+    os_type: Mapped[OSTypeEnum] = mapped_column(Enum(OSTypeEnum), nullable=False)
+
+
+    user_id: Mapped[UUID_Python] = mapped_column(
+        ForeignKey("users.user_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+    appearance_id: Mapped[int] = mapped_column(
+        ForeignKey("applicationappearances.id", ondelete="CASCADE"),
+        nullable=False
+    )
+    user: Mapped["User"] = relationship(
+        back_populates="device_settings"
+    )
+    appearance: Mapped["ApplicationAppearance"] = relationship(
+        back_populates="user_device_settings"
+    )
+
 
 
 class Asset(Base):

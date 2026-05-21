@@ -5,6 +5,11 @@ from sqlalchemy import String, Boolean, ForeignKey, UniqueConstraint, Integer, E
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+try:
+    from src.Schemas.Enums import AppearanceEnum
+except ModuleNotFoundError:
+    from Schemas.Enums import AppearanceEnum
+
 from .AssociationModels import application_access_rules
 from ..config import PowerPlatformBase as Base
 
@@ -30,6 +35,20 @@ class Application(Base):
         back_populates="application",
         uselist=False,
         cascade="all, delete-orphan"
+    )
+
+
+class ApplicationAppearance(Base):
+    appearance_type: Mapped[AppearanceEnum] = mapped_column(Enum(AppearanceEnum), nullable=False, index=True)
+    main_color: Mapped[str] = mapped_column(String, nullable=False)
+    secondary_color: Mapped[str] = mapped_column(String, nullable=False)
+    app_color: Mapped[str] = mapped_column(String, nullable=False)
+    background_color: Mapped[str] = mapped_column(String, nullable=False)
+    field_color: Mapped[str] = mapped_column(String, nullable=False)
+    button_color: Mapped[str] = mapped_column(String, nullable=False)
+
+    user_device_settings: Mapped[list["UserDeviceSetting"]] = relationship(
+        back_populates="appearance"
     )
 
 
@@ -74,5 +93,6 @@ class Font(Base):
     font_size: Mapped[int] = mapped_column(Integer, nullable=False)
     font_size_alternative: Mapped[int] = mapped_column(Integer, nullable=True)
     font_color: Mapped[str] = mapped_column(String, nullable=False)
+    font_color_alternative: Mapped[str] = mapped_column(String, nullable=True)
     font_weight: Mapped[str] = mapped_column(String, nullable=False)
 

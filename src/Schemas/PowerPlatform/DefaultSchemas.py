@@ -8,7 +8,7 @@ from fastapi import Query
 from pydantic import BaseModel, EmailStr, HttpUrl, Field
 
 from ..Enums import UpsertdelStatusEnum
-from ..Enums.PowerPlatformAPI import UserTypesEnum
+from ..Enums.PowerPlatformAPI import UserTypesEnum, AppearanceEnum
 
 
 class InviteUserSchemaQuery(BaseModel):
@@ -73,6 +73,16 @@ class ApplicationSchema(BaseModel):
     application_description: Optional[str]
     application_status: str
     asset: Optional[AssetSchema]
+
+
+class ApplicationAppearanceSchema(BaseModel):
+    appearance: AppearanceEnum
+    main_color: str
+    secondary_color: str
+    app_color: str
+    background_color: str
+    field_color: str
+    button_color: str
 
 
 class FontSchema(BaseModel):

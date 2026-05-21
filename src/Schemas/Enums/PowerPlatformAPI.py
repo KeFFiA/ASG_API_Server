@@ -71,12 +71,17 @@ class ApplicationAccessEnum(IntEnum, __enum):
     VIEW_USERS_ADMIN = 28
 
 
-class OSType(str, __enum):
+class OSTypeEnum(str, __enum):
     WINDOWS = "Windows"
     ANDROID = "Android"
     IOS = "iOS"
     LINUX = "Linux"
     MACOS = "macOS"
+
+
+class AppearanceEnum(int, __enum):
+    LIGHT = 1
+    DARK = 2
 
 
 _current_module = sys.modules[__name__]

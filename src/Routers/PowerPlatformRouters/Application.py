@@ -8,7 +8,7 @@ from Schemas.Enums import service
 from Schemas.PowerPlatform.QuerySchemas.ApplicationSchemas import GetApplicationIdQuery, DeviceInfo
 from Utils import DBProxy, success_response, warning_response, error_response, cache_key_first_non_null
 from Utils.ResponsesFunc import build_responses
-from .DBQueries.Application import query_fonts, query_apps
+from .DBQueries.Application import query_fonts, query_apps, query_get_appearance
 
 logger = setup_logger(name="powerplatform_application")
 
@@ -88,3 +88,38 @@ async def get_fonts(request: Request, response: Response, _payload: Annotated[De
     except Exception as _ex:
         logger.error(f"Failed to get fonts: {_ex}")
         return error_response(request=request, response=response, exc=_ex)
+
+
+@router.get(
+    path="/appearance",
+    description="Get appearance by user device",
+    status_code=status.HTTP_200_OK,
+    response_model=DefaultResponse[List[FontSchema]],
+    responses=build_responses(
+        include={status.HTTP_200_OK, status.HTTP_404_NOT_FOUND, status.HTTP_500_INTERNAL_SERVER_ERROR}
+    )
+)
+async def get_appearance(request: Request, response: Response, _payload: Annotated[DeviceInfo, Query()]):
+    db_proxy: DBProxy = request.state.db_proxy
+
+    async def db_query(session):
+        return await query_get_appearance(session, _payload)
+
+    try:
+        cache_key = f"appearance:{_payload.user_id}:{_payload.os_type}"
+        appearance_data = await db_proxy.get_or_cache(
+            key=cache_key,
+            db_name="powerplatform",
+            query_func=db_query,
+            ttl=120
+        )
+
+        if len(appearance_data) > 0:
+            return success_response(request=request, response=response, data=appearance_data,
+                                    msg="Appearance retrieved successfully")
+        return warning_response(request=request, response=response, msg="Appearance not found",
+                                status_code=status.HTTP_404_NOT_FOUND)
+    except Exception as _ex:
+        logger.error(f"Failed to get appearance: {_ex}")
+        return error_response(request=request, response=response, exc=_ex)
+
