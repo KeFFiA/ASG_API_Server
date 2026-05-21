@@ -5,9 +5,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from Database import Font, Application, UserDeviceSetting, ApplicationAppearance
-from Schemas import OSTypeEnum, AppearanceEnum
+from Schemas import OSTypeEnum, AppearanceEnum, UpsertdelResponseSchema, UpsertdelStatusEnum
 from Schemas.PowerPlatform.DefaultSchemas import FontSchema, ApplicationSchema, ApplicationAppearanceSchema
-from Schemas.PowerPlatform.QuerySchemas.ApplicationSchemas import GetApplicationIdQuery, DeviceInfo
+from Schemas.PowerPlatform.QuerySchemas.ApplicationSchemas import GetApplicationIdQuery, DeviceInfo, \
+    UpsertAppearanceQuery
 from Utils import map_asset
 
 
@@ -168,4 +169,54 @@ async def query_get_appearance(session: AsyncSession, _payload: DeviceInfo) -> L
     ]
 
     return appearance_result
+
+
+async def query_upsert_appearance(session: AsyncSession, _payload: UpsertAppearanceQuery) -> List[UpsertdelResponseSchema]:
+    payload = UpsertAppearanceQuery(
+        **_payload.model_dump()
+    )
+
+    stmt = (
+        select(ApplicationAppearance)
+        .where(
+            ApplicationAppearance.appearance_type == payload.appearance
+        )
+    )
+
+    result = await session.execute(stmt)
+
+    appearance: Optional[ApplicationAppearance] = result.scalars().first()
+
+    if appearance:
+
+        appearance.main_color = payload.main_color
+        appearance.secondary_color = payload.secondary_color
+        appearance.app_color = payload.app_color
+        appearance.background_color = payload.background_color
+        appearance.field_color = payload.field_color
+        appearance.button_color = payload.button_color
+
+        await session.commit()
+        await session.refresh(appearance)
+
+        return [UpsertdelResponseSchema(status=UpsertdelStatusEnum.UPDATED)]
+
+
+    new_appearance = ApplicationAppearance(
+        appearance_type=payload.appearance,
+        main_color=payload.main_color,
+        secondary_color=payload.secondary_color,
+        app_color=payload.app_color,
+        background_color=payload.background_color,
+        field_color=payload.field_color,
+        button_color=payload.button_color,
+    )
+
+    session.add(new_appearance)
+
+    await session.commit()
+    await session.refresh(new_appearance)
+
+    return [UpsertdelResponseSchema(status=UpsertdelStatusEnum.CREATED)]
+
 

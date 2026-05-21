@@ -4,6 +4,7 @@ from uuid import UUID
 from fastapi import Query
 from pydantic import BaseModel
 
+from Schemas import AppearanceEnum
 from Schemas.decorators import exactly_one_of, at_least_one_of
 from Schemas.Enums import OSTypeEnum
 
@@ -27,3 +28,14 @@ class DeviceInfo(BaseModel):
 class GetApplicationFileQuery(BaseModel):
     file_name: Optional[str] = Query(None, description="File name")
     file_id: Optional[int] = Query(None, description="File ID")
+
+
+class UpsertAppearanceQuery(BaseModel):
+    appearance: AppearanceEnum
+    main_color: str = Query(..., description="Main color of the theme")
+    secondary_color: str = Query(..., description="Secondary color of the theme")
+    app_color: str = Query(..., description="Color of main app layer")
+    background_color: str = Query(..., description="Background color")
+    field_color: str = Query(..., description="Fields color")
+    button_color: str = Query(..., description="Buttons color")
+
