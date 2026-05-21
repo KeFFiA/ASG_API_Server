@@ -71,12 +71,6 @@ class ApplicationAccessEnum(IntEnum, __enum):
     VIEW_USERS_ADMIN = 28
 
 
-class ClientType(str, __enum):
-    WEB = "Web"
-    MOBILE = "Mobile"
-    DESKTOP = "Desktop"
-
-
 class OSType(str, __enum):
     WINDOWS = "Windows"
     ANDROID = "Android"

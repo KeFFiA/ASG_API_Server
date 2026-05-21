@@ -74,11 +74,10 @@ class Rule(Base):
 
 class Font(Base):
     screen_size: Mapped[int] = mapped_column(Integer, nullable=False)
-    client_type: Mapped[ClientType] = mapped_column(String, nullable=True) # TODO: Make nullable False
     usage_name: Mapped[str] = mapped_column(String, nullable=False)
     font_name: Mapped[str] = mapped_column(String, nullable=False)
     font_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    font_size_alternative: Mapped[int] = mapped_column(Integer, nullable=False)
     font_color: Mapped[str] = mapped_column(String, nullable=False)
     font_weight: Mapped[str] = mapped_column(String, nullable=False)
-# TODO: update endpoint
 

@@ -5,7 +5,7 @@ from fastapi import Query
 from pydantic import BaseModel
 
 from Schemas.decorators import exactly_one_of
-from Schemas.Enums import ClientType, OSType
+from Schemas.Enums import OSType
 
 
 class GetApplicationIdQuery(BaseModel):
@@ -17,12 +17,11 @@ class GetApplicationSizeQuery(BaseModel):
 
 
 class DeviceInfo(BaseModel):
-    client_type: ClientType
     os_type: OSType
     screen_width: int = Query(description="Screen width")
     screen_height: int = Query(description="Screen height")
     screen_size: int = Query(description="Screen size")
-# TODO: Доделать проверку для шрифтов
+
 
 @exactly_one_of('file_name', 'file_id')
 class GetApplicationFileQuery(BaseModel):
