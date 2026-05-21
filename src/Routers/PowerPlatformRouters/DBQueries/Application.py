@@ -61,33 +61,32 @@ async def query_fonts(session: AsyncSession, _payload: DeviceInfo) -> List[FontS
         result = await session.execute(stmt)
         fonts = result.scalars().all()
 
-        fonts_list = []
 
 
         if payload.os_type not in {OSType.IOS, OSType.ANDROID}:
-            fonts_list.append(
+            fonts_list = [
                 FontSchema(
                     font_name=font.font_name,
                     font_size=font.font_size,
                     screen_size=font.screen_size,
                     usage_name=font.usage_name,
                     font_color=font.font_color,
-                    font_weight=font.font_weight
+                    font_weight=font.font_weight,
                 )
                 for font in fonts
-            )
+            ]
         else:
-            fonts_list.append(
+            fonts_list = [
                 FontSchema(
                     font_name=font.font_name,
                     font_size=font.font_size_alternative,
                     screen_size=font.screen_size,
                     usage_name=font.usage_name,
                     font_color=font.font_color,
-                    font_weight=font.font_weight
+                    font_weight=font.font_weight,
                 )
                 for font in fonts
-            )
+            ]
 
         return fonts_list
     except Exception as _ex:
