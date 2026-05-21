@@ -113,7 +113,7 @@ async def get_appearance(request: Request, response: Response, _payload: Annotat
             key=cache_key,
             db_name="powerplatform",
             query_func=db_query,
-            ttl=120
+            ttl=1
         )
 
         if len(appearance_data) > 0:
