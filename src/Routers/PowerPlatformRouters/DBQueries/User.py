@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, joinedload
 
-from Database import User, Access, UserDeviceSetting
+from Database import User, Access, UserDeviceSetting, ApplicationAppearance
 from Schemas import UpsertdelStatusEnum
 from Schemas.PowerPlatform.DefaultSchemas import ApplicationAccessSchema, RuleSchema, UpsertdelResponseSchema
 from Schemas.PowerPlatform.QuerySchemas.ApplicationSchemas import GetApplicationIdQuery
@@ -148,11 +148,21 @@ async def query_switch_user_appearance(session: AsyncSession, _payload: SwitchUs
 
     result = await session.execute(stmt)
     device_setting: Optional[UserDeviceSetting] = result.scalar_one_or_none()
-    if device_setting:
-        device_setting.appearance = payload.appearance
-        await session.commit()
-        return [UpsertdelResponseSchema(status=UpsertdelStatusEnum.UPDATED)]
-    return []
+    if not device_setting:
+        return []
+
+    appearance_stmt = select(ApplicationAppearance).where(
+        ApplicationAppearance.appearance_type == payload.appearance
+    )
+
+    appearance_result = await session.execute(appearance_stmt)
+    appearance = appearance_result.scalar_one_or_none()
+
+    device_setting.appearance = appearance
+
+    await session.commit()
+
+    return [UpsertdelResponseSchema(status=UpsertdelStatusEnum.UPDATED)]
 
 
 _current_module = sys.modules[__name__]
