@@ -5,11 +5,6 @@ from sqlalchemy import String, Boolean, ForeignKey, UniqueConstraint, Integer, E
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-try:
-    from src.Schemas.Enums import ClientType
-except ModuleNotFoundError:
-    from Schemas.Enums import ClientType
-
 from .AssociationModels import application_access_rules
 from ..config import PowerPlatformBase as Base
 
