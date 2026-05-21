@@ -18,8 +18,6 @@ class GetApplicationSizeQuery(BaseModel):
 
 class DeviceInfo(BaseModel):
     os_type: OSType
-    screen_width: int = Query(description="Screen width")
-    screen_height: int = Query(description="Screen height")
     screen_size: int = Query(description="Screen size")
 
 
