@@ -135,7 +135,7 @@ async def get_appearance(request: Request, response: Response, _payload: Annotat
         include={status.HTTP_201_CREATED, status.HTTP_500_INTERNAL_SERVER_ERROR}
     )
 )
-async def get_appearance(request: Request, response: Response, _payload: Annotated[UpsertAppearanceQuery, Query()]):
+async def create_update_appearance(request: Request, response: Response, _payload: Annotated[UpsertAppearanceQuery, Query()]):
     db_proxy: DBProxy = request.state.db_proxy
 
     async def db_query(session):
