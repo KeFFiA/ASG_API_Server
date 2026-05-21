@@ -72,7 +72,7 @@ class Font(Base):
     usage_name: Mapped[str] = mapped_column(String, nullable=False)
     font_name: Mapped[str] = mapped_column(String, nullable=False)
     font_size: Mapped[int] = mapped_column(Integer, nullable=False)
-    font_size_alternative: Mapped[int] = mapped_column(Integer, nullable=False)
+    font_size_alternative: Mapped[int] = mapped_column(Integer, nullable=True)
     font_color: Mapped[str] = mapped_column(String, nullable=False)
     font_weight: Mapped[str] = mapped_column(String, nullable=False)
 
