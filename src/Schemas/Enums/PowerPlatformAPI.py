@@ -76,7 +76,7 @@ class OSTypeEnum(str, __enum):
     ANDROID = "Android"
     IOS = "iOS"
     LINUX = "Linux"
-    MACOS = "macOS"
+    MACOS = "Mac OS"
 
 
 class AppearanceEnum(str, __enum):

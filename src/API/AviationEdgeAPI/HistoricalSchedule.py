@@ -9,7 +9,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from Config import setup_logger, AVIATION_EDGE_API_KEY, AVIATION_EDGE_URL, AVIATION_EDGE_MAX_BATCH_SIZE, \
-    AVIATION_EDGE_MAX_RANGE_DAYS, AVIATION_EDGE_PATH
+    AVIATION_EDGE_MAX_RANGE_DAYS, AVIATION_EDGE_PATH, AVIATION_EDGE_EXTRA_API_KEY
 from Database import DatabaseClient
 from Database.Models import HistoricalSchedule
 from Utils import parse_date_or_datetime, parse_dt, write_csv, performance_timer, ensure_utc
@@ -114,7 +114,8 @@ async def fetch_historical_schedule_chunk(
         "code": airport_code,
         "type": schedule_type,
         "date_from": range_from.strftime("%Y-%m-%d"),
-        "date_to": range_to.strftime("%Y-%m-%d")
+        "date_to": range_to.strftime("%Y-%m-%d"),
+        "extra_key": AVIATION_EDGE_EXTRA_API_KEY
     }
 
     if airline_iata:
@@ -698,11 +699,11 @@ ZRH
 
     SCHEDULE_TYPES = ["departure"]
 
-    START_DATE = "2025-07-01"
-    END_DATE = "2026-01-31"
+    START_DATE = "2024-01-01"
+    END_DATE = "2025-06-30"
 
     SAVE_MODE = "both"
-    CSV_NAME = "data_14_05_26_5(01-07-25 - 31-01-26).csv"
+    CSV_NAME = "data_22_05_26(2024-01-01 - 2025-06-30).csv"
 
     asyncio.run(
         fetch_historical_schedules(
