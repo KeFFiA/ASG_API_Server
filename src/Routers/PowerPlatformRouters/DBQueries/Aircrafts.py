@@ -125,7 +125,7 @@ async def query_aircrafts(
                     .joinedload(AircraftEngine.engine),
                 selectinload(Aircraft.lessee_lessors)
             )
-            .order_by(Airline.airline_name)
+            .order_by(Aircraft.id.desc())
         )
     else:
         stmt = (
@@ -137,7 +137,7 @@ async def query_aircrafts(
                 joinedload(Aircraft.template),
                 joinedload(Aircraft.technical_data),
             )
-            .order_by(Airline.airline_name)
+            .order_by(Aircraft.id.desc())
         )
 
     if payload.aircraft_registration:
