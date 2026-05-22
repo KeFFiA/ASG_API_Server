@@ -10,7 +10,7 @@ class AircraftTechnicalDataBody(BaseModel):
     av_fixed: bool = Field(default=False, description="Is agreed value fixed?")
     data_source: Optional[AircraftDataSourceEnum] = Field(default=AircraftDataSourceEnum.CIRIUM, description="Data source")
     in_dashboard: bool = Field(default=True, description="Use in Dashboard")
-    status: AircraftInsuredStatusEnum = Field(default=AircraftInsuredStatusEnum.INSURED, description="Status")
+    status: AircraftInsuredStatusEnum = Field(default=AircraftInsuredStatusEnum.NOT_INSURED, description="Status")
 
 
 class CreateUpdateEngineBody(BaseModel):

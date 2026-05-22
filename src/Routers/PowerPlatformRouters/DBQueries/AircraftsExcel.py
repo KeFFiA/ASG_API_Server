@@ -341,7 +341,7 @@ async def query_import_aircrafts(session: AsyncSession, _payload: List[CreateAir
         aircraft_manual.lessor = item.lessor
 
         aircraft_manual.data_source = AircraftDataSourceEnum.MANUAL
-        aircraft_manual.status = AircraftInsuredStatusEnum.INSURED
+        aircraft_manual.status = AircraftInsuredStatusEnum.NOT_INSURED
         aircraft_manual.in_dashboard = True
 
         new_engines = await build_engines(

@@ -512,13 +512,14 @@ async def query_create_update_aircraft(session: AsyncSession, _payload: CreateUp
 
     # LEASE
     manual.agreed_value = payload.agreed_value
-    manual.agreed_value_result = calculate_depreciated_value(
-        agreed_value=payload.agreed_value,
-        depreciation_rate=payload.depreciation_rate,
-        depreciation_start_date=payload.depreciation_start_date,
-        policy_from=payload.policy_from,
-        av_fixed=payload.technical_data.av_fixed
-    )
+    if not payload.technical_data.av_fixed:
+        manual.agreed_value_result = calculate_depreciated_value(
+            agreed_value=payload.agreed_value,
+            depreciation_rate=payload.depreciation_rate,
+            depreciation_start_date=payload.depreciation_start_date,
+            policy_from=payload.policy_from,
+            av_fixed=payload.technical_data.av_fixed
+        )
 
     manual.depreciation_rate = payload.depreciation_rate
     manual.depreciation_start_date = payload.depreciation_start_date
@@ -706,7 +707,7 @@ async def query_create_aircrafts_cirium(session: AsyncSession, _payload: CreateA
             aircraft.technical_data = AircraftTechnicalData(
                 data_source=AircraftDataSourceEnum.CIRIUM,
                 data_source_row_id=cirium.id,
-                status=AircraftInsuredStatusEnum.INSURED,
+                status=AircraftInsuredStatusEnum.NOT_INSURED,
                 av_fixed=True,
                 in_dashboard=True,
             )

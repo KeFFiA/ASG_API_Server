@@ -57,7 +57,7 @@ class AircraftManual(Base):
     status: Mapped[AircraftInsuredStatusEnum] = mapped_column(
         Enum(AircraftInsuredStatusEnum),
         nullable=False,
-        default=AircraftInsuredStatusEnum.INSURED
+        default=AircraftInsuredStatusEnum.NOT_INSURED
     )
 
     av_fixed: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -176,7 +176,7 @@ class AircraftTechnicalData(Base):
     status: Mapped[AircraftInsuredStatusEnum] = mapped_column(
         Enum(AircraftInsuredStatusEnum),
         nullable=False,
-        default=AircraftInsuredStatusEnum.INSURED
+        default=AircraftInsuredStatusEnum.NOT_INSURED
     )
 
     av_fixed: Mapped[bool] = mapped_column(Boolean, default=False)

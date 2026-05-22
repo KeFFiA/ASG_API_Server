@@ -109,7 +109,7 @@ async def update_aircrafts():
                 pp_aircraft.technical_data = AircraftTechnicalData(
                     data_source=AircraftDataSourceEnum.CIRIUM,
                     data_source_row_id=cirium_aircraft.id,
-                    status=AircraftInsuredStatusEnum.INSURED,
+                    status=AircraftInsuredStatusEnum.NOT_INSURED,
                     av_fixed=True,
                     in_dashboard=True
                 )
@@ -301,7 +301,7 @@ async def update_create_aircraft_manual(target: int):
                 aircraft_id=aircraft.id,
                 data_source=AircraftDataSourceEnum.MANUAL,
                 data_source_row_id=manual_aircraft.id,
-                status=AircraftInsuredStatusEnum.INSURED,
+                status=AircraftInsuredStatusEnum.NOT_INSURED,
             )
 
         else:
